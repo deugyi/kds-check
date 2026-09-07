@@ -72,6 +72,16 @@ footer li{margin-bottom:2px}
 /* RC beam surface; scoped to preserve other calculators. */
 #t1{font-size:16px}#t1 .card{padding:20px}#t1 .card h2{font-size:18px}#t1 label,#t1 label b{font-size:14px}#t1 input,#t1 select{min-height:42px;font-size:16px}#t1 .beam-inputs{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}#t1 .beam-intro{background:var(--accent);color:var(--panel);border:none}#t1 .beam-intro h2{font-size:25px;color:inherit;margin:0 0 8px}.beam-intro p{margin:4px 0}.beam-eyebrow{font-size:13px;letter-spacing:.04em}.beam-settings{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}.beam-settings summary{cursor:pointer;font-size:14px;font-weight:600}.beam-settings summary span{font-weight:400;color:var(--dim);margin-left:8px}.beam-settings .grid{margin-top:14px}.beam-settings p,.beam-settings label span{font-size:13px;color:var(--dim)}.beam-muted{font-size:14px;color:var(--dim);font-weight:400}.beam-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}.beam-stats>div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}.beam-stats span{font-size:14px;color:var(--dim);display:block}.beam-stats b{display:block;font-size:28px;margin-top:6px}.beam-stats small{font-size:14px;font-weight:400}.beam-preview{display:grid;grid-template-columns:minmax(200px,1fr) 1.25fr;gap:28px;align-items:center}#b_diagram svg{width:100%;max-height:350px;display:block}#b_diagram text{fill:var(--ink);font-size:12px}.beam-layout{font-size:22px;font-weight:700;margin:0}.beam-layout span{font-size:14px;color:var(--dim);font-weight:400}.beam-capacity{font-size:38px;font-weight:750;letter-spacing:-1px;margin:8px 0 0;color:var(--accent)}.beam-capacity small{font-size:16px;letter-spacing:0;font-weight:400}.beam-values{font-size:14px}.beam-values div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}.beam-values dt{color:var(--dim)}.beam-values dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}.beam-table-wrap{overflow:auto;max-height:600px}.beam-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}.beam-table th{position:sticky;top:0;background:var(--code);text-align:left;padding:12px 8px;white-space:nowrap}.beam-table td{padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}.beam-table td:nth-child(7){white-space:normal;min-width:135px;font-size:13px}.beam-table tr.selected{background:var(--code)}.beam-phi{font-weight:700;color:var(--accent)}.beam-view{background:var(--panel);border:1px solid var(--accent);border-radius:5px;color:var(--accent);padding:6px 10px;font:inherit;cursor:pointer}.beam-view[aria-pressed=true]{background:var(--accent);color:var(--panel)}.beam-basis{padding-left:20px;font-size:14px;line-height:1.8}#b_error{padding:18px;background:var(--panel);border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}#t1 a{color:var(--accent)}@media(max-width:650px){#t1 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}.beam-preview{grid-template-columns:1fr;gap:10px}.beam-stats{gap:6px}.beam-stats>div{padding:12px 8px}.beam-stats b{font-size:24px}.beam-stats span{font-size:12px}#t1 .card{padding:16px}.beam-capacity{font-size:34px}}@media(max-width:360px){#t1 .beam-inputs{grid-template-columns:1fr}.beam-stats{grid-template-columns:1fr}}
 
+
+main:has(#t1.on){max-width:1440px}
+.beam-workspace{display:grid;grid-template-columns:350px minmax(0,1fr);gap:20px;align-items:start}
+#t1 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#t1 [hidden]{display:none!important}
+.beam-sidebar,.beam-output{min-width:0}.beam-sidebar .card:first-child .beam-inputs>label:first-child{grid-column:1/-1}
+.beam-subheading{font-size:15px;margin:20px 0 10px;color:var(--ink)}
+.beam-sidebar .beam-muted{font-size:12px}.beam-sidebar .beam-settings .grid{grid-template-columns:1fr}
+@media(max-width:1050px) and (min-width:801px){.beam-workspace{grid-template-columns:300px minmax(0,1fr)}.beam-preview{grid-template-columns:1fr;gap:12px}.beam-stats b{font-size:23px}.beam-stats>div{padding:12px 8px}}
+@media(max-width:800px){.beam-workspace{grid-template-columns:1fr}.beam-preview{grid-template-columns:1fr;gap:12px}}
 </style>
 </head>
 <body>
@@ -93,22 +103,23 @@ footer li{margin-bottom:2px}
 <!-- ================= RC 보 ================= -->
 <section class="tab on" id="t1">
   <div class="card beam-intro"><p class="beam-eyebrow">RC 보 · 인장철근 자동 배치</p><h2>단면에 들어가는 철근과 휨강도</h2><p>하부 인장철근을 최대 3단까지 배치하고, 가닥 수별 φMn을 비교합니다.</p></div>
-  <div class="card">
-    <h2>단면 · 철근 · 재료</h2>
-    <div class="grid beam-inputs">
-      <label><b>가로 · 보 폭 b (mm)</b><input id="b_b" type="number" min="1" max="3000" step="any" value="400"></label>
-      <label><b>세로 · 보 높이 h (mm)</b><input id="b_h" type="number" min="1" max="5000" step="any" value="600"></label>
-      <label><b>인장철근 규격</b><select id="b_bar"><option>D10</option><option>D13</option><option>D16</option><option>D19</option><option>D22</option><option selected>D25</option><option>D29</option><option>D32</option><option>D35</option></select></label>
-      <label><b>스터럽 규격</b><select id="b_stirrup"><option selected>D10</option><option>D13</option><option>D16</option></select></label>
-      <label><b>콘크리트 fck (MPa)</b><select id="b_fck"><option>21</option><option selected>24</option><option>27</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option></select></label>
-      <label><b>주철근 fy (MPa)</b><select id="b_fy"><option value="400">SD400 · 400 MPa</option><option value="500">SD500 · 500 MPa</option><option value="600">SD600 · 600 MPa</option></select></label>
-    </div>
+  <div class="beam-workspace">
+  <aside class="beam-sidebar" aria-label="RC 보 입력">
+    <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
+<label><b>콘크리트 fck (MPa)</b><select id="b_fck"><option>21</option><option selected>24</option><option>27</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option><option value="custom">직접 입력</option></select></label>
+<label id="b_custom_field" hidden><b>직접 입력 fck (MPa)</b><input id="b_fck_custom" type="number" min="21" max="90" step="any" value="24"><span>21–90 MPa</span></label>
+<label><b>주철근 fy (MPa)</b><select id="b_fy"><option value="400">400 MPa</option><option value="500">500 MPa</option><option value="600">600 MPa</option></select></label><label><b>스터럽 fyt (MPa)</b><select id="b_fyt"><option value="400">400 MPa</option><option value="500">500 MPa</option><option value="600">600 MPa</option></select></label></div><p class="beam-muted">fy는 인장·압축 주철근에 함께 적용합니다. fyt는 스터럽 재료 설정이며 현재 휨강도에는 사용하지 않습니다.</p></div>
+    <div class="card"><h2>2. 단면 정보</h2><div class="grid beam-inputs"><label><b>가로 · 보 폭 b (mm)</b><input id="b_b" type="number" min="1" max="3000" step="any" value="400"></label><label><b>세로 · 보 높이 h (mm)</b><input id="b_h" type="number" min="1" max="5000" step="any" value="600"></label></div></div>
+    <div class="card"><h2>3. 철근 규격 · 배치</h2><div class="grid beam-inputs"><label><b>인장철근 규격</b><select id="b_bar"><option>D10</option><option>D13</option><option>D16</option><option>D19</option><option>D22</option><option selected>D25</option><option>D29</option><option>D32</option><option>D35</option></select></label><label><b>스터럽 규격</b><select id="b_stirrup"><option selected>D10</option><option>D13</option><option>D16</option></select></label></div>
+    <h3 class="beam-subheading">상부 압축철근</h3><div class="grid beam-inputs"><label><b>압축철근 규격</b><select id="b_compression_bar"><option>D10</option><option>D13</option><option>D16</option><option>D19</option><option>D22</option><option selected>D25</option><option>D29</option><option>D32</option><option>D35</option></select></label><label><b>압축철근 개수 (가닥)</b><input id="b_compression_count" type="number" min="0" step="1" value="0"></label></div>
+    <p class="beam-muted">0가닥이면 미반영. 상부 1단에 좌우대칭으로 배치하며 깊이는 피복과 스터럽·주철근 지름으로 계산합니다.</p>
     <details class="beam-settings"><summary>배치 조건 <span id="b_conditions">피복 40 mm · 골재 25 mm</span></summary><div class="grid">
       <label><b>피복두께 (mm)</b><input id="b_cover" type="number" min="1" step="any" value="40"><span>표면부터 스터럽 바깥면까지</span></label>
       <label><b>굵은골재 최대치수 (mm)</b><input id="b_aggregate" type="number" min="1" step="any" value="25"></label>
     </div><p>피복 40 mm는 기본 가정입니다. 노출환경·내화·시공조건에 맞게 조정하세요. 스터럽 굽힘부와 갈고리 간섭은 별도 확인이 필요합니다.</p></details>
-    <p class="beam-muted">보통중량 콘크리트 · 축력 없음 · 정모멘트 · 압축철근 없음. 입력을 바꾸면 결과가 갱신됩니다.</p>
-  </div>
+<p class="beam-muted">보통중량 콘크리트 · 축력 없음 · 정모멘트. 입력을 바꾸면 결과가 갱신됩니다.</p></div>
+  </aside>
+  <div class="beam-output" aria-label="RC 보 결과">
   <div id="b_error" role="alert" hidden></div>
   <div id="b_results">
     <div class="beam-stats" id="b_stats" aria-live="polite"></div>
@@ -121,6 +132,8 @@ footer li{margin-bottom:2px}
     <div class="card"><h2>배치·계산 근거</h2><div id="b_basis"></div>
       <p class="beam-muted">표의 ‘충족’은 인장영역·최소허용변형률·최소 휨철근 조건에 한정됩니다. 소요모멘트가 없으므로 하중에 대한 적합 여부는 판정하지 않습니다. 전단·처짐·정착·균열제어 간격·내진·시공상세는 별도 검토 대상입니다.</p>
     </div>
+  </div>
+  </div>
   </div>
 </section>
 
@@ -256,7 +269,7 @@ footer li{margin-bottom:2px}
   </ul>
   <h3>구현하지 않은 항목</h3>
   <ul>
-    <li>RC 보 : 하부 인장철근 최대 3단의 휨강도 계산. 압축철근·전단·처짐·정착·내진·스터럽 굽힘부 간섭·시공상세는 미검토. 피복은 입력 가정값입니다.</li>
+    <li>RC 보 : 하부 인장철근 최대 3단의 휨강도 계산. 전단·처짐·정착·내진·스터럽 굽힘부 간섭·시공상세는 미검토. 피복은 입력 가정값입니다.</li>
     <li>RC 기둥 : 장주효과(4.4), 2축 휨(4.5) 미구현 — M<sub>u</sub>는 확대 후 값을 입력하십시오.</li>
     <li>철골 보 : 웨브 비조밀·세장(4.3.2.1.1.4/5), T형·ㄱ형강, 인장역작용(4.3.2.1.2.3) 미구현.</li>
     <li>철골 기둥 : 비틀림·휨비틀림좌굴(4.2.4), 세장판 단면(4.2.7), 조립재(4.2.6) 미구현.</li>

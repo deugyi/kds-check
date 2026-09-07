@@ -15,7 +15,10 @@ function concrete(fc){
 function validate(p){
   for(const k of ['b','h','fck','fy','cover','aggregate']) if(!Number.isFinite(p[k])||p[k]<=0) throw Error('치수·강도·피복·골재 값은 0보다 큰 숫자여야 합니다.');
   if(p.b>3000||p.h>5000) throw Error('이 화면의 지원 단면 범위는 폭 3,000 mm, 높이 5,000 mm 이하입니다.');
-  if(!BARS[p.bar]||!STIRRUPS.includes(p.stirrup)||!FCK.includes(p.fck)||!FY.includes(p.fy)) throw Error('지원하는 철근 규격과 재료강도를 선택해 주세요.');
+  if(!BARS[p.bar]||!STIRRUPS.includes(p.stirrup)||!(p.fck>=21&&p.fck<=90)||!FY.includes(p.fy)) throw Error('지원하는 철근 규격과 재료강도를 선택해 주세요.');
+  if(p.fyt!==undefined&&!FY.includes(p.fyt)) throw Error('스터럽 강도를 선택해 주세요.');
+  if(!Number.isInteger(p.compressionCount??0)||(p.compressionCount??0)<0) throw Error('압축철근 개수는 0 이상의 정수여야 합니다.');
+  if((p.compressionCount??0)>0&&!BARS[p.compressionBar]) throw Error('압축철근 규격을 선택해 주세요.');
   if(p.aggregate>Math.min(p.b,p.h)/5) throw Error('골재 최대치수가 단면 최소 치수의 1/5을 초과합니다.');
 }
 function geometry(p){
@@ -26,8 +29,19 @@ function geometry(p){
   const verticalClear=Math.max(25,4*p.aggregate/3);
   const usable=p.b-2*(p.cover+st.diameter);
   const perLayer=Math.max(0,Math.floor((usable+horizontalClear+1e-9)/(db+horizontalClear)));
-  const maxLayers=Math.max(0,Math.min(3,Math.floor((p.h-2*edge+1e-9)/(db+verticalClear))+1));
-  return {bar,st,edge,horizontalClear,verticalClear,usable,perLayer,maxLayers};
+  let maxLayers=Math.max(0,Math.min(3,Math.floor((p.h-2*edge+1e-9)/(db+verticalClear))+1));
+  let compression=null;
+  if((p.compressionCount??0)>0){
+    const cb=BARS[p.compressionBar],count=p.compressionCount,ce=p.cover+st.diameter+cb.diameter/2;
+    const clear=Math.max(25,cb.diameter,4*p.aggregate/3);
+    const capacity=Math.max(0,Math.floor((usable+clear+1e-9)/(cb.diameter+clear)));
+    if(count>capacity)throw Error(`압축철근은 상부 1단에 최대 ${capacity}가닥까지 배치할 수 있습니다.`);
+    const xs=count===1?[p.b/2]:Array.from({length:count},(_,i)=>ce+(p.b-2*ce)*i/(count-1));
+    compression={count,d:ce,xs,bar:cb};
+    const minDepth=ce+cb.diameter/2+verticalClear+db/2;
+    maxLayers=Math.max(0,Math.min(maxLayers,Math.floor((p.h-edge-minDepth+1e-9)/(db+verticalClear))+1));
+  }
+  return {bar,st,edge,horizontalClear,verticalClear,usable,perLayer,maxLayers,compression};
 }
 // Select paired positions on the bottom-row grid, maintaining vertical alignment.
 function positions(base,count,edge,width){
@@ -41,14 +55,21 @@ function sectionAt(p,g,layers,c){
   const k=concrete(p.fck),stress=.85*k.eta*p.fck,a=Math.min(k.beta*c,p.h);
   let force=stress*p.b*a,moment=force*a/2;
   const strains=[],stresses=[];
-  for(const layer of layers){
+  // Integrate the displaced circular steel area within the concrete block.
+  // A partial intersection is continuous even when the neutral axis is shallow.
+  function steel(layer,bar){
     const strain=k.ecu*(c-layer.d)/c,fs=Math.max(-p.fy,Math.min(p.fy,200000*strain));
-    // Gross concrete block already includes displaced concrete at each steel layer.
-    const forceSteel=layer.count*g.bar.area*(fs-(layer.d<=a?stress:0));
-    force+=forceSteel;moment+=forceSteel*layer.d;
-    strains.push(-strain);stresses.push(-fs);
+    const radius=bar.diameter/2,z=Math.max(-radius,Math.min(radius,a-layer.d));
+    const q=Math.sqrt(Math.max(0,radius*radius-z*z)),ratio=bar.area/(Math.PI*radius*radius);
+    const area=(radius*radius*(Math.asin(z/radius)+Math.PI/2)+z*q)*ratio;
+    const firstMoment=layer.d*area-2/3*q*q*q*ratio;
+    force+=layer.count*(bar.area*fs-stress*area);
+    moment+=layer.count*(bar.area*fs*layer.d-stress*firstMoment);
+    return {strain:-strain,stress:-fs};
   }
-  return {force,Mn:-moment/1e6,strains,stresses,a,k};
+  for(const layer of layers){const r=steel(layer,g.bar);strains.push(r.strain);stresses.push(r.stress);}
+  const compression=g.compression?steel(g.compression,g.compression.bar):null;
+  return {force,Mn:-moment/1e6,strains,stresses,a,k,compression};
 }
 function strength(p,g,layers){
   let lo=1e-8,hi=p.h*2;
