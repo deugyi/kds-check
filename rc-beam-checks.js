@@ -82,6 +82,18 @@ function quantities(p,g,r,sk){
   const concreteCost=concrete*p.concretePrice,steelCost=steel*p.steelPrice;
   return {concrete,tension,compression,skin:skinWeight,stirrups,netSteel,steel,stations,cutLength,autoLength,hook,concreteCost,steelCost,totalCost:concreteCost+steelCost};
 }
-root.RCBeamChecks={skin,shear,quantities};
+function economy(p,g,results){
+  if(p.Mu!==null&&p.Mu!==undefined)nonnegative(p.Mu,'소요휨모멘트 Mu');
+  const k=R.concrete(p.fck),rhoB=.85*k.eta*p.fck/p.fy*k.beta*k.ecu/(k.ecu+p.fy/200000),target=.5*rhoB;
+  const rows=results.map(r=>{
+    const rho=r.As/(p.b*r.d),reasons=[...r.reasons];
+    if(p.Mu!=null&&r.phiMn<p.Mu)reasons.push('Mu 부족');
+    try{const sk=skin(p,g,r),v=shear(p,g,r);if(!sk.ok)reasons.push('표피철근 조건 미달');if(!v.ok)reasons.push('전단 조건 미달');}catch(e){reasons.push(e.message);}
+    return {key:r.key,total:r.total,rho,ratio:rho/rhoB,distance:Math.abs(rho-target),ok:r.eligible&&!reasons.length,reasons};
+  });
+  const best=rows.filter(r=>r.ok).sort((a,b)=>a.distance-b.distance||a.total-b.total)[0]||null;
+  return {rhoB,target,rows,best,maxPhi:Math.max(0,...results.filter(r=>r.eligible).map(r=>r.phiMn))};
+}
+root.RCBeamChecks={skin,shear,quantities,economy};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCBeamChecks;
 })(typeof globalThis!=='undefined'?globalThis:this);

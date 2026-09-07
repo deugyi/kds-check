@@ -87,6 +87,8 @@ main:has(#t1.on){max-width:1440px}
 .beam-check-grid .beam-capacity{font-size:28px}
 .beam-quantity-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}.beam-quantity-table td,.beam-quantity-table th{padding:8px;border-bottom:1px solid var(--line);text-align:right}.beam-quantity-table td:first-child,.beam-quantity-table th:first-child{text-align:left}.beam-quantity-total{font-size:27px;color:var(--accent);font-weight:700;margin:12px 0}.beam-check-grid p{font-size:14px}
 @media(max-width:1100px){.beam-check-grid{grid-template-columns:1fr}}
+
+.beam-table tr.economical,.beam-table tr.economical.selected{background:#e5f1ff;color:#123e70}.beam-table tr.economical td:first-child{border-left:4px solid #1764b5}.beam-table tr.economical .beam-phi{color:#0759ae}.beam-table tr.economical .ok{color:#176337}.beam-economy-badge{display:inline-block;color:#0759ae;font-weight:750}.beam-table td:nth-child(7),.beam-table td:nth-child(8){min-width:0;white-space:nowrap}.beam-table td:nth-child(9){white-space:normal;min-width:135px;font-size:13px}.beam-economy-title{color:var(--accent);font-size:19px;font-weight:700}
 </style>
 </head>
 <body>
@@ -121,7 +123,7 @@ main:has(#t1.on){max-width:1440px}
 
     <h3 class="beam-subheading">측면 표피철근</h3><div class="grid beam-inputs">
       <label><b>표피철근 배치</b><select id="b_skin_mode"><option value="auto">KDS 자동 배치</option><option value="manual">개수 직접 입력</option><option value="none">미배치</option></select></label>
-      <label><b>표피철근 규격</b><select id="b_skin_bar"><option>D10</option><option selected>D13</option><option>D16</option><option>D19</option><option>D22</option><option>D25</option></select></label>
+      <label><b>표피철근 규격</b><select id="b_skin_bar"><option>D10</option></select></label>
       <label id="b_skin_count_field" hidden><b>한 면당 추가 가닥 수</b><input id="b_skin_count" type="number" min="0" max="100" step="1" value="2"></label>
       <label><b>균열 검토 노출환경</b><select id="b_environment"><option value="other">건조 외 환경</option><option value="dry">건조 환경</option></select></label>
     </div><p class="beam-muted">h &gt; 900 mm이면 인장측 절반 높이의 양쪽 측면에 자동 추가합니다. 표피철근은 물량에 포함하고 휨강도에는 산입하지 않습니다.</p>
@@ -131,14 +133,14 @@ main:has(#t1.on){max-width:1440px}
     </div><p>피복 40 mm는 기본 가정입니다. 노출환경·내화·시공조건에 맞게 조정하세요. 스터럽 굽힘부와 갈고리 간섭은 별도 확인이 필요합니다.</p></details>
 <p class="beam-muted">보통중량 콘크리트 · 축력 없음 · 정모멘트. 입력을 바꾸면 결과가 갱신됩니다.</p></div>
 
-    <div class="card"><h2>4. 전단 검토</h2><div class="grid beam-inputs">
+    <div class="card"><h2>4. 소요강도 · 전단 검토</h2><div class="grid beam-inputs">
       <label><b>유효 스터럽 다리 수</b><select id="b_legs"><option value="2">2개</option><option value="3">3개</option><option value="4">4개</option><option value="5">5개</option><option value="6">6개</option></select></label>
       <label><b>종방향 간격 s (mm)</b><input id="b_spacing" type="number" min="25" step="25" value="200"></label>
-      <label><b>소요전단력 Vu (kN)</b><input id="b_vu" type="number" min="0" step="any" placeholder="선택 입력"></label>
+      <label><b>소요휨모멘트 Mu (kN·m)</b><input id="b_mu" type="number" min="0" step="any" placeholder="선택 입력"></label><label><b>소요전단력 Vu (kN)</b><input id="b_vu" type="number" min="0" step="any" placeholder="선택 입력"></label>
     </div><p class="beam-muted">Vu를 비워 두면 강도·철근량·간격만 확인합니다. 일반 보의 수직 스터럽 검토이며 깊은보·비틀림·내진 특수규정은 포함하지 않습니다.</p></div>
     <div class="card"><h2>5. 1m당 물량 · 단가</h2><div class="grid beam-inputs">
-      <label><b>콘크리트 (원/m³)</b><input id="b_concrete_price" type="number" min="0" step="1000" value="120000"></label>
-      <label><b>철근 (원/tonf)</b><input id="b_steel_price" type="number" min="0" step="10000" value="1300000"></label>
+      <label><b>콘크리트 (만원/m³)</b><input id="b_concrete_price" type="number" min="0" step="1" value="12"></label>
+      <label><b>철근 (만원/tonf)</b><input id="b_steel_price" type="number" min="0" step="1" value="130"></label>
     </div><details class="beam-settings"><summary>철근 물량 산정 조건</summary><div class="grid">
       <label><b>철근 할증률 (%)</b><input id="b_waste" type="number" min="0" max="100" step="1" value="0"></label>
       <label><b>스터럽 1조 절단길이 (mm)</b><input id="b_cut_length" type="number" min="1" step="any" placeholder="비우면 개산 자동 산정"><span>외곽 폐쇄형 1개 + 내부 다리 전체</span></label>
@@ -151,13 +153,14 @@ main:has(#t1.on){max-width:1440px}
     <div class="card"><h2>선택 배치</h2><div class="beam-preview"><div id="b_diagram"></div><div id="b_selected"></div></div></div>
     <div class="card"><h2>선택 배치 · 보 길이 1m당 물량과 금액</h2><div id="b_quantities" aria-live="polite"></div></div>
     <div class="beam-check-grid"><div class="card"><h2>전단 검토 · 선택 배치</h2><div id="b_shear"></div></div><div class="card"><h2>표피철근 검토 · 선택 배치</h2><div id="b_skin"></div></div></div>
+    <div class="card"><h2>경제적인 배근 · ρ = 0.5ρb 기준</h2><div id="b_economy" aria-live="polite"></div></div>
     <div class="card"><h2>가닥 수별 φMn <span class="beam-muted">단별 가닥 수는 아래 → 위 순서</span></h2>
-      <p class="beam-muted">하부단을 우선 채우는 좌우대칭·상하 정렬 대표 배치입니다. 각 총 가닥 수당 1개를 표시하며, 모든 배근 조합의 최적화 결과는 아닙니다.</p>
-      <div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>총 가닥</th><th>단별 배치</th><th>As (mm²)</th><th>d (mm)</th><th>φ</th><th>φMn (kN·m)</th><th>단면조건</th><th>보기</th></tr></thead><tbody id="b_rows"></tbody></table></div>
+      <p class="beam-muted">파란색 행과 ✓는 입력된 검토조건을 충족하는 배치 중 ρ = 0.5ρb에 가장 가까운 배치입니다. 하부단을 우선 채우는 좌우대칭·상하 정렬 대표 배치입니다. 각 총 가닥 수당 1개를 표시하며, 모든 배근 조합의 최적화 결과는 아닙니다.</p>
+      <div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>총 가닥</th><th>단별 배치</th><th>As (mm²)</th><th>d (mm)</th><th>φ</th><th>φMn (kN·m)</th><th>ρ / ρb</th><th>경제 기준</th><th>단면조건</th><th>보기</th></tr></thead><tbody id="b_rows"></tbody></table></div>
       <p class="beam-muted">d는 인장철근 전체 면적의 도심 깊이입니다. φ는 최하단 철근 변형률로 구하며, Mn은 각 단의 응력을 따로 계산합니다.</p>
     </div>
     <div class="card"><h2>배치·계산 근거</h2><div id="b_basis"></div>
-      <p class="beam-muted">표의 ‘충족’은 인장영역·최소허용변형률·최소 휨철근 조건에 한정됩니다. 소요모멘트가 없으므로 하중에 대한 적합 여부는 판정하지 않습니다. 전단과 표피철근의 결과는 각각 위 카드에서 확인하세요. 처짐·정착·주철근 균열제어 간격·내진·시공상세는 별도 검토 대상입니다.</p>
+      <p class="beam-muted">표의 ‘충족’은 인장영역·최소허용변형률·최소 휨철근 조건에 한정됩니다. 입력 Mu의 확인 결과는 경제 배근 카드에서 확인하세요. 미입력 하중의 적합 여부는 판정하지 않습니다. 전단과 표피철근의 결과는 각각 위 카드에서 확인하세요. 처짐·정착·주철근 균열제어 간격·내진·시공상세는 별도 검토 대상입니다.</p>
     </div>
   </div>
   </div>
@@ -845,8 +848,8 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="rc-beam.js?v=20260907-3"></script>
-<script src="rc-beam-checks.js?v=20260907-3"></script>
-<script src="rc-beam-ui.js?v=20260907-3"></script>
+<script src="rc-beam.js?v=20260907-4"></script>
+<script src="rc-beam-checks.js?v=20260907-4"></script>
+<script src="rc-beam-ui.js?v=20260907-4"></script>
 </body>
 </html>
