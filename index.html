@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KDS 구조검토</title>
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --dim:#6b6b66;
+  --line:#dedcd6; --accent:#1d5b8f; --ok:#1f7a44; --ng:#b3261e; --warn:#8a6100;
+  --code:#f2f1ec;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --panel:#1e2024; --ink:#e8e6e1; --dim:#9b9b95;
+    --line:#33363c; --accent:#7ab6ea; --ok:#5cc98a; --ng:#ff8a80; --warn:#e0b155;
+    --code:#232630;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16171a; --panel:#1e2024; --ink:#e8e6e1; --dim:#9b9b95;
+  --line:#33363c; --accent:#7ab6ea; --ok:#5cc98a; --ng:#ff8a80; --warn:#e0b155;
+  --code:#232630;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  font-size:15px;line-height:1.55}
+header{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{margin:0;font-size:17px;letter-spacing:-.2px}
+header p{margin:3px 0 0;font-size:12.5px;color:var(--dim)}
+nav{display:flex;gap:4px;overflow-x:auto;padding:8px 12px 0;background:var(--panel);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav button{flex:0 0 auto;background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--dim);padding:8px 12px;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap}
+nav button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:900px;margin:0 auto;padding:14px 12px 60px}
+section.tab{display:none}
+section.tab.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:12px 13px;margin-bottom:12px}
+.card h2{margin:0 0 9px;font-size:14px;color:var(--accent);letter-spacing:-.2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--dim)}
+label b{font-weight:600;color:var(--ink);font-size:12.5px}
+input,select{background:var(--bg);color:var(--ink);border:1px solid var(--line);
+  border-radius:5px;padding:6px 7px;font-size:14px;font-family:inherit;width:100%}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button.go{background:var(--accent);color:#fff;border:none;border-radius:6px;
+  padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+button.go:hover{filter:brightness(1.1)}
+.chk{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--dim)}
+.chk input{width:auto}
+pre.out{background:var(--code);border:1px solid var(--line);border-radius:6px;
+  padding:11px 12px;margin:0;font-size:12.5px;line-height:1.65;white-space:pre-wrap;
+  word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  overflow-x:auto}
+.ok{color:var(--ok);font-weight:700}
+.ng{color:var(--ng);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+.ref{color:var(--accent)}
+.hd{color:var(--dim)}
+canvas{width:100%;max-width:460px;height:auto;display:block;margin:6px auto;
+  background:var(--code);border:1px solid var(--line);border-radius:6px}
+.note{font-size:12px;color:var(--dim);margin:8px 0 0;padding-left:1em;text-indent:-1em}
+footer{max-width:900px;margin:0 auto;padding:0 12px 40px;font-size:12px;color:var(--dim)}
+footer h3{font-size:12.5px;color:var(--ink);margin:16px 0 5px}
+footer ul{margin:0;padding-left:18px}
+footer li{margin-bottom:2px}
+.sub{font-size:12px;color:var(--dim);margin:-4px 0 8px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>KDS 구조검토</h1>
+  <p>RC 보 · RC 기둥 P-M · 철골 보 · 철골 기둥 &nbsp;|&nbsp; KDS 14 20 xx / KDS 14 31 xx</p>
+</header>
+
+<nav id="nav">
+  <button data-t="t1" class="on">RC 보</button>
+  <button data-t="t2">RC 기둥 P-M</button>
+  <button data-t="t3">철골 보</button>
+  <button data-t="t4">철골 기둥</button>
+</nav>
+
+<main>
+
+<!-- ================= RC 보 ================= -->
+<section class="tab on" id="t1">
+  <div class="card">
+    <h2>재료 · 단면</h2>
+    <div class="grid">
+      <label><b>fck (MPa)</b><input id="b_fck" value="24"></label>
+      <label><b>fy 주철근 (MPa)</b><input id="b_fy" value="400"></label>
+      <label><b>fyt 스터럽 (MPa)</b><input id="b_fyt" value="400"></label>
+      <label><b>λ 경량계수</b><input id="b_lam" value="1.0"></label>
+      <label><b>b<sub>w</sub> (mm)</b><input id="b_b" value="400"></label>
+      <label><b>h (mm)</b><input id="b_h" value="600"></label>
+      <label><b>d 인장철근 (mm)</b><input id="b_d" value="540"></label>
+      <label><b>As (mm²)</b><input id="b_as" value="2028"></label>
+      <label><b>d′ 압축철근 (mm)</b><input id="b_dp" value="60"></label>
+      <label><b>As′ (mm²)</b><input id="b_asp" value="0"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>소요강도 · 전단철근</h2>
+    <div class="grid">
+      <label><b>Mu (kN·m)</b><input id="b_mu" value="300"></label>
+      <label><b>Vu (kN)</b><input id="b_vu" value="300"></label>
+      <label><b>Av (mm²)</b><input id="b_av" value="253.4"></label>
+      <label><b>s 간격 (mm)</b><input id="b_s" value="200"></label>
+    </div>
+    <div class="row">
+      <button class="go" onclick="runBeam()">계산</button>
+      <span class="chk"><input type="checkbox" id="b_step" checked><label for="b_step" style="display:inline">유도 과정 표시</label></span>
+    </div>
+  </div>
+  <div class="card"><h2>결과</h2><pre class="out" id="b_out">입력 후 [계산]</pre></div>
+</section>
+
+<!-- ================= RC 기둥 ================= -->
+<section class="tab" id="t2">
+  <div class="card">
+    <h2>재료 · 횡보강</h2>
+    <div class="grid">
+      <label><b>fck (MPa)</b><input id="c_fck" value="27"></label>
+      <label><b>fy (MPa)</b><input id="c_fy" value="500"></label>
+      <label><b>횡보강</b><select id="c_tie"><option value="1">띠철근 (φ=0.65)</option><option value="2">나선철근 (φ=0.70)</option></select></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>단면 · 배근</h2>
+    <p class="sub">b = 휨축에 직각인 폭, h = Mu 방향 깊이 (KDS 14 20 20 P-M 해석 기준)</p>
+    <div class="grid">
+      <label><b>b (mm)</b><input id="c_b" value="600"></label>
+      <label><b>h (mm)</b><input id="c_h" value="600"></label>
+      <label><b>배근 방식</b><select id="c_mode" onchange="colMode()">
+        <option value="1">2단 (As′, As)</option>
+        <option value="2" selected>주철근 nx × ny</option></select></label>
+      <label><b>d′ (mm)</b><input id="c_dp" value="60"></label>
+      <label><b>d (mm)</b><input id="c_d" value="540"></label>
+      <label class="m1"><b>As′ (mm²)</b><input id="c_asp" value="1548"></label>
+      <label class="m1"><b>As (mm²)</b><input id="c_as" value="1548"></label>
+      <label class="m2"><b>nx (상·하단 개수)</b><input id="c_nx" value="4"></label>
+      <label class="m2"><b>ny (열 수, ≥2)</b><input id="c_ny" value="4"></label>
+      <label class="m2"><b>Ab 1개 단면적 (mm²)</b><input id="c_ab" value="387.1"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>소요강도</h2>
+    <div class="grid">
+      <label><b>Pu (kN)</b><input id="c_pu" value="3000"></label>
+      <label><b>Mu (kN·m)</b><input id="c_mu" value="500"></label>
+    </div>
+    <div class="row">
+      <button class="go" onclick="runCol()">계산 · P-M 작도</button>
+      <span class="chk"><input type="checkbox" id="c_step" checked><label for="c_step" style="display:inline">유도 과정 표시</label></span>
+    </div>
+  </div>
+  <div class="card"><h2>φP<sub>n</sub> – φM<sub>n</sub> 상관도</h2>
+    <canvas id="c_cv" width="920" height="700"></canvas>
+    <p class="note">가는 선 = 공칭 Pn–Mn, 굵은 선 = φ 적용 후, 수평 절단선 = φPn,max (4.1-16/17), ● = (Mu, Pu)</p>
+  </div>
+  <div class="card"><h2>결과</h2><pre class="out" id="c_out">입력 후 [계산]</pre></div>
+</section>
+
+<!-- ================= 철골 보 ================= -->
+<section class="tab" id="t3">
+  <div class="card">
+    <h2>강재</h2>
+    <div class="grid">
+      <label><b>강종</b><select id="sb_gr" onchange="steelFy('sb')"></select></label>
+      <label><b>F<sub>y</sub> (MPa)</b><input id="sb_fy" value="345"></label>
+      <label><b>E (MPa)</b><input id="sb_e" value="210000"></label>
+    </div>
+    <p class="note">강종을 고르면 플랜지 두께 t<sub>f</sub> 기준으로 KDS 14 31 05 표 3.4-1의 F<sub>y</sub>를 자동 대입합니다. E = 210,000 MPa는 같은 기준 표 3.5-1.</p>
+  </div>
+  <div class="card">
+    <h2>단면 (KS 표기: H × B × t<sub>w</sub> × t<sub>f</sub>)</h2>
+    <div class="grid">
+      <label><b>H 총춤 (mm)</b><input id="sb_H" value="600" onchange="steelFy('sb')"></label>
+      <label><b>B 폭 (mm)</b><input id="sb_B" value="200"></label>
+      <label><b>t<sub>w</sub> (mm)</b><input id="sb_tw" value="11"></label>
+      <label><b>t<sub>f</sub> (mm)</b><input id="sb_tf" value="17" onchange="steelFy('sb')"></label>
+      <label><b>제작 구분</b><select id="sb_rl"><option value="1">압연 H형강</option><option value="0">용접 조립</option></select></label>
+      <label><b>J 직접입력 (mm⁴)</b><input id="sb_J" value="" placeholder="비우면 자동"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>비지지길이 · 소요강도</h2>
+    <div class="grid">
+      <label><b>L<sub>b</sub> (mm)</b><input id="sb_lb" value="3000"></label>
+      <label><b>C<sub>b</sub></b><input id="sb_cb" value="1.0"></label>
+      <label><b>M<sub>u</sub> (kN·m)</b><input id="sb_mu" value="300"></label>
+      <label><b>V<sub>u</sub> (kN)</b><input id="sb_vu" value="250"></label>
+    </div>
+    <div class="row">
+      <button class="go" onclick="runSteelBeam()">계산</button>
+      <span class="chk"><input type="checkbox" id="sb_step" checked><label for="sb_step" style="display:inline">유도 과정 표시</label></span>
+    </div>
+  </div>
+  <div class="card"><h2>결과</h2><pre class="out" id="sb_out">입력 후 [계산]</pre></div>
+</section>
+
+<!-- ================= 철골 기둥 ================= -->
+<section class="tab" id="t4">
+  <div class="card">
+    <h2>강재</h2>
+    <div class="grid">
+      <label><b>강종</b><select id="sc_gr" onchange="steelFy('sc')"></select></label>
+      <label><b>F<sub>y</sub> (MPa)</b><input id="sc_fy" value="345"></label>
+      <label><b>E (MPa)</b><input id="sc_e" value="210000"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>단면 (2축대칭 H형강)</h2>
+    <div class="grid">
+      <label><b>H (mm)</b><input id="sc_H" value="400" onchange="steelFy('sc')"></label>
+      <label><b>B (mm)</b><input id="sc_B" value="400"></label>
+      <label><b>t<sub>w</sub> (mm)</b><input id="sc_tw" value="13"></label>
+      <label><b>t<sub>f</sub> (mm)</b><input id="sc_tf" value="21" onchange="steelFy('sc')"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>좌굴길이 · 소요강도</h2>
+    <div class="grid">
+      <label><b>K<sub>x</sub>L<sub>x</sub> (mm)</b><input id="sc_klx" value="4000"></label>
+      <label><b>K<sub>y</sub>L<sub>y</sub> (mm)</b><input id="sc_kly" value="4000"></label>
+      <label><b>P<sub>u</sub> (kN)</b><input id="sc_pu" value="3000"></label>
+    </div>
+    <div class="row">
+      <button class="go" onclick="runSteelCol()">계산</button>
+      <span class="chk"><input type="checkbox" id="sc_step" checked><label for="sc_step" style="display:inline">유도 과정 표시</label></span>
+    </div>
+  </div>
+  <div class="card"><h2>결과</h2><pre class="out" id="sc_out">입력 후 [계산]</pre></div>
+</section>
+
+</main>
+
+<footer>
+  <h3>적용 기준</h3>
+  <ul>
+    <li>KDS 14 20 20 : 2022 — 콘크리트구조 휨 및 압축 (표 4.1-1/4.1-2, 4.1.2, 4.2.2, 4.3.2, 식 4.1-16/17)</li>
+    <li>KDS 14 20 22 : 2022 — 콘크리트구조 전단 및 비틀림 (4.1.1, 4.2.1, 4.3.2, 4.3.3, 4.3.4)</li>
+    <li>KDS 14 20 10 : 2021 — 해석과 설계 원칙 (4.2.3(2) 강도감소계수, 4.3.3 탄성계수)</li>
+    <li>KDS 14 31 10 : 강구조 부재 (4.2.1~4.2.3 압축, 4.3.1~4.3.2 휨·전단, 표 4.2-2, 표 4.3-2)</li>
+    <li>KDS 14 31 05 : 2024 — 강구조 일반사항 (표 3.4-1 재료강도, 표 3.5-1 물리상수)</li>
+  </ul>
+  <h3>구현하지 않은 항목</h3>
+  <ul>
+    <li>RC 보 : KDS 14 20 20 (4.2.2(1)) φM<sub>n</sub> ≥ 1.2M<sub>cr</sub> — M<sub>cr</sub>은 KDS 14 20 30 (식 4.2-2)에 있어 이 툴에서는 (4.2.2(2)) φM<sub>n</sub> ≥ (4/3)M<sub>u</sub>만 검토합니다.</li>
+    <li>RC 기둥 : 장주효과(4.4), 2축 휨(4.5) 미구현 — M<sub>u</sub>는 확대 후 값을 입력하십시오.</li>
+    <li>철골 보 : 웨브 비조밀·세장(4.3.2.1.1.4/5), T형·ㄱ형강, 인장역작용(4.3.2.1.2.3) 미구현.</li>
+    <li>철골 기둥 : 비틀림·휨비틀림좌굴(4.2.4), 세장판 단면(4.2.7), 조립재(4.2.6) 미구현.</li>
+  </ul>
+</footer>
+
+<script>
+/* =======================================================================
+   공통
+   ===================================================================== */
+const ES = 200000.0;          // KDS 14 20 10 (4.3-5)
+const PHIV = 0.75;            // KDS 14 20 10 (4.2.3(2)③)
+const $ = id => document.getElementById(id);
+const V = id => parseFloat($(id).value);
+const f = (x,n) => (isFinite(x) ? x.toFixed(n) : "-");
+
+document.querySelectorAll('#nav button').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('on'));
+    btn.classList.add('on'); $(btn.dataset.t).classList.add('on');
+  };
+});
+
+/* 출력 버퍼 */
+let B=[];
+const P  = t => B.push(t===undefined?"":t);
+const LN = () => B.push("─".repeat(34));
+const HD = t => B.push("\n<span class='hd'>■ "+t+"</span>");
+const RF = t => B.push("<span class='ref'>["+t+"]</span>");
+const OK = t => B.push("<span class='ok'>✔ "+t+"</span>");
+const NG = t => B.push("<span class='ng'>✘ "+t+"</span>");
+const WN = t => B.push("<span class='warn'>⚠ "+t+"</span>");
+const flush = id => { $(id).innerHTML = B.join("\n"); B=[]; };
+const judge = (c,t) => c?OK(t):NG(t);
+
+/* =======================================================================
+   RC 공통  (KDS 14 20 20 / 14 20 22 / 14 20 10)
+   프로젝트의 rc_vert.py P-M 엔진과 동일 알고리즘
+   ===================================================================== */
+
+/* 표 4.1-2 : ecu, eta, beta1  (표에 없는 fck는 직선보간) */
+function rcpar(fck){
+  let ecu,eta,b1,t;
+  if(fck<=40){ ecu=0.0033; eta=1.00; b1=0.80; }
+  else if(fck<=50){ t=(fck-40)/10; ecu=0.0033-0.0001*t; eta=1.00-0.03*t; b1=0.80; }
+  else if(fck<=60){ t=(fck-50)/10; ecu=0.0032-0.0001*t; eta=0.97-0.02*t; b1=0.80-0.04*t; }
+  else if(fck<=70){ t=(fck-60)/10; ecu=0.0031-0.0001*t; eta=0.95-0.04*t; b1=0.76-0.02*t; }
+  else if(fck<=80){ t=(fck-70)/10; ecu=0.0030-0.0001*t; eta=0.91-0.04*t; b1=0.74-0.02*t; }
+  else if(fck<=90){ t=(fck-80)/10; ecu=0.0029-0.0001*t; eta=0.87-0.03*t; b1=0.72-0.02*t; }
+  else { ecu=0.0028; eta=0.84; b1=0.70; }
+  return {ecu:ecu, eta:eta, b1:b1};
+}
+/* KDS 14 20 10 (4.2.3(2)) + 14 20 20 (4.1.2(3)(4)) */
+function etl_(fy){ return fy<=400 ? 0.005 : 2.5*fy/ES; }
+function phif(et, fy, tie){
+  const ey=fy/ES, etl=etl_(fy), p0=(tie===1?0.65:0.70);
+  if(et<=ey) return p0;
+  if(et>=etl) return 0.85;
+  return p0+(0.85-p0)*(et-ey)/(etl-ey);
+}
+function zone(ph, tie){
+  const p0=(tie===1?0.65:0.70);
+  if(ph>=0.8499) return "인장지배단면";
+  if(ph<=p0+0.0001) return "압축지배단면";
+  return "변화구간단면";
+}
+/* KDS 14 20 22 (4.1.1(4)) : sqrt(fck) <= 8.4 */
+function rt(fck){ const v=Math.sqrt(fck); return v<=8.4?v:8.4; }
+
+/* 단면 : {b,h,lay:[[As,d],...]}  d는 압축연단부터 */
+function pmc(sec, fck, fy, c, tie){
+  const p=rcpar(fck), m=p.eta*0.85*fck, h=sec.h;
+  let a=p.b1*c, ae=Math.min(a,h);
+  const Cc=m*sec.b*ae/1000.0;            // kN
+  const arm=h/2 - ae/2;                  // mm, 도심 기준
+  let Pn=Cc, Mn=Cc*arm/1000.0, rows=[], dt=0;
+  for(const L of sec.lay){
+    const As=L[0], d=L[1];
+    if(d>dt) dt=d;
+    const es=p.ecu*(c-d)/c;
+    let fs=ES*es;
+    if(fs> fy) fs= fy;
+    if(fs<-fy) fs=-fy;
+    let fe=fs;
+    if(d<=ae && fs>0) fe=fs-m;           // 압축블록 내 철근 → 콘크리트 면적 공제
+    const F=As*fe/1000.0;
+    Pn+=F; Mn+=F*(h/2-d)/1000.0;
+    rows.push({d:d,As:As,es:es,fs:fe,F:F});
+  }
+  const et=p.ecu*(dt-c)/c;
+  return {Pn:Pn, Mn:Mn, et:et, phi:phif(et,fy,tie), Cc:Cc, arm:arm, a:a, c:c, rows:rows, dt:dt, m:m, p:p};
+}
+function dtOf(sec){ let d=0; for(const L of sec.lay) if(L[1]>d) d=L[1]; return d; }
+function agOf(sec){ return sec.b*sec.h; }
+function astOf(sec){ let s=0; for(const L of sec.lay) s+=L[0]; return s; }
+
+function solveP0(sec,fck,fy,tie){          // Pn = 0
+  let lo=0.01*dtOf(sec), hi=12*sec.h;
+  for(let i=0;i<160;i++){ const c=0.5*(lo+hi);
+    if(pmc(sec,fck,fy,c,tie).Pn<0) lo=c; else hi=c; }
+  return pmc(sec,fck,fy,0.5*(lo+hi),tie);
+}
+function solveE(sec,fck,fy,e,tie){         // Mn/Pn = e
+  let lo=0.01*dtOf(sec), hi=12*sec.h;
+  for(let i=0;i<160;i++){ const c=0.5*(lo+hi); const r=pmc(sec,fck,fy,c,tie);
+    if(r.Mn*1000 - e*r.Pn > 0) lo=c; else hi=c; }
+  return pmc(sec,fck,fy,0.5*(lo+hi),tie);
+}
+function poOf(sec,fck,fy){                 // Po = .85fck(Ag-Ast)+fy*Ast [kN]
+  const ag=agOf(sec), ast=astOf(sec);
+  return (0.85*fck*(ag-ast)+fy*ast)/1000.0;
+}
+function pmaxOf(sec,fck,fy,tie){           // KDS 14 20 20 (4.1-16)(4.1-17)
+  const po=poOf(sec,fck,fy);
+  const p0=(tie===1?0.65:0.70), k=(tie===1?0.80:0.85);
+  return {pm:k*p0*po, po:po, k:k, p0:p0};
+}
+
+/* =======================================================================
+   TAB 1 : RC 보  (휨 KDS 14 20 20 / 전단 KDS 14 20 22)
+   ===================================================================== */
+function runBeam(){
+  const fck=V('b_fck'), fy=V('b_fy'), fyt=V('b_fyt'), lam=V('b_lam');
+  const bw=V('b_b'), h=V('b_h'), d=V('b_d'), As=V('b_as'), dp=V('b_dp'), Asp=V('b_asp');
+  const Mu=V('b_mu'), Vu=V('b_vu'), Av=V('b_av'), s=V('b_s');
+  const st=$('b_step').checked;
+  const p=rcpar(fck), m=p.eta*0.85*fck;
+
+  let lay=[]; if(Asp>0) lay.push([Asp,dp]); lay.push([As,d]);
+  const sec={b:bw,h:h,lay:lay};
+
+  /* ---------- 휨 ---------- */
+  HD("휨 : KDS 14 20 20");
+  RF("표 4.1-2  fck="+f(fck,0)+" MPa");
+  P("  εcu = "+p.ecu.toFixed(5)+"   η = "+f(p.eta,3)+"   β1 = "+f(p.b1,3));
+  P("  η·0.85·fck = "+f(m,3)+" MPa");
+  const r=solveP0(sec,fck,fy,1);
+  if(st){
+    RF("4.1.1(8) 등가직사각형 + 4.1.2(1) 평형·적합");
+    P("  ΣF = 0 을 만족하는 c 를 구함");
+    P("  c = "+f(r.c,2)+" mm ,  a = β1·c = "+f(p.b1,3)+"×"+f(r.c,2)+" = "+f(r.a,2)+" mm");
+    P("  Cc = η·0.85fck·b·a = "+f(m,3)+"×"+f(bw,0)+"×"+f(Math.min(r.a,h),2));
+    P("     = "+f(r.Cc,1)+" kN   (도심에서 "+f(r.arm,1)+" mm)");
+    for(const q of r.rows){
+      P("  d="+f(q.d,1)+"  As="+f(q.As,1)+"  εs="+q.es.toFixed(5));
+      P("     fs="+f(q.fs,1)+" MPa   F="+f(q.F,1)+" kN   arm="+f(h/2-q.d,1)+" mm");
+    }
+    P("  ΣP = "+f(r.Pn,3)+" kN  (≈0 확인)");
+    P("  Mn = ΣF·arm = "+f(r.Mn,2)+" kN·m");
+  }
+  const ey=fy/ES, etl=etl_(fy), emin=(fy<=400?0.004:2*ey);
+  RF("4.1.2(3)(4) + 14 20 10 (4.2.3(2))");
+  P("  εy = fy/Es = "+f(fy,0)+"/200000 = "+ey.toFixed(5));
+  P("  인장지배 한계 εt,l = "+etl.toFixed(5));
+  P("  εt = εcu(dt−c)/c = "+p.ecu.toFixed(5)+"("+f(r.dt,1)+"−"+f(r.c,2)+")/"+f(r.c,2));
+  P("     = "+r.et.toFixed(5)+"  → "+zone(r.phi,1));
+  P("  φ = "+f(r.phi,4));
+  LN();
+  P("  Mn   = "+f(r.Mn,2)+" kN·m");
+  P("  φMn  = "+f(r.phi*r.Mn,2)+" kN·m");
+  P("  Mu   = "+f(Mu,2)+" kN·m      Mu/φMn = "+f(Mu/(r.phi*r.Mn),3));
+  judge(Mu<=r.phi*r.Mn, "휨강도 : Mu ≤ φMn");
+  RF("4.1.2(5) 최소허용변형률");
+  P("  εt = "+r.et.toFixed(5)+"  ≥  "+emin.toFixed(4)+" ?");
+  judge(r.et>=emin, "연성 : εt ≥ "+emin.toFixed(4));
+  RF("4.2.2 최소 휨철근량");
+  P("  (2) 의 면제조건 : φMn ≥ (4/3)Mu = "+f(4*Mu/3,2)+" kN·m");
+  if(r.phi*r.Mn>=4*Mu/3){
+    OK("4.2.2(2) 만족 → (1) 의 φMn ≥ 1.2Mcr 규정을 적용하지 않을 수 있음");
+  }else{
+    WN("4.2.2(2) 미충족 → (1) 의 φMn ≥ 1.2Mcr 을 별도로 검토할 것");
+    P("     Mcr 은 KDS 14 20 30 (식 4.2-2) 에 있어 이 툴에서는 계산하지 않음");
+  }
+
+  /* ---------- 전단 ---------- */
+  HD("전단 : KDS 14 20 22");
+  const rf=rt(fck);
+  RF("4.1.1(4)  √fck ≤ 8.4");
+  P("  √fck = √"+f(fck,0)+" = "+f(Math.sqrt(fck),4)+" → 적용 "+f(rf,4));
+  RF("4.2.1(1)① 식 (4.2-1)");
+  const Vc=lam*rf*bw*d/6/1000;
+  if(st) P("  Vc = (1/6)λ√fck·bw·d = (1/6)×"+f(lam,2)+"×"+f(rf,4)+"×"+f(bw,0)+"×"+f(d,1));
+  P("  Vc    = "+f(Vc,1)+" kN");
+  P("  φVc   = 0.75×"+f(Vc,1)+" = "+f(PHIV*Vc,1)+" kN   (14 20 10 4.2.3(2)③)");
+  P("  φVc/2 = "+f(PHIV*Vc/2,1)+" kN");
+  RF("4.3.4(9) Vs 상한");
+  const Vsmax=0.2*(1-fck/250)*fck*bw*d/1000;
+  P("  Vs ≤ 0.2(1−fck/250)fck·bw·d = "+f(Vsmax,1)+" kN");
+  LN();
+  P("  Vu = "+f(Vu,1)+" kN");
+  let Vsreq=0;
+  if(Vu<=PHIV*Vc/2){ P("  Vu ≤ φVc/2 → 4.3.3(1) 최소전단철근 불필요 (예외조항 확인)"); }
+  else if(Vu<=PHIV*Vc){ P("  φVc/2 &lt; Vu ≤ φVc → 최소전단철근만 배치"); }
+  else{
+    Vsreq=Vu/PHIV-Vc;
+    RF("4.3.4(1)");
+    P("  Vs,req = Vu/φ − Vc = "+f(Vu,1)+"/0.75 − "+f(Vc,1)+" = "+f(Vsreq,1)+" kN");
+    judge(Vsreq<=Vsmax, "Vs,req ≤ Vs,max (아니면 단면 확대)");
+  }
+  RF("4.3.4(2) 식 (4.3-3)  Vs = Av·fyt·d/s");
+  const Vs=Av*fyt*d/s/1000;
+  if(st) P("  Vs = "+f(Av,1)+"×"+f(fyt,0)+"×"+f(d,1)+"/"+f(s,0));
+  P("  Vs    = "+f(Vs,1)+" kN");
+  P("    참고 : D10 2가닥 = 142.7 , D13 2가닥 = 253.4 , D16 2가닥 = 397.2 mm²");
+  const phiVn=PHIV*(Vc+Math.min(Vs,Vsmax));
+  P("  φVn   = 0.75(Vc+Vs) = "+f(phiVn,1)+" kN      Vu/φVn = "+f(Vu/phiVn,3));
+  judge(Vu<=phiVn, "전단강도 : Vu ≤ φVn");
+  RF("4.3.3(3) 최소전단철근량");
+  const av1=0.0625*rf*bw*s/fyt, av2=0.35*bw*s/fyt;
+  P("  Av,min = 0.0625√fck·bw·s/fyt = "+f(av1,1)+" mm²");
+  P("           ≥ 0.35·bw·s/fyt      = "+f(av2,1)+" mm²");
+  P("  지배값 = "+f(Math.max(av1,av2),1)+" mm²   /  배근 Av = "+f(Av,1)+" mm²");
+  judge(Av>=Math.max(av1,av2), "Av ≥ Av,min");
+  RF("4.3.2(1)(3) 간격 제한");
+  let smax=Math.min(d/2,600);
+  const lim3=lam*rf*bw*d/3/1000;
+  P("  기본 : s ≤ d/2 = "+f(d/2,1)+" mm , 600 mm  → "+f(smax,1)+" mm");
+  P("  Vs = "+f(Vs,1)+" vs λ(√fck/3)bw·d = "+f(lim3,1)+" kN");
+  if(Vs>lim3){ smax/=2; P("  → Vs 초과 : 최대간격 1/2 로 감소 → "+f(smax,1)+" mm"); }
+  P("  배근 s = "+f(s,0)+" mm");
+  judge(s<=smax, "s ≤ s,max");
+
+  LN();
+  P("<b>요약</b>  φMn = "+f(r.phi*r.Mn,1)+" kN·m ,  φVn = "+f(phiVn,1)+" kN");
+  flush('b_out');
+}
+
+/* =======================================================================
+   TAB 2 : RC 기둥 P-M
+   ===================================================================== */
+function colMode(){
+  const m=$('c_mode').value;
+  document.querySelectorAll('.m1').forEach(e=>e.style.display=(m==='1'?'flex':'none'));
+  document.querySelectorAll('.m2').forEach(e=>e.style.display=(m==='2'?'flex':'none'));
+}
+colMode();
+
+function colSec(){
+  const b=V('c_b'), h=V('c_h'), dp=V('c_dp'), d=V('c_d');
+  let lay=[];
+  if($('c_mode').value==='1'){
+    lay=[[V('c_asp'),dp],[V('c_as'),d]];
+  }else{
+    let nx=Math.round(V('c_nx')), ny=Math.round(V('c_ny')), ab=V('c_ab');
+    if(ny<2) ny=2;
+    for(let i=0;i<ny;i++){
+      const di=dp+(d-dp)*i/(ny-1);
+      const ni=(i===0||i===ny-1)?nx:2;
+      lay.push([ni*ab,di]);
+    }
+  }
+  return {b:b,h:h,lay:lay};
+}
+
+function runCol(){
+  const fck=V('c_fck'), fy=V('c_fy'), tie=parseInt($('c_tie').value);
+  const Pu=V('c_pu'), Mu=V('c_mu'), st=$('c_step').checked;
+  const sec=colSec(), p=rcpar(fck), m=p.eta*0.85*fck;
+  const ag=agOf(sec), ast=astOf(sec), rho=ast/ag, dt=dtOf(sec);
+
+  HD("단면");
+  P("  b × h = "+f(sec.b,0)+" × "+f(sec.h,0)+" mm    Ag = "+f(ag,0)+" mm²");
+  P("  Ast = "+f(ast,1)+" mm²    ρ = "+rho.toFixed(5)+"    dt = "+f(dt,1)+" mm");
+  P("  철근층 "+sec.lay.length+"단");
+  for(const L of sec.lay) P("    d="+f(L[1],1)+" mm  As="+f(L[0],1)+" mm²");
+  RF("4.3.2(1) 0.01 ≤ ρ ≤ 0.08");
+  judge(rho>=0.01&&rho<=0.08, "ρ = "+rho.toFixed(5));
+  if(rho>0.04) WN("겹침이음 구간은 ρ ≤ 0.04 (4.3.2(1))");
+
+  HD("표 4.1-2 응력블록 변수");
+  P("  εcu = "+p.ecu.toFixed(5)+"   η = "+f(p.eta,3)+"   β1 = "+f(p.b1,3)+"   η·0.85fck = "+f(m,3)+" MPa");
+
+  const pm=pmaxOf(sec,fck,fy,tie);
+  HD("[A] 중심축하중  KDS 14 20 20 (4.1.2(7))");
+  if(st){
+    P("  Po = 0.85fck(Ag−Ast) + fy·Ast");
+    P("     = 0.85×"+f(fck,0)+"×("+f(ag,0)+"−"+f(ast,1)+") + "+f(fy,0)+"×"+f(ast,1));
+  }
+  P("  Po = "+f(pm.po,1)+" kN");
+  P("  "+(tie===1?"식 (4.1-17) 띠철근 : φPn,max = 0.80·φ·Po":"식 (4.1-16) 나선 : φPn,max = 0.85·φ·Po"));
+  P("  φ = "+f(pm.p0,2)+"  →  φPn,max = "+f(pm.k,2)+"×"+f(pm.p0,2)+"×"+f(pm.po,1)+" = "+f(pm.pm,1)+" kN");
+
+  const ey=fy/ES, etl=etl_(fy);
+  const cb=p.ecu/(p.ecu+ey)*dt, rb=pmc(sec,fck,fy,cb,tie);
+  HD("[B] 균형변형률 상태  (4.1.2(2))  εt = εy");
+  P("  εy = "+ey.toFixed(5)+"   cb = εcu·dt/(εcu+εy) = "+f(cb,2)+" mm");
+  P("  Pb = "+f(rb.Pn,1)+" kN    Mb = "+f(rb.Mn,2)+" kN·m    φ = "+f(rb.phi,3));
+  P("  φPb = "+f(rb.phi*rb.Pn,1)+" kN   φMb = "+f(rb.phi*rb.Mn,2)+" kN·m");
+  if(rb.Pn>0) P("  eb = Mb/Pb = "+f(rb.Mn*1000/rb.Pn,1)+" mm");
+
+  const ct=p.ecu/(p.ecu+etl)*dt, rtn=pmc(sec,fck,fy,ct,tie);
+  HD("[C] 인장지배 한계  (4.1.2(4))  εt = "+etl.toFixed(4));
+  P("  ct = "+f(ct,2)+" mm    φPn = "+f(rtn.phi*rtn.Pn,1)+" kN    φMn = "+f(rtn.phi*rtn.Mn,2)+" kN·m");
+
+  const rf=solveP0(sec,fck,fy,tie);
+  HD("[D] 순수휨  Pn = 0");
+  P("  c = "+f(rf.c,2)+" mm   Mn = "+f(rf.Mn,2)+" kN·m   εt = "+rf.et.toFixed(5)+"   φ = "+f(rf.phi,3));
+  P("  φMn = "+f(rf.phi*rf.Mn,2)+" kN·m");
+
+  /* 소요강도 검토 */
+  HD("소요강도 검토");
+  let R, e;
+  if(Pu<=0){ R=rf; e=Infinity; P("  Pu = 0 → 순수휨으로 검토"); }
+  else{
+    e=Mu*1000/Pu; R=solveE(sec,fck,fy,e,tie);
+    P("  e = Mu/Pu = "+f(Mu,1)+"×1000/"+f(Pu,1)+" = "+f(e,2)+" mm");
+    P("  같은 편심 e 에서 c = "+f(R.c,2)+" mm , a = "+f(R.a,2)+" mm");
+  }
+  if(st && R.rows){
+    P("  εs = εcu(c−d)/c , fs = Es·εs (|fs| ≤ fy)");
+    P("  압축블록 내 철근은 fs 에서 η·0.85fck = "+f(m,2)+" MPa 공제");
+    const sel = R.rows.length<=6 ? R.rows : R.rows.slice(0,2).concat(R.rows.slice(-2));
+    for(const q of sel) P("   d="+f(q.d,0)+"  εs="+q.es.toFixed(5)+"  fs="+f(q.fs,1)+"  F="+f(q.F,1)+" kN");
+    if(R.rows.length>6) P("   ... 총 "+R.rows.length+"단");
+    P("  Cc = "+f(R.Cc,1)+" kN (arm "+f(R.arm,1)+" mm)");
+  }
+  P("  Pn = "+f(R.Pn,1)+" kN   Mn = "+f(R.Mn,2)+" kN·m");
+  P("  εt = "+R.et.toFixed(5)+"  →  "+zone(R.phi,tie)+"   φ = "+f(R.phi,4));
+  let phiPn=R.phi*R.Pn, phiMn=R.phi*R.Mn;
+  P("  φPn = "+f(phiPn,1)+" kN   φMn = "+f(phiMn,2)+" kN·m");
+  if(phiPn>pm.pm){ WN("φPn,max 절단선이 지배 → φPn = "+f(pm.pm,1)+" kN"); phiPn=pm.pm; }
+  LN();
+  if(Pu>0){
+    P("  Pu/φPn = "+f(Pu/phiPn,3)+"    Mu/φMn = "+f(Mu/phiMn,3));
+    judge(Pu<=phiPn && Mu<=phiMn, "P-M : (Mu, Pu) 가 상관도 내부");
+  }else{
+    P("  Mu = "+f(Mu,2)+" kN·m");
+    judge(Mu<=phiMn, "Mu ≤ φMn");
+  }
+  if(Pu < 0.10*fck*ag/1000) WN("Pu < 0.10·fck·Ag = "+f(0.10*fck*ag/1000,1)+" kN → 4.1.2(5)에 따라 휨부재로 취급 가능");
+  WN("장주효과(4.4)·2축휨(4.5)은 이 툴에 없음. Mu는 확대계수휨모멘트를 입력할 것");
+  flush('c_out');
+  drawPM(sec,fck,fy,tie,pm,Pu,Mu);
+}
+
+function drawPM(sec,fck,fy,tie,pm,Pu,Mu){
+  const cv=$('c_cv'), g=cv.getContext('2d');
+  const W=cv.width, H=cv.height, L=88, Rr=24, T=24, Bm=56;
+  const css = getComputedStyle(document.documentElement);
+  const ink=css.getPropertyValue('--ink').trim(), dim=css.getPropertyValue('--dim').trim();
+  const acc=css.getPropertyValue('--accent').trim(), line=css.getPropertyValue('--line').trim();
+  const ng=css.getPropertyValue('--ng').trim();
+  g.clearRect(0,0,W,H);
+
+  const dt=dtOf(sec), p=rcpar(fck);
+  let ptsN=[], ptsP=[];
+  const cmax=6*sec.h;
+  for(let i=0;i<=220;i++){
+    const c=0.02*dt + (cmax-0.02*dt)*Math.pow(i/220,1.6);
+    const r=pmc(sec,fck,fy,c,tie);
+    if(r.Pn<-1e6) continue;
+    ptsN.push([r.Mn,r.Pn]);
+    ptsP.push([r.phi*r.Mn, Math.min(r.phi*r.Pn, pm.pm)]);
+  }
+  const rf=solveP0(sec,fck,fy,tie);
+  ptsN.push([rf.Mn,0]); ptsP.push([rf.phi*rf.Mn,0]);
+  ptsN.sort((a,b)=>a[1]-b[1]); ptsP.sort((a,b)=>a[1]-b[1]);
+
+  let xm=0,ym=0;
+  for(const q of ptsN){ if(q[0]>xm) xm=q[0]; if(q[1]>ym) ym=q[1]; }
+  xm=Math.max(xm,Mu)*1.15; ym=Math.max(ym,Pu)*1.10;
+  if(xm<=0) xm=1; if(ym<=0) ym=1;
+  const X=v=>L+(W-L-Rr)*v/xm, Y=v=>H-Bm-(H-T-Bm)*v/ym;
+
+  /* grid */
+  g.strokeStyle=line; g.lineWidth=1; g.font="16px sans-serif"; g.fillStyle=dim;
+  for(let i=0;i<=5;i++){
+    const yv=ym*i/5, y=Y(yv);
+    g.beginPath(); g.moveTo(L,y); g.lineTo(W-Rr,y); g.stroke();
+    g.textAlign="right"; g.fillText(yv.toFixed(0), L-8, y+5);
+    const xv=xm*i/5, x=X(xv);
+    g.beginPath(); g.moveTo(x,T); g.lineTo(x,H-Bm); g.stroke();
+    g.textAlign="center"; g.fillText(xv.toFixed(0), x, H-Bm+22);
+  }
+  g.fillStyle=ink; g.font="17px sans-serif";
+  g.textAlign="center"; g.fillText("φMn (kN·m)", (L+W-Rr)/2, H-14);
+  g.save(); g.translate(20,(T+H-Bm)/2); g.rotate(-Math.PI/2);
+  g.textAlign="center"; g.fillText("φPn (kN)",0,0); g.restore();
+
+  const path=(pts,col,w)=>{
+    g.strokeStyle=col; g.lineWidth=w; g.beginPath();
+    let first=true;
+    for(const q of pts){ const x=X(q[0]), y=Y(q[1]);
+      if(first){ g.moveTo(x,y); first=false; } else g.lineTo(x,y); }
+    g.stroke();
+  };
+  path(ptsN,dim,1.6);
+  path(ptsP,acc,3);
+  g.strokeStyle=acc; g.setLineDash([7,5]); g.lineWidth=2;
+  g.beginPath(); g.moveTo(L,Y(pm.pm)); g.lineTo(W-Rr,Y(pm.pm)); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle=acc; g.font="15px sans-serif"; g.textAlign="left";
+  g.fillText("φPn,max = "+pm.pm.toFixed(0), L+8, Y(pm.pm)-7);
+
+  if(Pu>0||Mu>0){
+    g.fillStyle=ng; g.beginPath(); g.arc(X(Mu),Y(Pu),7,0,7); g.fill();
+    g.font="15px sans-serif"; g.textAlign="left";
+    g.fillText("(Mu "+Mu.toFixed(0)+", Pu "+Pu.toFixed(0)+")", X(Mu)+11, Y(Pu)-9);
+  }
+}
+
+/* =======================================================================
+   강재 : KDS 14 31 05 표 3.4-1 (판두께별 Fy) / 표 3.5-1
+   ===================================================================== */
+const STEEL = {
+  "SS235" : {Fu:330, t:[[16,235],[40,225],[75,205],[100,205],[1e9,195]]},
+  "SS275" : {Fu:410, t:[[16,275],[40,265],[75,245],[100,245],[1e9,235]]},
+  "SM275" : {Fu:410, t:[[16,275],[40,265],[75,255],[100,245],[1e9,235]]},
+  "SS315" : {Fu:490, t:[[16,315],[40,305],[75,295],[100,295],[1e9,275]]},
+  "SM355" : {Fu:490, t:[[16,355],[40,345],[75,335],[100,325],[1e9,305]]},
+  "SM420" : {Fu:520, t:[[16,420],[40,410],[75,400],[100,390],[1e9,380]]},
+  "SM460" : {Fu:570, t:[[16,460],[40,450],[75,430],[100,420],[1e9,420]]},
+  "SN275" : {Fu:410, t:[[40,275],[100,255],[1e9,255]]},
+  "SN355" : {Fu:490, t:[[40,355],[100,335],[1e9,335]]},
+  "SN460" : {Fu:570, t:[[40,460],[100,440],[1e9,440]]},
+  "SHN275": {Fu:410, t:[[1e9,275]]},
+  "SHN355": {Fu:490, t:[[1e9,355]]},
+  "SHN420": {Fu:520, t:[[1e9,420]]},
+  "SHN460": {Fu:570, t:[[1e9,460]]},
+  "SM275-TMC":{Fu:410,t:[[1e9,275]]},
+  "SM355-TMC":{Fu:490,t:[[1e9,355]]},
+  "SM420-TMC":{Fu:520,t:[[1e9,420]]},
+  "SM460-TMC":{Fu:570,t:[[1e9,460]]}
+};
+for(const pre of ['sb','sc']){
+  const sel=$(pre+'_gr');
+  sel.innerHTML='<option value="">직접입력</option>'+
+    Object.keys(STEEL).map(k=>'<option value="'+k+'"'+(k==="SM355"?" selected":"")+'>'+k+'</option>').join('');
+}
+function steelFy(pre){
+  const k=$(pre+'_gr').value; if(!k) return;
+  const tf=V(pre+'_tf'); const S=STEEL[k];
+  for(const row of S.t){ if(tf<=row[0]){ $(pre+'_fy').value=row[1]; break; } }
+}
+steelFy('sb'); steelFy('sc');
+
+/* H형강 단면성능 (2축대칭) */
+function hProps(H,Bf,tw,tf,rolled,Jman){
+  const hw=H-2*tf;
+  const A=2*Bf*tf+hw*tw;
+  const Ix=(Bf*Math.pow(H,3)-(Bf-tw)*Math.pow(hw,3))/12;
+  const Sx=2*Ix/H;
+  const Zx=Bf*tf*(H-tf)+tw*hw*hw/4;
+  const Iy=2*tf*Math.pow(Bf,3)/12+hw*Math.pow(tw,3)/12;
+  const ry=Math.sqrt(Iy/A), rx=Math.sqrt(Ix/A);
+  const ho=H-tf;
+  const Cw=Iy*ho*ho/4;
+  let J=(2*Bf*Math.pow(tf,3)+(H-tf)*Math.pow(tw,3))/3;
+  if(Jman&&isFinite(Jman)&&Jman>0) J=Jman;
+  const rts=Math.sqrt(Math.sqrt(Iy*Cw)/Sx);
+  return {A:A,Ix:Ix,Sx:Sx,Zx:Zx,Iy:Iy,rx:rx,ry:ry,ho:ho,Cw:Cw,J:J,rts:rts,hw:hw};
+}
+
+/* =======================================================================
+   TAB 3 : 철골 보  KDS 14 31 10 (4.3)
+   ===================================================================== */
+function runSteelBeam(){
+  const Fy=V('sb_fy'), E=V('sb_e');
+  const H=V('sb_H'), Bf=V('sb_B'), tw=V('sb_tw'), tf=V('sb_tf');
+  const rolled=$('sb_rl').value==='1';
+  const Jm=parseFloat($('sb_J').value);
+  const Lb=V('sb_lb'), Cb=V('sb_cb'), Mu=V('sb_mu'), Vu=V('sb_vu');
+  const st=$('sb_step').checked;
+  const S=hProps(H,Bf,tw,tf,rolled,Jm);
+  const phib=0.90;
+
+  HD("단면성능  H"+f(H,0)+"×"+f(Bf,0)+"×"+f(tw,0)+"×"+f(tf,0));
+  P("  A   = "+f(S.A,0)+" mm²        Ix = "+S.Ix.toExponential(4)+" mm⁴");
+  P("  Sx  = "+S.Sx.toExponential(4)+" mm³   Zx = "+S.Zx.toExponential(4)+" mm³");
+  P("  Iy  = "+S.Iy.toExponential(4)+" mm⁴   ry = "+f(S.ry,2)+" mm");
+  P("  ho  = H−tf = "+f(S.ho,1)+" mm     Cw = Iy·ho²/4 = "+S.Cw.toExponential(4)+" mm⁶");
+  P("  J   = "+S.J.toExponential(4)+" mm⁴   rts = √(√(Iy·Cw)/Sx) = "+f(S.rts,2)+" mm  (식 4.3-8)");
+  if(rolled && !(Jm>0)) WN("압연형강의 J 는 필릿을 포함하지 않아 규격표값보다 작게(안전측) 나옵니다. 규격표값이 있으면 직접 입력하십시오.");
+  P("  Fy = "+f(Fy,0)+" MPa   E = "+f(E,0)+" MPa  (14 31 05 표 3.5-1)");
+
+  /* 판폭두께비 : 표 4.3-2 */
+  HD("판폭두께비  KDS 14 31 10 표 4.3-2");
+  const lf=Bf/(2*tf);
+  const lpf=0.38*Math.sqrt(E/Fy), lrf=1.00*Math.sqrt(E/Fy);
+  const hcl = rolled ? (H-2*tf) : (H-2*tf);       // 압연 필릿 미고려(안전측)
+  const lw=hcl/tw, lpw=3.76*Math.sqrt(E/Fy), lrw=5.70*Math.sqrt(E/Fy);
+  P("  플랜지 b/t = B/2tf = "+f(Bf,0)+"/(2×"+f(tf,0)+") = "+f(lf,3));
+  P("    λpf = 0.38√(E/Fy) = "+f(lpf,3)+"    λrf = 1.0√(E/Fy) = "+f(lrf,3));
+  const fCls = lf<=lpf?"조밀":(lf<=lrf?"비조밀":"세장");
+  P("    → 플랜지 "+fCls);
+  P("  웨브 h/tw = "+f(hcl,1)+"/"+f(tw,0)+" = "+f(lw,3)+(rolled?"  (필릿 미공제 → 안전측)":""));
+  P("    λpw = 3.76√(E/Fy) = "+f(lpw,3)+"    λrw = 5.70√(E/Fy) = "+f(lrw,3));
+  const wCls = lw<=lpw?"조밀":(lw<=lrw?"비조밀":"세장");
+  P("    → 웨브 "+wCls);
+  if(wCls!=="조밀") { NG("웨브가 조밀단면이 아님 → 4.3.2.1.1.4/5 적용 대상. 이 툴은 웨브 조밀단면만 다룹니다."); flush('sb_out'); return; }
+
+  /* 소성모멘트 · LTB */
+  HD("휨강도  KDS 14 31 10 (4.3.2.1.1.2)");
+  const Mp=Fy*S.Zx/1e6;
+  P("  식 (4.3-2) Mp = Fy·Zx = "+f(Fy,0)+"×"+S.Zx.toExponential(4)+" = "+f(Mp,2)+" kN·m");
+  const c=1.0;
+  const Lp=1.76*S.ry*Math.sqrt(E/Fy);
+  const q=S.J*c/(S.Sx*S.ho);
+  const Lr=1.95*S.rts*(E/(0.7*Fy))*Math.sqrt(q)*Math.sqrt(1+Math.sqrt(1+6.76*Math.pow(0.7*Fy/E/q,2)));
+  if(st){
+    P("  식 (4.3-6) Lp = 1.76·ry·√(E/Fy) = 1.76×"+f(S.ry,2)+"×√("+f(E,0)+"/"+f(Fy,0)+")");
+    P("  식 (4.3-7) Lr  (c = 1, 2축대칭 H형강, 식 4.3-8a)");
+    P("     Jc/(Sx·ho) = "+q.toExponential(4));
+  }
+  P("  Lp = "+f(Lp,1)+" mm    Lr = "+f(Lr,1)+" mm    Lb = "+f(Lb,1)+" mm");
+  let Mn_ltb, tag;
+  if(Lb<=Lp){ Mn_ltb=Mp; tag="Lb ≤ Lp → 횡비틀림좌굴 미고려 (4.3.2.1.1.2(2)①)"; }
+  else if(Lb<=Lr){
+    Mn_ltb=Cb*(Mp-(Mp-0.7*Fy*S.Sx/1e6)*(Lb-Lp)/(Lr-Lp));
+    tag="Lp &lt; Lb ≤ Lr → 식 (4.3-3)";
+    if(st){
+      P("  0.7·Fy·Sx = "+f(0.7*Fy*S.Sx/1e6,2)+" kN·m");
+      P("  Mn = Cb[Mp −(Mp−0.7FySx)(Lb−Lp)/(Lr−Lp)]");
+      P("     = "+f(Cb,2)+"["+f(Mp,2)+"−("+f(Mp,2)+"−"+f(0.7*Fy*S.Sx/1e6,2)+")×"+f((Lb-Lp)/(Lr-Lp),4)+"]");
+    }
+    if(Mn_ltb>Mp) Mn_ltb=Mp;
+  }else{
+    const t1=Cb*Math.PI*Math.PI*E/Math.pow(Lb/S.rts,2);
+    const t2=Math.sqrt(1+0.078*q*Math.pow(Lb/S.rts,2));
+    const Fcr=t1*t2;
+    Mn_ltb=Fcr*S.Sx/1e6;
+    tag="Lb > Lr → 식 (4.3-4)(4.3-5)";
+    if(st){
+      P("  Lb/rts = "+f(Lb/S.rts,3));
+      P("  Fcr = Cbπ²E/(Lb/rts)²·√(1+0.078·Jc/(Sxho)·(Lb/rts)²)");
+      P("      = "+f(t1,2)+" × "+f(t2,4)+" = "+f(Fcr,2)+" MPa");
+    }
+    if(Mn_ltb>Mp) Mn_ltb=Mp;
+  }
+  P("  "+tag);
+  P("  Mn(LTB) = "+f(Mn_ltb,2)+" kN·m");
+
+  let Mn=Mn_ltb;
+  if(fCls!=="조밀"){
+    HD("압축플랜지 국부좌굴  (4.3.2.1.1.3(2))");
+    let Mn_flb;
+    if(fCls==="비조밀"){
+      Mn_flb=Mp-(Mp-0.7*Fy*S.Sx/1e6)*(lf-lpf)/(lrf-lpf);
+      P("  식 (4.3-9) Mn = Mp −(Mp−0.7FySx)(λ−λpf)/(λrf−λpf)");
+      P("     = "+f(Mn_flb,2)+" kN·m");
+    }else{
+      let kc=4/Math.sqrt(hcl/tw); kc=Math.min(0.76,Math.max(0.35,kc));
+      Mn_flb=0.9*E*kc*S.Sx/(lf*lf)/1e6;
+      P("  kc = 4/√(h/tw) = "+f(kc,4)+" (0.35~0.76)");
+      P("  식 (4.3-10) Mn = 0.9E·kc·Sx/λ² = "+f(Mn_flb,2)+" kN·m");
+    }
+    Mn=Math.min(Mn_ltb,Mn_flb);
+    P("  Mn = min(LTB, FLB) = "+f(Mn,2)+" kN·m");
+  }
+  LN();
+  P("  φb = 0.90  (4.3.1(1))");
+  P("  φbMn = "+f(phib*Mn,2)+" kN·m      Mu = "+f(Mu,2)+" kN·m");
+  P("  Mu/φbMn = "+f(Mu/(phib*Mn),3));
+  judge(Mu<=phib*Mn, "휨강도");
+
+  /* 전단 */
+  HD("전단강도  KDS 14 31 10 (4.3.2.1.2.2)");
+  const Aw=H*tw;
+  P("  Aw = d·tw = "+f(H,0)+"×"+f(tw,0)+" = "+f(Aw,0)+" mm²");
+  const lim224=2.24*Math.sqrt(E/Fy);
+  let phiv=0.90, Cv=1.0, kv=5, note;
+  P("  h/tw = "+f(lw,3)+"    2.24√(E/Fy) = "+f(lim224,3));
+  if(rolled && lw<=lim224){
+    phiv=1.00; Cv=1.0;
+    note="가 : 압연 H형강 & h/tw ≤ 2.24√(E/Fy) → φv = 1.0, Cv = 1.0";
+  }else{
+    const a1=1.10*Math.sqrt(kv*E/Fy), a2=1.37*Math.sqrt(kv*E/Fy);
+    P("  kv = 5 (4.3-89, 수직보강재 없음)");
+    P("  1.10√(kvE/Fy) = "+f(a1,3)+"    1.37√(kvE/Fy) = "+f(a2,3));
+    if(lw<=a1){ Cv=1.0; note="식 (4.3-86) Cv = 1.0"; }
+    else if(lw<=a2){ Cv=a1/lw; note="식 (4.3-87) Cv = 1.10√(kvE/Fy)/(h/tw) = "+f(Cv,4); }
+    else{ Cv=1.51*E*kv/(lw*lw*Fy); note="식 (4.3-88) Cv = 1.51Ekv/((h/tw)²Fy) = "+f(Cv,4); }
+    note = "나 : "+note+" , φv = 0.90";
+  }
+  P("  "+note);
+  const Vn=0.6*Fy*Aw*Cv/1000;
+  P("  식 (4.3-85) Vn = 0.6·Fy·Aw·Cv = 0.6×"+f(Fy,0)+"×"+f(Aw,0)+"×"+f(Cv,4));
+  P("  Vn = "+f(Vn,1)+" kN      φvVn = "+f(phiv*Vn,1)+" kN");
+  P("  Vu = "+f(Vu,1)+" kN      Vu/φvVn = "+f(Vu/(phiv*Vn),3));
+  judge(Vu<=phiv*Vn, "전단강도");
+  if(lw>2.46*Math.sqrt(E/Fy)) WN("h/tw > 2.46√(E/Fy) = "+f(2.46*Math.sqrt(E/Fy),2)+" → 4.3.2.1.2.2(2)① 수직보강재 검토 필요");
+  else P("  h/tw ≤ 2.46√(E/Fy) = "+f(2.46*Math.sqrt(E/Fy),2)+" → 수직보강재 불필요 (4.3.2.1.2.2(2)①)");
+
+  LN();
+  P("<b>요약</b>  φbMn = "+f(phib*Mn,1)+" kN·m ,  φvVn = "+f(phiv*Vn,1)+" kN");
+  flush('sb_out');
+}
+
+/* =======================================================================
+   TAB 4 : 철골 기둥  KDS 14 31 10 (4.2)
+   ===================================================================== */
+function runSteelCol(){
+  const Fy=V('sc_fy'), E=V('sc_e');
+  const H=V('sc_H'), Bf=V('sc_B'), tw=V('sc_tw'), tf=V('sc_tf');
+  const klx=V('sc_klx'), kly=V('sc_kly'), Pu=V('sc_pu');
+  const st=$('sc_step').checked;
+  const S=hProps(H,Bf,tw,tf,true,0);
+  const phic=0.90;
+
+  HD("단면성능  H"+f(H,0)+"×"+f(Bf,0)+"×"+f(tw,0)+"×"+f(tf,0));
+  P("  Ag = "+f(S.A,0)+" mm²    Ix = "+S.Ix.toExponential(4)+"    Iy = "+S.Iy.toExponential(4)+" mm⁴");
+  P("  rx = "+f(S.rx,2)+" mm    ry = "+f(S.ry,2)+" mm");
+  P("  Fy = "+f(Fy,0)+" MPa    E = "+f(E,0)+" MPa");
+
+  HD("판폭두께비  KDS 14 31 10 표 4.2-2");
+  const lf=Bf/(2*tf), lrf=0.56*Math.sqrt(E/Fy);
+  const hcl=H-2*tf, lw=hcl/tw, lrw=1.49*Math.sqrt(E/Fy);
+  P("  플랜지(자유돌출판 1) b/t = "+f(lf,3)+"    λr = 0.56√(E/Fy) = "+f(lrf,3));
+  P("    → "+(lf<=lrf?"비세장":"세장"));
+  P("  웨브(양연지지판 5) h/tw = "+f(lw,3)+"    λr = 1.49√(E/Fy) = "+f(lrw,3));
+  P("    → "+(lw<=lrw?"비세장":"세장"));
+  if(lf>lrf||lw>lrw){
+    NG("세장판요소 있음 → 4.2.7 적용 대상. 이 툴은 비세장판 단면(4.2.3)만 다룹니다.");
+    flush('sc_out'); return;
+  }
+  OK("비세장판 단면 → 4.2.3 적용 (표 4.2-1)");
+
+  HD("세장비  (4.2.2)");
+  const sx=klx/S.rx, sy=kly/S.ry;
+  P("  KxLx/rx = "+f(klx,0)+"/"+f(S.rx,2)+" = "+f(sx,2));
+  P("  KyLy/ry = "+f(kly,0)+"/"+f(S.ry,2)+" = "+f(sy,2));
+  const sl=Math.max(sx,sy);
+  P("  지배 세장비 KL/r = "+f(sl,2)+"  ("+(sx>=sy?"강축":"약축")+")");
+  if(sl>200) WN("KL/r > 200 (4.2.2 권장 한계 초과)");
+
+  HD("압축강도  (4.2.3)");
+  const Fe=Math.PI*Math.PI*E/(sl*sl);
+  const lim=4.71*Math.sqrt(E/Fy);
+  if(st){
+    P("  식 (4.2-4) Fe = π²E/(KL/r)² = π²×"+f(E,0)+"/"+f(sl,2)+"²");
+  }
+  P("  Fe = "+f(Fe,2)+" MPa      Fy/Fe = "+f(Fy/Fe,4));
+  P("  4.71√(E/Fy) = "+f(lim,2)+"    KL/r = "+f(sl,2));
+  let Fcr, br;
+  if(sl<=lim || Fy/Fe<=2.25){
+    Fcr=Math.pow(0.658, Fy/Fe)*Fy;
+    br="① 비탄성 : 식 (4.2-2)  Fcr = [0.658^(Fy/Fe)]·Fy";
+    if(st) P("  0.658^"+f(Fy/Fe,4)+" = "+f(Math.pow(0.658,Fy/Fe),4));
+  }else{
+    Fcr=0.877*Fe;
+    br="② 탄성 : 식 (4.2-3)  Fcr = 0.877·Fe";
+  }
+  P("  "+br);
+  P("  Fcr = "+f(Fcr,2)+" MPa");
+  const Pn=Fcr*S.A/1000;
+  P("  식 (4.2-1) Pn = Fcr·Ag = "+f(Fcr,2)+"×"+f(S.A,0)+" = "+f(Pn,1)+" kN");
+  P("  φc = 0.90  (4.2.1(1))");
+  LN();
+  P("  φcPn = "+f(phic*Pn,1)+" kN      Pu = "+f(Pu,1)+" kN");
+  P("  Pu/φcPn = "+f(Pu/(phic*Pn),3));
+  judge(Pu<=phic*Pn, "압축강도");
+  WN("비틀림·휨비틀림좌굴(4.2.4)은 미구현. 비틀림 비지지길이가 휨좌굴 비지지길이보다 길면 별도 검토 필요");
+  flush('sc_out');
+}
+</script>
+</body>
+</html>
