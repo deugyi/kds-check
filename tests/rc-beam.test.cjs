@@ -2,6 +2,30 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const R=require('../rc-beam.js');
 const base={b:400,h:600,fck:24,fy:400,bar:'D25',stirrup:'D10',cover:40,aggregate:25};
+test('custom concrete strengths and disabled compression preserve valid calculation',()=>{
+  const p={...base,fck:32.5};assert.ok(R.calculate(p).results.length);
+  near(R.calculate({...base,compressionCount:0,compressionBar:'D35',fyt:600}).results[2].phiMn,R.calculate(base).results[2].phiMn);
+  for(const compressionCount of [-1,.5,NaN,1000])assert.throws(()=>R.calculate({...base,compressionCount,compressionBar:'D25'}));
+});
+test('yielded compression steel agrees with independent doubly reinforced formula',()=>{
+  const p={...base,compressionCount:2,compressionBar:'D16'},o=R.calculate(p),r=o.results.find(r=>r.total===10),cp=o.g.compression;
+  const stress=.85*p.fck,Asc=cp.count*cp.bar.area,Cs=Asc*(p.fy-stress),a=(r.As*p.fy-Cs)/(stress*p.b);
+  assert.equal(r.compression.stress,-p.fy);assert.ok(a>cp.d+cp.bar.diameter/2);
+  near(r.a,a);near(r.Mn,(stress*p.b*a*(r.d-a/2)+Cs*(r.d-cp.d))/1e6);
+});
+test('unyielded compression steel agrees with independent quadratic equilibrium',()=>{
+  const p={...base,compressionCount:2,compressionBar:'D25'},o=R.calculate(p),r=o.results.find(r=>r.total===6),cp=o.g.compression;
+  const stress=.85*p.fck,Asc=cp.count*cp.bar.area,Eecu=200000*.0033,A=stress*p.b*.8,B=Asc*(Eecu-stress)-r.As*p.fy;
+  const c=(-B+Math.sqrt(B*B+4*A*Eecu*Asc*cp.d))/(2*A),fs=Eecu*(1-cp.d/c);
+  assert.ok(fs>0&&fs<p.fy);assert.ok(.8*c>cp.d+cp.bar.diameter/2);
+  near(r.c,c);near(r.compression.stress,-fs);near(r.force,0,1e-6);
+});
+test('compression packing respects top cover and separation from tensile rows',()=>{
+  for(const h of [180,250,400,600])for(const compressionBar of ['D16','D25','D35']){
+    const p={...base,h,compressionCount:2,compressionBar},o=R.calculate(p),cp=o.g.compression;
+    for(const r of o.results){assert.ok(r.layers.length<=3);assert.ok(r.layers.at(-1).d-o.g.bar.diameter/2-(cp.d+cp.bar.diameter/2)>=o.g.verticalClear-1e-8);near(r.force,0,1e-6);}
+  }
+});
 function near(a,b,t=1e-7){assert.ok(Math.abs(a-b)<=t,`${a} != ${b}`);}
 test('single yielded layer agrees with independent closed-form moment',()=>{
   const o=R.calculate(base),r=o.results.find(x=>x.total===4);
