@@ -69,6 +69,9 @@ footer h3{font-size:12.5px;color:var(--ink);margin:16px 0 5px}
 footer ul{margin:0;padding-left:18px}
 footer li{margin-bottom:2px}
 .sub{font-size:12px;color:var(--dim);margin:-4px 0 8px}
+/* RC beam surface; scoped to preserve other calculators. */
+#t1{font-size:16px}#t1 .card{padding:20px}#t1 .card h2{font-size:18px}#t1 label,#t1 label b{font-size:14px}#t1 input,#t1 select{min-height:42px;font-size:16px}#t1 .beam-inputs{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}#t1 .beam-intro{background:var(--accent);color:var(--panel);border:none}#t1 .beam-intro h2{font-size:25px;color:inherit;margin:0 0 8px}.beam-intro p{margin:4px 0}.beam-eyebrow{font-size:13px;letter-spacing:.04em}.beam-settings{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}.beam-settings summary{cursor:pointer;font-size:14px;font-weight:600}.beam-settings summary span{font-weight:400;color:var(--dim);margin-left:8px}.beam-settings .grid{margin-top:14px}.beam-settings p,.beam-settings label span{font-size:13px;color:var(--dim)}.beam-muted{font-size:14px;color:var(--dim);font-weight:400}.beam-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}.beam-stats>div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}.beam-stats span{font-size:14px;color:var(--dim);display:block}.beam-stats b{display:block;font-size:28px;margin-top:6px}.beam-stats small{font-size:14px;font-weight:400}.beam-preview{display:grid;grid-template-columns:minmax(200px,1fr) 1.25fr;gap:28px;align-items:center}#b_diagram svg{width:100%;max-height:350px;display:block}#b_diagram text{fill:var(--ink);font-size:12px}.beam-layout{font-size:22px;font-weight:700;margin:0}.beam-layout span{font-size:14px;color:var(--dim);font-weight:400}.beam-capacity{font-size:38px;font-weight:750;letter-spacing:-1px;margin:8px 0 0;color:var(--accent)}.beam-capacity small{font-size:16px;letter-spacing:0;font-weight:400}.beam-values{font-size:14px}.beam-values div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}.beam-values dt{color:var(--dim)}.beam-values dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}.beam-table-wrap{overflow:auto;max-height:600px}.beam-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}.beam-table th{position:sticky;top:0;background:var(--code);text-align:left;padding:12px 8px;white-space:nowrap}.beam-table td{padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}.beam-table td:nth-child(7){white-space:normal;min-width:135px;font-size:13px}.beam-table tr.selected{background:var(--code)}.beam-phi{font-weight:700;color:var(--accent)}.beam-view{background:var(--panel);border:1px solid var(--accent);border-radius:5px;color:var(--accent);padding:6px 10px;font:inherit;cursor:pointer}.beam-view[aria-pressed=true]{background:var(--accent);color:var(--panel)}.beam-basis{padding-left:20px;font-size:14px;line-height:1.8}#b_error{padding:18px;background:var(--panel);border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}#t1 a{color:var(--accent)}@media(max-width:650px){#t1 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}.beam-preview{grid-template-columns:1fr;gap:10px}.beam-stats{gap:6px}.beam-stats>div{padding:12px 8px}.beam-stats b{font-size:24px}.beam-stats span{font-size:12px}#t1 .card{padding:16px}.beam-capacity{font-size:34px}}@media(max-width:360px){#t1 .beam-inputs{grid-template-columns:1fr}.beam-stats{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -89,36 +92,38 @@ footer li{margin-bottom:2px}
 
 <!-- ================= RC 보 ================= -->
 <section class="tab on" id="t1">
+  <div class="card beam-intro"><p class="beam-eyebrow">RC 보 · 인장철근 자동 배치</p><h2>단면에 들어가는 철근과 휨강도</h2><p>하부 인장철근을 최대 3단까지 배치하고, 가닥 수별 φMn을 비교합니다.</p></div>
   <div class="card">
-    <h2>재료 · 단면</h2>
-    <div class="grid">
-      <label><b>fck (MPa)</b><input id="b_fck" value="24"></label>
-      <label><b>fy 주철근 (MPa)</b><input id="b_fy" value="400"></label>
-      <label><b>fyt 스터럽 (MPa)</b><input id="b_fyt" value="400"></label>
-      <label><b>λ 경량계수</b><input id="b_lam" value="1.0"></label>
-      <label><b>b<sub>w</sub> (mm)</b><input id="b_b" value="400"></label>
-      <label><b>h (mm)</b><input id="b_h" value="600"></label>
-      <label><b>d 인장철근 (mm)</b><input id="b_d" value="540"></label>
-      <label><b>As (mm²)</b><input id="b_as" value="2028"></label>
-      <label><b>d′ 압축철근 (mm)</b><input id="b_dp" value="60"></label>
-      <label><b>As′ (mm²)</b><input id="b_asp" value="0"></label>
+    <h2>단면 · 철근 · 재료</h2>
+    <div class="grid beam-inputs">
+      <label><b>가로 · 보 폭 b (mm)</b><input id="b_b" type="number" min="1" max="3000" step="any" value="400"></label>
+      <label><b>세로 · 보 높이 h (mm)</b><input id="b_h" type="number" min="1" max="5000" step="any" value="600"></label>
+      <label><b>인장철근 규격</b><select id="b_bar"><option>D10</option><option>D13</option><option>D16</option><option>D19</option><option>D22</option><option selected>D25</option><option>D29</option><option>D32</option><option>D35</option></select></label>
+      <label><b>스터럽 규격</b><select id="b_stirrup"><option selected>D10</option><option>D13</option><option>D16</option></select></label>
+      <label><b>콘크리트 fck (MPa)</b><select id="b_fck"><option>21</option><option selected>24</option><option>27</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option></select></label>
+      <label><b>주철근 fy (MPa)</b><select id="b_fy"><option value="400">SD400 · 400 MPa</option><option value="500">SD500 · 500 MPa</option><option value="600">SD600 · 600 MPa</option></select></label>
+    </div>
+    <details class="beam-settings"><summary>배치 조건 <span id="b_conditions">피복 40 mm · 골재 25 mm</span></summary><div class="grid">
+      <label><b>피복두께 (mm)</b><input id="b_cover" type="number" min="1" step="any" value="40"><span>표면부터 스터럽 바깥면까지</span></label>
+      <label><b>굵은골재 최대치수 (mm)</b><input id="b_aggregate" type="number" min="1" step="any" value="25"></label>
+    </div><p>피복 40 mm는 기본 가정입니다. 노출환경·내화·시공조건에 맞게 조정하세요. 스터럽 굽힘부와 갈고리 간섭은 별도 확인이 필요합니다.</p></details>
+    <p class="beam-muted">보통중량 콘크리트 · 축력 없음 · 정모멘트 · 압축철근 없음. 입력을 바꾸면 결과가 갱신됩니다.</p>
+  </div>
+  <div id="b_error" role="alert" hidden></div>
+  <div id="b_results">
+    <div class="beam-stats" id="b_stats" aria-live="polite"></div>
+    <div class="card"><h2>선택 배치</h2><div class="beam-preview"><div id="b_diagram"></div><div id="b_selected"></div></div></div>
+    <div class="card"><h2>가닥 수별 φMn <span class="beam-muted">단별 가닥 수는 아래 → 위 순서</span></h2>
+      <p class="beam-muted">하부단을 우선 채우는 좌우대칭·상하 정렬 대표 배치입니다. 각 총 가닥 수당 1개를 표시하며, 모든 배근 조합의 최적화 결과는 아닙니다.</p>
+      <div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>총 가닥</th><th>단별 배치</th><th>As (mm²)</th><th>d (mm)</th><th>φ</th><th>φMn (kN·m)</th><th>단면조건</th><th>보기</th></tr></thead><tbody id="b_rows"></tbody></table></div>
+      <p class="beam-muted">d는 인장철근 전체 면적의 도심 깊이입니다. φ는 최하단 철근 변형률로 구하며, Mn은 각 단의 응력을 따로 계산합니다.</p>
+    </div>
+    <div class="card"><h2>배치·계산 근거</h2><div id="b_basis"></div>
+      <p class="beam-muted">표의 ‘충족’은 인장영역·최소허용변형률·최소 휨철근 조건에 한정됩니다. 소요모멘트가 없으므로 하중에 대한 적합 여부는 판정하지 않습니다. 전단·처짐·정착·균열제어 간격·내진·시공상세는 별도 검토 대상입니다.</p>
     </div>
   </div>
-  <div class="card">
-    <h2>소요강도 · 전단철근</h2>
-    <div class="grid">
-      <label><b>Mu (kN·m)</b><input id="b_mu" value="300"></label>
-      <label><b>Vu (kN)</b><input id="b_vu" value="300"></label>
-      <label><b>Av (mm²)</b><input id="b_av" value="253.4"></label>
-      <label><b>s 간격 (mm)</b><input id="b_s" value="200"></label>
-    </div>
-    <div class="row">
-      <button class="go" onclick="runBeam()">계산</button>
-      <span class="chk"><input type="checkbox" id="b_step" checked><label for="b_step" style="display:inline">유도 과정 표시</label></span>
-    </div>
-  </div>
-  <div class="card"><h2>결과</h2><pre class="out" id="b_out">입력 후 [계산]</pre></div>
 </section>
+
 
 <!-- ================= RC 기둥 ================= -->
 <section class="tab" id="t2">
@@ -251,7 +256,7 @@ footer li{margin-bottom:2px}
   </ul>
   <h3>구현하지 않은 항목</h3>
   <ul>
-    <li>RC 보 : KDS 14 20 20 (4.2.2(1)) φM<sub>n</sub> ≥ 1.2M<sub>cr</sub> — M<sub>cr</sub>은 KDS 14 20 30 (식 4.2-2)에 있어 이 툴에서는 (4.2.2(2)) φM<sub>n</sub> ≥ (4/3)M<sub>u</sub>만 검토합니다.</li>
+    <li>RC 보 : 하부 인장철근 최대 3단의 휨강도 계산. 압축철근·전단·처짐·정착·내진·스터럽 굽힘부 간섭·시공상세는 미검토. 피복은 입력 가정값입니다.</li>
     <li>RC 기둥 : 장주효과(4.4), 2축 휨(4.5) 미구현 — M<sub>u</sub>는 확대 후 값을 입력하십시오.</li>
     <li>철골 보 : 웨브 비조밀·세장(4.3.2.1.1.4/5), T형·ㄱ형강, 인장역작용(4.3.2.1.2.3) 미구현.</li>
     <li>철골 기둥 : 비틀림·휨비틀림좌굴(4.2.4), 세장판 단면(4.2.7), 조립재(4.2.6) 미구현.</li>
@@ -374,115 +379,7 @@ function pmaxOf(sec,fck,fy,tie){           // KDS 14 20 20 (4.1-16)(4.1-17)
 /* =======================================================================
    TAB 1 : RC 보  (휨 KDS 14 20 20 / 전단 KDS 14 20 22)
    ===================================================================== */
-function runBeam(){
-  const fck=V('b_fck'), fy=V('b_fy'), fyt=V('b_fyt'), lam=V('b_lam');
-  const bw=V('b_b'), h=V('b_h'), d=V('b_d'), As=V('b_as'), dp=V('b_dp'), Asp=V('b_asp');
-  const Mu=V('b_mu'), Vu=V('b_vu'), Av=V('b_av'), s=V('b_s');
-  const st=$('b_step').checked;
-  const p=rcpar(fck), m=p.eta*0.85*fck;
-
-  let lay=[]; if(Asp>0) lay.push([Asp,dp]); lay.push([As,d]);
-  const sec={b:bw,h:h,lay:lay};
-
-  /* ---------- 휨 ---------- */
-  HD("휨 : KDS 14 20 20");
-  RF("표 4.1-2  fck="+f(fck,0)+" MPa");
-  P("  εcu = "+p.ecu.toFixed(5)+"   η = "+f(p.eta,3)+"   β1 = "+f(p.b1,3));
-  P("  η·0.85·fck = "+f(m,3)+" MPa");
-  const r=solveP0(sec,fck,fy,1);
-  if(st){
-    RF("4.1.1(8) 등가직사각형 + 4.1.2(1) 평형·적합");
-    P("  ΣF = 0 을 만족하는 c 를 구함");
-    P("  c = "+f(r.c,2)+" mm ,  a = β1·c = "+f(p.b1,3)+"×"+f(r.c,2)+" = "+f(r.a,2)+" mm");
-    P("  Cc = η·0.85fck·b·a = "+f(m,3)+"×"+f(bw,0)+"×"+f(Math.min(r.a,h),2));
-    P("     = "+f(r.Cc,1)+" kN   (도심에서 "+f(r.arm,1)+" mm)");
-    for(const q of r.rows){
-      P("  d="+f(q.d,1)+"  As="+f(q.As,1)+"  εs="+q.es.toFixed(5));
-      P("     fs="+f(q.fs,1)+" MPa   F="+f(q.F,1)+" kN   arm="+f(h/2-q.d,1)+" mm");
-    }
-    P("  ΣP = "+f(r.Pn,3)+" kN  (≈0 확인)");
-    P("  Mn = ΣF·arm = "+f(r.Mn,2)+" kN·m");
-  }
-  const ey=fy/ES, etl=etl_(fy), emin=(fy<=400?0.004:2*ey);
-  RF("4.1.2(3)(4) + 14 20 10 (4.2.3(2))");
-  P("  εy = fy/Es = "+f(fy,0)+"/200000 = "+ey.toFixed(5));
-  P("  인장지배 한계 εt,l = "+etl.toFixed(5));
-  P("  εt = εcu(dt−c)/c = "+p.ecu.toFixed(5)+"("+f(r.dt,1)+"−"+f(r.c,2)+")/"+f(r.c,2));
-  P("     = "+r.et.toFixed(5)+"  → "+zone(r.phi,1));
-  P("  φ = "+f(r.phi,4));
-  LN();
-  P("  Mn   = "+f(r.Mn,2)+" kN·m");
-  P("  φMn  = "+f(r.phi*r.Mn,2)+" kN·m");
-  P("  Mu   = "+f(Mu,2)+" kN·m      Mu/φMn = "+f(Mu/(r.phi*r.Mn),3));
-  judge(Mu<=r.phi*r.Mn, "휨강도 : Mu ≤ φMn");
-  RF("4.1.2(5) 최소허용변형률");
-  P("  εt = "+r.et.toFixed(5)+"  ≥  "+emin.toFixed(4)+" ?");
-  judge(r.et>=emin, "연성 : εt ≥ "+emin.toFixed(4));
-  RF("4.2.2 최소 휨철근량");
-  P("  (2) 의 면제조건 : φMn ≥ (4/3)Mu = "+f(4*Mu/3,2)+" kN·m");
-  if(r.phi*r.Mn>=4*Mu/3){
-    OK("4.2.2(2) 만족 → (1) 의 φMn ≥ 1.2Mcr 규정을 적용하지 않을 수 있음");
-  }else{
-    WN("4.2.2(2) 미충족 → (1) 의 φMn ≥ 1.2Mcr 을 별도로 검토할 것");
-    P("     Mcr 은 KDS 14 20 30 (식 4.2-2) 에 있어 이 툴에서는 계산하지 않음");
-  }
-
-  /* ---------- 전단 ---------- */
-  HD("전단 : KDS 14 20 22");
-  const rf=rt(fck);
-  RF("4.1.1(4)  √fck ≤ 8.4");
-  P("  √fck = √"+f(fck,0)+" = "+f(Math.sqrt(fck),4)+" → 적용 "+f(rf,4));
-  RF("4.2.1(1)① 식 (4.2-1)");
-  const Vc=lam*rf*bw*d/6/1000;
-  if(st) P("  Vc = (1/6)λ√fck·bw·d = (1/6)×"+f(lam,2)+"×"+f(rf,4)+"×"+f(bw,0)+"×"+f(d,1));
-  P("  Vc    = "+f(Vc,1)+" kN");
-  P("  φVc   = 0.75×"+f(Vc,1)+" = "+f(PHIV*Vc,1)+" kN   (14 20 10 4.2.3(2)③)");
-  P("  φVc/2 = "+f(PHIV*Vc/2,1)+" kN");
-  RF("4.3.4(9) Vs 상한");
-  const Vsmax=0.2*(1-fck/250)*fck*bw*d/1000;
-  P("  Vs ≤ 0.2(1−fck/250)fck·bw·d = "+f(Vsmax,1)+" kN");
-  LN();
-  P("  Vu = "+f(Vu,1)+" kN");
-  let Vsreq=0;
-  if(Vu<=PHIV*Vc/2){ P("  Vu ≤ φVc/2 → 4.3.3(1) 최소전단철근 불필요 (예외조항 확인)"); }
-  else if(Vu<=PHIV*Vc){ P("  φVc/2 &lt; Vu ≤ φVc → 최소전단철근만 배치"); }
-  else{
-    Vsreq=Vu/PHIV-Vc;
-    RF("4.3.4(1)");
-    P("  Vs,req = Vu/φ − Vc = "+f(Vu,1)+"/0.75 − "+f(Vc,1)+" = "+f(Vsreq,1)+" kN");
-    judge(Vsreq<=Vsmax, "Vs,req ≤ Vs,max (아니면 단면 확대)");
-  }
-  RF("4.3.4(2) 식 (4.3-3)  Vs = Av·fyt·d/s");
-  const Vs=Av*fyt*d/s/1000;
-  if(st) P("  Vs = "+f(Av,1)+"×"+f(fyt,0)+"×"+f(d,1)+"/"+f(s,0));
-  P("  Vs    = "+f(Vs,1)+" kN");
-  P("    참고 : D10 2가닥 = 142.7 , D13 2가닥 = 253.4 , D16 2가닥 = 397.2 mm²");
-  const phiVn=PHIV*(Vc+Math.min(Vs,Vsmax));
-  P("  φVn   = 0.75(Vc+Vs) = "+f(phiVn,1)+" kN      Vu/φVn = "+f(Vu/phiVn,3));
-  judge(Vu<=phiVn, "전단강도 : Vu ≤ φVn");
-  RF("4.3.3(3) 최소전단철근량");
-  const av1=0.0625*rf*bw*s/fyt, av2=0.35*bw*s/fyt;
-  P("  Av,min = 0.0625√fck·bw·s/fyt = "+f(av1,1)+" mm²");
-  P("           ≥ 0.35·bw·s/fyt      = "+f(av2,1)+" mm²");
-  P("  지배값 = "+f(Math.max(av1,av2),1)+" mm²   /  배근 Av = "+f(Av,1)+" mm²");
-  judge(Av>=Math.max(av1,av2), "Av ≥ Av,min");
-  RF("4.3.2(1)(3) 간격 제한");
-  let smax=Math.min(d/2,600);
-  const lim3=lam*rf*bw*d/3/1000;
-  P("  기본 : s ≤ d/2 = "+f(d/2,1)+" mm , 600 mm  → "+f(smax,1)+" mm");
-  P("  Vs = "+f(Vs,1)+" vs λ(√fck/3)bw·d = "+f(lim3,1)+" kN");
-  if(Vs>lim3){ smax/=2; P("  → Vs 초과 : 최대간격 1/2 로 감소 → "+f(smax,1)+" mm"); }
-  P("  배근 s = "+f(s,0)+" mm");
-  judge(s<=smax, "s ≤ s,max");
-
-  LN();
-  P("<b>요약</b>  φMn = "+f(r.phi*r.Mn,1)+" kN·m ,  φVn = "+f(phiVn,1)+" kN");
-  flush('b_out');
-}
-
-/* =======================================================================
-   TAB 2 : RC 기둥 P-M
-   ===================================================================== */
+/* RC beam moved to rc-beam.js and rc-beam-ui.js. */
 function colMode(){
   const m=$('c_mode').value;
   document.querySelectorAll('.m1').forEach(e=>e.style.display=(m==='1'?'flex':'none'));
@@ -908,5 +805,7 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
+<script src="rc-beam.js"></script>
+<script src="rc-beam-ui.js"></script>
 </body>
 </html>
