@@ -7,7 +7,8 @@ function read(){
   const j=get('cb_J').value.trim(),edge=get('cb_edge').value.trim();
   const ks=SectionPicker.selected(get('cb_mode'),get('cb_sec'));
   return {H:num('cb_H'),B:num('cb_B'),tw:num('cb_tw'),tf:num('cb_tf'),
-    Fy:num('cb_fy'),E:num('cb_e'),rolled:get('cb_mode').value==='ks',J:j===''?null:Number(j),
+    Fy:num('cb_fy'),E:num('cb_e'),rolled:get('cb_mode').value==='ks',
+    J:j!==''?Number(j):(ks&&ks.listed?ks.J:null),
     r:ks?ks.r:null,section:ks,
     span:num('cb_span'),spacing:num('cb_spacing'),edge:edge===''?null:Number(edge),
     ts:num('cb_ts'),hr:0,fck:num('cb_fck'),wc:num('cb_wc'),

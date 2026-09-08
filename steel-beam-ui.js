@@ -7,10 +7,12 @@ const num=id=>{const v=get(id).value.trim();return v===''?NaN:Number(v);};
 function read(){
   const j=get('sb_J').value.trim();
   const ks=SectionPicker.selected(get('sb_mode'),get('sb_sec'));
+  // 직접입력 > 규격표 J > 필릿 보정식.
+  const J=j!==''?Number(j):(ks&&ks.listed?ks.J:null);
   return {H:num('sb_H'),B:num('sb_B'),tw:num('sb_tw'),tf:num('sb_tf'),
     Fy:num('sb_fy'),E:num('sb_e'),rolled:get('sb_mode').value==='ks',
     r:ks?ks.r:null,section:ks,
-    J:j===''?null:Number(j),Lb:num('sb_lb'),Cb:num('sb_cb'),Mu:num('sb_mu'),Vu:num('sb_vu')};
+    J,Lb:num('sb_lb'),Cb:num('sb_cb'),Mu:num('sb_mu'),Vu:num('sb_vu')};
 }
 function syncGrade(){
   const g=get('sb_gr').value;
@@ -61,6 +63,15 @@ function ltbChart(p,o){
     `<text class="ax" x="${(ML+(W-ML-MR)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">Lb (mm)</text>`+
     `<text class="ax" x="14" y="${(MT+(H-MT-MB)/2).toFixed(0)}" text-anchor="middle" transform="rotate(-90 14 ${(MT+(H-MT-MB)/2).toFixed(0)})">Mn (kN·m)</text></svg>`;
 }
+// J가 어디서 왔는지 밝힌다. 규격표값과 계산값은 최대 17% 차이가 난다.
+function sectionSource(p){
+  if(!p.section)return 'Built-up · 필릿 없음 · J는 얇은판 합산';
+  const s=p.section;
+  if(Number.isFinite(p.J)&&get('sb_J').value.trim()!=='')return `KS ${s.name} · J는 직접입력값`;
+  return s.listed
+    ? `KS ${s.name} · J는 KS D 3502:2007 규격표값 (r = ${s.r} mm)`
+    : `<span class="warn">${s.name} · KS D 3502:2007 표에 없는 호칭이라 J를 필릿 보정식으로 산정했습니다 (r = ${s.r} mm)</span>`;
+}
 function renderProps(p,o){
   const s=o.props,c=o.cls,badge=g=>`<span class="slab-face ${g==='조밀'?'top':'bottom'}">${g}</span>`;
   get('sb_props').innerHTML=sectionView(p)+
@@ -70,7 +81,7 @@ function renderProps(p,o){
     `<div><dt>Iy / ry</dt><dd>${exp(s.Iy)} mm⁴ / ${fmt(s.ry,2)} mm</dd></div>`+
     `<div><dt>ho / Cw</dt><dd>${fmt(s.ho,1)} mm / ${exp(s.Cw)} mm⁶</dd></div>`+
     `<div><dt>J / rts</dt><dd>${exp(s.J)} mm⁴ / ${fmt(s.rts,2)} mm</dd></div>`+
-    `<div><dt>단면 구분</dt><dd>${p.section?`KS ${p.section.name} · 필릿 r = ${p.section.r} mm 포함`:'Built-up · 필릿 없음'}</dd></div>`+
+    `<div><dt>단면 구분</dt><dd>${sectionSource(p)}</dd></div>`+
     `<div><dt>플랜지 b/2tf</dt><dd>${fmt(c.flange.ratio,3)} · λp ${fmt(c.flange.lp,3)} · λr ${fmt(c.flange.lr,3)} ${badge(c.flange.grade)}</dd></div>`+
     `<div><dt>웨브 h/tw</dt><dd>${fmt(c.web.ratio,3)} · λp ${fmt(c.web.lp,3)} · λr ${fmt(c.web.lr,3)} ${badge(c.web.grade)}</dd></div></dl>`+
     (o.notes.length?`<ul class="beam-basis">${o.notes.map(n=>`<li class="warn">${n}</li>`).join('')}</ul>`:'')+

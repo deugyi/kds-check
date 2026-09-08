@@ -368,7 +368,7 @@ text.cap-label{fill:var(--warn)}
       <label><b>웨브 tw (mm)</b><input id="sb_tw" type="number" min="1" step="1" value="11"></label>
       <label><b>플랜지 tf (mm)</b><input id="sb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="sb_J" type="number" min="0" step="any" placeholder="비우면 자동"><span>규격표값이 있으면 입력</span></label>
-    </div><p class="beam-muted">KS 규격을 고르면 KS D 3502의 네 치수가 그대로 들어가고, 비틀림상수 J는 필릿반경을 포함해 산정합니다. Built-up은 치수를 직접 넣고 J는 얇은판 합산으로 구합니다. A·I·Z는 두 경우 모두 필릿을 빼고 계산합니다.</p></div>
+    </div><p class="beam-muted">KS 규격을 고르면 KS D 3502:2007의 치수와 <b>규격표의 비틀림상수 J</b>가 그대로 들어갑니다. Built-up은 치수를 직접 넣고 J는 얇은판 합산으로 구합니다. A·I·Z는 두 경우 모두 필릿을 빼고 계산하며, 규격표보다 3% 정도 작게(안전측) 나옵니다.</p></div>
 
     <div class="card"><h2>3. 비지지길이 · 소요강도</h2><div class="grid beam-inputs">
       <label><b>Lb (mm)</b><input id="sb_lb" type="number" min="1" step="100" value="3000"></label>
@@ -506,7 +506,7 @@ text.cap-label{fill:var(--warn)}
       <label><b>웨브 tw (mm)</b><input id="cb_tw" type="number" min="1" step="1" value="11"></label>
       <label><b>플랜지 tf (mm)</b><input id="cb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="cb_J" type="number" min="0" step="any" placeholder="비우면 자동"></label>
-    </div><p class="beam-muted">KS 규격은 필릿반경을 포함해 J를 산정하고, Built-up은 얇은판 합산으로 구합니다.</p></div>
+    </div><p class="beam-muted">KS 규격은 KS D 3502:2007 규격표의 J를 쓰고, Built-up은 얇은판 합산으로 구합니다.</p></div>
 
     <div class="card"><h2>3. 슬래브 · 배치</h2><div class="grid beam-inputs">
       <label><b>보 경간 (mm)</b><input id="cb_span" type="number" min="500" step="100" value="9000"></label>
@@ -566,7 +566,7 @@ text.cap-label{fill:var(--warn)}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260909-3"></script>
+<script src="steel-section.js?v=20260909-4"></script>
 <script>
 /* =======================================================================
    공통
@@ -627,9 +627,12 @@ function steelFy(pre){
   if(Fy) $(pre+'_fy').value=Fy;
 }
 steelFy('sc');
-// 압연이면 고른 KS 규격의 필릿반경을 넘겨 J 에 반영한다.
-const hProps=(H,Bf,tw,tf,rolled,Jman)=>SteelSection.hProps(H,Bf,tw,tf,Jman,
-  rolled?(SectionPicker.selected($('sc_mode'),$('sc_sec'))||{}).r:null);
+// 압연이면 고른 KS 규격의 규격표 J 와 필릿반경을 넘긴다.
+const hProps=function(H,Bf,tw,tf,rolled,Jman){
+  const s=rolled?SectionPicker.selected($('sc_mode'),$('sc_sec')):null;
+  const J=(Number.isFinite(Jman)&&Jman>0)?Jman:(s&&s.listed?s.J:null);
+  return SteelSection.hProps(H,Bf,tw,tf,J,s?s.r:null);
+};
 
 /* 단면 구분 : KS 규격 / Built-up.
    KS 규격이면 목록에서 고른 치수를 그대로 쓰고 직접 고칠 수 없다. 필릿반경 r 이
@@ -745,16 +748,16 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="steel-beam.js?v=20260909-3"></script>
-<script src="steel-beam-ui.js?v=20260909-3"></script>
-<script src="rc-beam.js?v=20260909-3"></script>
-<script src="rc-beam-checks.js?v=20260909-3"></script>
-<script src="rc-beam-ui.js?v=20260909-3"></script>
-<script src="rc-column.js?v=20260909-3"></script>
-<script src="rc-column-ui.js?v=20260909-3"></script>
-<script src="rc-slab-uplift.js?v=20260909-3"></script>
-<script src="rc-slab-uplift-ui.js?v=20260909-3"></script>
-<script src="composite-beam.js?v=20260909-3"></script>
-<script src="composite-beam-ui.js?v=20260909-3"></script>
+<script src="steel-beam.js?v=20260909-4"></script>
+<script src="steel-beam-ui.js?v=20260909-4"></script>
+<script src="rc-beam.js?v=20260909-4"></script>
+<script src="rc-beam-checks.js?v=20260909-4"></script>
+<script src="rc-beam-ui.js?v=20260909-4"></script>
+<script src="rc-column.js?v=20260909-4"></script>
+<script src="rc-column-ui.js?v=20260909-4"></script>
+<script src="rc-slab-uplift.js?v=20260909-4"></script>
+<script src="rc-slab-uplift-ui.js?v=20260909-4"></script>
+<script src="composite-beam.js?v=20260909-4"></script>
+<script src="composite-beam-ui.js?v=20260909-4"></script>
 </body>
 </html>

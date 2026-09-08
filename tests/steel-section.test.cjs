@@ -2,13 +2,15 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const S=require('../steel-section.js');
 
-/* The KS D 3502 list imported from the H tab of Calc_Sheet.xlsx. */
+/* The palette from the H tab of Calc_Sheet.xlsx, merged with the KS D 3502:2007
+ * table. 78 designations carry the standard's own J; 7 are not in the table. */
 test('the KS section list is complete and free of duplicates',()=>{
-  assert.equal(S.SECTIONS.length,80);
-  assert.equal(S.sectionList('beam').length,48);
-  assert.equal(S.sectionList('column').length,32);
-  assert.equal(S.sectionList().length,80);
-  assert.equal(new Set(S.SECTIONS.map(s=>s.name)).size,80);
+  assert.equal(S.SECTIONS.length,85);
+  assert.equal(S.sectionList('beam').length,51);
+  assert.equal(S.sectionList('column').length,34);
+  assert.equal(S.sectionList().length,85);
+  assert.equal(new Set(S.SECTIONS.map(s=>s.name)).size,85);
+  assert.equal(S.SECTIONS.filter(s=>s.listed).length,78);
   // Every entry carries the four dimensions plus the rolled fillet radius.
   for(const s of S.SECTIONS)
     for(const k of ['H','B','tw','tf','r'])
@@ -50,18 +52,43 @@ test('the fillet raises J and only J',()=>{
   // A supplied J overrides the fillet calculation.
   assert.equal(S.hProps(H,B,tw,tf,1.23e6,r).J,1.23e6);
 });
-test('the stored J matches published KS torsion constants',()=>{
-  // Spot values from the KS/JIS section tables, matched within 1.5%.
-  const published={'H-400×400×13×21':3.12e6,'H-600×200×11×17':1.16e6,
-    'H-300×300×10×15':9.03e5,'H-900×300×16×28':6.55e6};
-  for(const [name,J] of Object.entries(published)){
+/* J is read straight from KS D 3502:2007 rather than computed. Spot values are
+ * transcribed from the standard's table in cm^4. */
+test('listed sections carry the KS D 3502 tabulated J exactly',()=>{
+  const table={'H-400×400×13×21':304,'H-600×200×11×17':114,'H-300×300×10×15':89,
+    'H-900×300×16×28':628,'H-200×100×5.5×8':5.89,'H-100×100×6×8':5.42,
+    'H-498×432×45×70':11300,'H-294×200×8×12':36.1,'H-350×350×12×19':200};
+  for(const [name,J] of Object.entries(table)){
     const s=S.findSection(name);
-    assert.ok(Math.abs(s.J-J)/J<.015,`${name}: ${s.J.toExponential(3)} vs ${J.toExponential(3)}`);
+    assert.equal(s.listed,true,name);
+    assert.equal(s.J,J*1e4,name);
   }
-  // Every section's J is the one hProps computes from its own fillet radius.
-  for(const s of S.SECTIONS){
-    assert.equal(s.J,S.hProps(s.H,s.B,s.tw,s.tf,null,s.r).J);
-    assert.ok(s.J>S.torsionConstant(s.H,s.B,s.tw,s.tf,0),s.name);
+  // The fillet correction is only a fallback, and it is never silently exact.
+  for(const s of S.SECTIONS)
+    if(s.listed)assert.notEqual(s.J,S.torsionConstant(s.H,s.B,s.tw,s.tf,s.r));
+    else assert.equal(s.J,S.torsionConstant(s.H,s.B,s.tw,s.tf,s.r));
+});
+test('the seven designations outside KS D 3502 are flagged, not guessed',()=>{
+  const outside=S.SECTIONS.filter(s=>!s.listed).map(s=>s.name);
+  assert.deepEqual(outside.sort(),['H-304×301×11×17','H-310×305×15×20',
+    'H-343×299×10×15','H-398×201×9×14','H-506×201×11×19','H-597×302×14×23',
+    'H-918×303×19×37'].sort());
+  // Each has a near neighbour that IS in the table, which is why they stay visible.
+  for(const s of S.SECTIONS.filter(x=>!x.listed))
+    assert.ok(s.J>0&&Number.isFinite(s.J),s.name);
+});
+/* The tabulated r is what makes the standard's own area come out right:
+ * A_table = 2 B tf + (H - 2 tf) tw + 4 r^2 (1 - pi/4). Checking it here pins
+ * every r in the list against an independent number from the same table. */
+test('the tabulated fillet radius reproduces the KS areas',()=>{
+  const areas={'H-600×200×11×17':134.4,'H-400×400×13×21':218.7,'H-294×200×8×12':72.38,
+    'H-298×149×5.5×8':40.80,'H-346×174×6×9':52.68,'H-900×300×16×28':309.8};
+  for(const [name,A] of Object.entries(areas)){
+    const s=S.findSection(name);
+    const full=(s.A+4*s.r*s.r*(1-Math.PI/4))/100;
+    assert.ok(Math.abs(full-A)/A<.004,`${name}: ${full.toFixed(2)} vs ${A}`);
+    // Our own A deliberately excludes the fillets, so it is the smaller number.
+    assert.ok(s.A/100<A);
   }
 });
 test('the list is ordered by depth and geometrically sane',()=>{
