@@ -103,13 +103,14 @@ function suggest(p,Mu,face,bar){
   }
   return null;
 }
-// The bottom mat must carry the footing-face negative moment and, together with
-// the top mat, close the section minimum — all within the spacing cap.
-function suggestBottom(p,Mu,bar,AsTop){
+// A strip is detailed with one spacing top and bottom for buildability, so the
+// heavier face sets it. The pair must also close the section minimum.
+function suggestPair(p,MuTop,MuBottom,bar){
   const AsMin=minimumSteel(p);
   for(const spacing of [...SPACINGS].sort((x,y)=>y-x)){
-    let r;try{r=check(p,Mu,'bottom',bar,spacing);}catch(e){continue;}
-    if(r.ok&&r.As+AsTop>=AsMin-1e-9)return r;
+    let top,bottom;
+    try{top=check(p,MuTop,'top',bar,spacing);bottom=check(p,MuBottom,'bottom',bar,spacing);}catch(e){continue;}
+    if(top.ok&&bottom.ok&&top.As+bottom.As>=AsMin-1e-9)return {spacing,top,bottom};
   }
   return null;
 }
@@ -140,11 +141,11 @@ function sections(p,qu,dir){
     const top=split(positive,strip);
     // An end span has two negative sections; the heavier one sizes the mat.
     const worst=negatives.map(part=>split(part,strip)).reduce((a,b)=>b.Mu>a.Mu?b:a);
-    const live=top.width>0;
+    const live=top.width>0,pair=live?suggestPair(p,top.Mu,worst.Mu,p.bar):null;
     const topRow={...top,check:live?check(p,top.Mu,'top',p.bar,p.spacing):null,
-      suggestion:live?suggest(p,top.Mu,'top',p.bar):null};
+      suggestion:pair?pair.top:null};
     const botRow={...worst,check:live?check(p,worst.Mu,'bottom',p.bar,p.spacing):null,
-      suggestion:live&&topRow.suggestion?suggestBottom(p,worst.Mu,p.bar,topRow.suggestion.As):null};
+      suggestion:pair?pair.bottom:null};
     rows.push(topRow,botRow);
     if(live)minimums.push({strip,...sectionMinimum(p,topRow.check.As,botRow.check.As)});
   }
@@ -166,6 +167,6 @@ function calculate(p){
 }
 root.RCSlabUplift={BARS,SPACINGS,END_CASES,COLUMN_STRIP,load,clearSpan,moment,
   minimumRatio,minimumSteel,sectionMinimum,maxSpacing,capacity,check,suggest,
-  suggestBottom,limits,calculate};
+  suggestPair,limits,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCSlabUplift;
 })(typeof globalThis!=='undefined'?globalThis:this);

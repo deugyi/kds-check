@@ -152,7 +152,7 @@ function renderSections(p,o){
     `<dl class="beam-values"><div><dt>입력 배근</dt><dd>${p.bar} @ ${fmt(p.spacing,0)} mm</dd></div>`+
     `<div><dt>단면 최소철근량 (수축·온도)</dt><dd>${fmt(o.AsMin,0)} mm²/m · ρ ${fmt(100*o.minimumRatio,3)}%</dd></div>`+
     `<div><dt>위험단면 최대 철근간격</dt><dd>${fmt(o.maxSpacing,0)} mm</dd></div></dl>`+
-    `<p class="beam-muted">행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 입력한 규격으로 φMn ≥ Mu와 최대간격을 만족하는 가장 넓은 간격이며, 하부근은 상부근과 합쳐 단면 최소철근도 만족시킵니다. 단부 경간처럼 부모멘트 단면이 둘이면 Mu가 큰 쪽이 하부근을 정합니다. 정착·이음·단부 연장길이는 별도입니다.</p>`+
+    `<p class="beam-muted">행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 시공성을 위해 <b>같은 설계대의 상·하부 간격을 통일</b>했습니다. 두 면 중 무거운 쪽이 간격을 정하며, 그 간격에서 양쪽 모두 φMn ≥ Mu와 최대간격을 만족하고 합계가 단면 최소철근도 넘습니다. 단부 경간처럼 부모멘트 단면이 둘이면 Mu가 큰 쪽이 하부근을 정합니다. 정착·이음·단부 연장길이는 별도입니다.</p>`+
     `<h3 class="beam-subheading">단면 최소철근 — 상부근 + 하부근 (입력 배근 기준)</h3>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>설계대</th><th>상부 As (mm²/m)</th><th>하부 As (mm²/m)</th><th>합계</th><th>ρ</th><th>판정</th></tr></thead><tbody>${mins}</tbody></table></div>`+
     `<p class="beam-muted">수축·온도철근량은 KDS 14 20 50 4.6.2에 따라 콘크리트 <b>전체 단면적</b>에 대한 비이므로 상부근과 하부근을 더해 검사합니다. 각 면이 개별로 만족할 필요는 없습니다.</p>`;

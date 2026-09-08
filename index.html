@@ -393,15 +393,15 @@ main:has(#t5.on){max-width:1440px}
   <aside class="beam-sidebar" aria-label="내수압 슬래브 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
       <label><b>콘크리트 fck (MPa)</b><input id="s_fck" type="number" min="21" max="90" step="any" value="24"></label>
-      <label><b>철근 fy (MPa)</b><select id="s_fy"><option value="400" selected>400 MPa</option><option value="500">500 MPa</option><option value="600">600 MPa</option></select></label>
+      <label><b>철근 fy (MPa)</b><select id="s_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label>
     </div></div>
 
     <div class="card"><h2>2. 기둥 그리드 · 단면</h2><div class="grid beam-inputs">
       <label><b>그리드 경간 X (mm)</b><input id="s_l1" type="number" min="1000" step="100" value="8200"></label>
       <label><b>그리드 경간 Y (mm)</b><input id="s_l2" type="number" min="1000" step="100" value="8200"></label>
-      <label><b>독립기초 크기 (mm)</b><input id="s_footing" type="number" min="100" step="100" value="2500"></label>
+      <label><b>독립기초 크기 (mm)</b><input id="s_footing" type="number" min="100" step="100" value="3000"></label>
       <label><b>슬래브 두께 (mm)</b><input id="s_h" type="number" min="100" step="50" value="300"></label>
-      <label><b>기둥 크기 (mm)</b><input id="s_col" type="number" min="0" step="50" value="600"><span>평면도 표시용 · 계산 미사용</span></label>
+      <label><b>기둥 크기 (mm)</b><input id="s_col" type="number" min="0" step="50" value="800"><span>평면도 표시용 · 계산 미사용</span></label>
     </div><p class="beam-muted">순경간은 기초면 사이 거리이며 0.65 × 경간을 하한으로 둡니다. 지지점은 독립기초이므로 기둥 치수는 모멘트 산정에 쓰지 않습니다.</p></div>
 
     <div class="card"><h2>3. 하중</h2><div class="grid beam-inputs">
@@ -414,8 +414,8 @@ main:has(#t5.on){max-width:1440px}
     <div class="card"><h2>4. 배근</h2><div class="grid beam-inputs">
       <label><b>철근 규격</b><select id="s_bar"><option>D10</option><option selected>D13</option><option>D16</option><option>D19</option><option>D22</option><option>D25</option></select></label>
       <label><b>철근 간격 (mm)</b><input id="s_spacing" type="number" min="50" step="25" value="200"></label>
-      <label><b>상부 피복 (mm)</b><input id="s_cover_top" type="number" min="0" step="5" value="20"></label>
-      <label><b>하부 피복 (mm)</b><input id="s_cover_bottom" type="number" min="0" step="5" value="75"><span>흙에 접함 75 mm</span></label>
+      <label><b>상부 피복 (mm)</b><input id="s_cover_top" type="number" min="0" step="5" value="50"></label>
+      <label><b>하부 피복 (mm)</b><input id="s_cover_bottom" type="number" min="0" step="5" value="50"></label>
     </div><p class="beam-muted">입력한 규격·간격을 전 위험단면에 동일하게 적용해 검토하고, 단면별로 성립하는 최대 간격을 따로 제안합니다.</p></div>
 
     <div class="card"><h2>5. 경간 조건</h2><div class="grid beam-inputs">
@@ -1027,10 +1027,10 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="rc-beam.js?v=20260908-5"></script>
-<script src="rc-beam-checks.js?v=20260908-5"></script>
-<script src="rc-beam-ui.js?v=20260908-5"></script>
-<script src="rc-slab-uplift.js?v=20260908-5"></script>
-<script src="rc-slab-uplift-ui.js?v=20260908-5"></script>
+<script src="rc-beam.js?v=20260908-6"></script>
+<script src="rc-beam-checks.js?v=20260908-6"></script>
+<script src="rc-beam-ui.js?v=20260908-6"></script>
+<script src="rc-slab-uplift.js?v=20260908-6"></script>
+<script src="rc-slab-uplift-ui.js?v=20260908-6"></script>
 </body>
 </html>

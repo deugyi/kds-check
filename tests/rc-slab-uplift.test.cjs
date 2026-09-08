@@ -74,17 +74,15 @@ test('the shrinkage minimum is a section total, not a per-face requirement',()=>
   assert.equal(S.sectionMinimum(base,half,half).ok,true);
   assert.equal(S.sectionMinimum(base,half,0).ok,false);
 });
-test('the bottom mat also closes the gap left by the top mat',()=>{
+test('the suggested pair also clears the section minimum',()=>{
   const p={...base,h:700,fy:400},AsMin=S.minimumSteel(p);
   near(AsMin,.0020*1000*700);
-  // With no moment the spacing is driven purely by the section minimum.
-  const tight=S.suggestBottom(p,0,'D16',200);
-  assert.ok(tight.As+200>=AsMin);
-  for(const x of S.SPACINGS.filter(v=>v>tight.spacing))
-    assert.ok(R.BARS.D16.area*1000/x+200<AsMin,`${x}은 너무 넓다`);
-  // A generous top mat lets the bottom relax to the spacing cap.
-  const loose=S.suggestBottom(p,0,'D16',AsMin);
-  assert.equal(loose.spacing,Math.max(...S.SPACINGS.filter(v=>v<=loose.sMax)));
+  // Trivial moments, so only the section minimum can bind.
+  const pair=S.suggestPair(p,1,1,'D16');
+  assert.equal(pair.top.spacing,pair.bottom.spacing);
+  assert.ok(pair.top.As+pair.bottom.As>=AsMin);
+  for(const x of S.SPACINGS.filter(v=>v>pair.spacing))
+    assert.ok(2*R.BARS.D16.area*1000/x<AsMin,`${x}은 최소철근 미달`);
 });
 test('flexural capacity agrees with the independent singly reinforced formula',()=>{
   const o=S.calculate(base),r=o.directions[0].rows.find(x=>x.strip==='column'&&x.face==='top').check;
@@ -130,18 +128,21 @@ test('a section fails when capacity or spacing is short',()=>{
   assert.equal(sparse.ok,true);
   assert.equal(S.sectionMinimum({...base,h:400},sparse.As,0).ok,false);
 });
-test('suggested spacing is the widest one that carries its moment',()=>{
+test('a strip gets one spacing top and bottom, set by its heavier face',()=>{
   const d=S.calculate(base).directions[0];
-  for(const r of d.rows){
-    const s=r.suggestion;assert.ok(s,'제안이 있어야 함');
-    assert.equal(s.ok,true);assert.ok(s.phiMn>=r.Mu);assert.ok(s.spacing<=s.sMax);
-    for(const x of S.SPACINGS.filter(v=>v>s.spacing))
-      assert.equal(S.check(base,r.Mu,r.face,base.bar,x).ok,false,`${x} should fail`);
-  }
-  // Every suggested pair still clears the section minimum.
   for(const strip of ['column','middle']){
     const pair=d.rows.filter(r=>r.strip===strip);
-    assert.equal(S.sectionMinimum(base,...pair.map(r=>r.suggestion.As)).ok,true);
+    assert.equal(pair.length,2);
+    const [a,b]=pair.map(r=>r.suggestion);
+    assert.ok(a&&b,'제안이 있어야 함');
+    assert.equal(a.spacing,b.spacing,'같은 열대는 상하부 간격이 같다');
+    for(const s of [a,b]){assert.equal(s.ok,true);assert.ok(s.spacing<=s.sMax);}
+    for(const r of pair)assert.ok(r.suggestion.phiMn>=r.Mu);
+    assert.equal(S.sectionMinimum(base,a.As,b.As).ok,true);
+    // Widening it would fail the face that governs.
+    const heavy=pair.reduce((x,y)=>y.Mu>x.Mu?y:x);
+    for(const x of S.SPACINGS.filter(v=>v>heavy.suggestion.spacing))
+      assert.equal(S.check(base,heavy.Mu,heavy.face,base.bar,x).ok,false,`${x} should fail`);
   }
 });
 test('no net uplift returns a message instead of fabricated moments',()=>{
