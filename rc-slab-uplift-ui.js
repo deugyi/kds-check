@@ -122,12 +122,21 @@ function renderLoad(p,o){
     `<p class="beam-muted">qu = 1.6 × ${fmt(w.uplift,2)} − 0.9 × ${fmt(w.dead,2)} = ${fmt(w.qu,2)} kN/m². 사용자가 지정한 하중조합이며 KDS 하중조합식을 그대로 옮긴 것이 아닙니다. 활하중은 저항으로 산입하지 않았습니다.</p>`+
     (o.message?`<p class="warn">${o.message}</p>`:'');
 }
+/* The 0.65l floor caps how far a bigger footing can shorten the design span,
+ * so past that point enlarging it stops reducing the moments. */
+function floorNote(o){
+  const hit=o.directions.filter(d=>d.floored);
+  if(!hit.length)return '';
+  const each=hit.map(d=>`${DIR[d.dir]} 방향은 기초면 사이 ${fmt(d.raw,0)} mm가 하한 ${fmt(d.floor,0)} mm보다 작아 ln = ${fmt(d.floor,0)} mm를 씁니다`).join('. ');
+  return `<p class="slab-note"><b>순경간 하한이 지배하고 있습니다.</b> ${each}. 이 상태에서는 <b>기초를 더 키워도 Mo와 각 설계대의 Mu가 줄지 않습니다.</b> 모멘트를 낮추려면 경간이나 하중을 조정해야 합니다 (KDS 14 20 70, 4.1.3.2(5)).</p>`;
+}
 function renderGeometry(p,o){
   if(!o.directions.length){get('s_geometry').innerHTML='';return;}
   const rows=o.directions.map(d=>
     `<tr><td>${DIR[d.dir]} 방향</td><td>${fmt(d.span,0)}</td><td>${fmt(d.ln,0)}${d.floored?' <small>(0.65 l 하한)</small>':''}</td><td>${fmt(d.transverse,0)}</td><td>${fmt(d.columnWidth,0)}</td><td>${fmt(d.middleWidth,0)}</td><td class="beam-phi">${fmt(d.Mo,1)}</td></tr>`).join('');
   get('s_geometry').innerHTML=`<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>방향</th><th>경간 l (mm)</th><th>순경간 ln (mm)</th><th>직교 경간 l2 (mm)</th><th>주열대 폭 (mm)</th><th>중간대 폭 (mm)</th><th>Mo (kN·m)</th></tr></thead><tbody>${rows}</tbody></table></div>`+
     `<p class="beam-muted">Mo = qu · l2 · ln² / 8 (KDS 14 20 70 식 4.1-2). 순경간은 기초면 사이 거리이고 0.65 l 이 하한입니다(4.1.3.2(5)). 주열대 폭 = 2 × min(0.25 l1, 0.25 l2) (4.1.2.1(2)).</p>`+
+    floorNote(o)+
     (o.limits.notes.length?`<p class="warn">직접설계법 제한사항 이탈: ${o.limits.notes.join(' / ')}</p>`:'');
 }
 function renderSections(p,o){
