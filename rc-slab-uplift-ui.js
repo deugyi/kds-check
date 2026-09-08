@@ -44,14 +44,14 @@ function diagram(p,o){
    * uninterrupted top layer and one bottom layer per strip. */
   const extent=along?W:H;
   const px=(a,t)=>along?[X(a),Y(t)]:[X(t),Y(a)];
-  function rebar(bc,thickness,strip){
+  function rebar(bc,thickness,strip,labelled){
     const line=(cls,off)=>{
       const [x1,y1]=px(0,bc),[x2,y2]=px(extent,bc);
       return along?`<line class="bar ${cls}" x1="${x1}" x2="${x2}" y1="${y1+off}" y2="${y2+off}"/>`
                  :`<line class="bar ${cls}" x1="${x1+off}" x2="${x2+off}" y1="${y1}" y2="${y2}"/>`;
     };
     const out=line('top',-6)+line('bottom',6);
-    if(thickness*scale<30)return out;
+    if(!labelled||thickness*scale<30)return out;
     const anchor=along?(gx[0]+gx[1])/2:(gy[0]+gy[1])/2;
     const lab=(txt,off)=>{
       const [x,y]=px(anchor,bc);
@@ -60,9 +60,10 @@ function diagram(p,o){
     };
     return out+lab(`${spec(strip)}(T)`,-11)+lab(`${bottomSpec()}(B)`,19);
   }
-  const bars=[rebar(centre,cw,'column'),
-    rebar((centre-total/2+centre-cw/2)/2,total/2-cw/2,'middle'),
-    rebar((centre+cw/2+centre+total/2)/2,total/2-cw/2,'middle')].join('');
+  // Both halves of the middle strip carry the same bars, so only one is labelled.
+  const bars=[rebar(centre,cw,'column',true),
+    rebar((centre-total/2+centre-cw/2)/2,total/2-cw/2,'middle',true),
+    rebar((centre+cw/2+centre+total/2)/2,total/2-cw/2,'middle',false)].join('');
   const lines=[];
   for(const v of gx)lines.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${Y(0)-16}" y2="${Y(H)+16}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="7 5"/>`);
   for(const v of gy)lines.push(`<line x1="${X(0)-16}" x2="${X(W)+16}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="7 5"/>`);
