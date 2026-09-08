@@ -27,6 +27,13 @@ function diagram(p,o){
   const d=o.directions.find(x=>x.dir===planDir)||o.directions[0];
   const cw=d.columnWidth,total=d.transverse,along=planDir==='l1';
   const centre=along?gy[1]:gx[1];
+  // Where a span has two negative sections, the drawing labels the governing one.
+  const spec=(strip,faceKey)=>{
+    const rows=d.rows.filter(r=>r.strip===strip&&r.face===faceKey);
+    if(!rows.length)return '—';
+    const worst=rows.reduce((a,b)=>b.Mu>a.Mu?b:a);
+    return worst.suggestion?`${worst.suggestion.bar}@${worst.suggestion.spacing}`:'배근 불가';
+  };
   const band=(from,to,strip)=>{
     const fill=strip==='column'?'var(--accent)':'var(--ok)';
     const r=along
@@ -36,6 +43,33 @@ function diagram(p,o){
   };
   const strips=[band(centre-cw/2,centre+cw/2,'column'),
     band(centre-total/2,centre-cw/2,'middle'),band(centre+cw/2,centre+total/2,'middle')].join('');
+  /* Top steel resists the midspan positive moment, bottom steel the negative
+   * moment over the footings, so each is drawn only where it is needed. */
+  const axis=along?gx:gy,span=along?p.l1:p.l2,extent=along?W:H,sz=.25*span;
+  const supportZones=axis.map(v=>[Math.max(0,v-sz),Math.min(extent,v+sz)]);
+  const midZones=[];
+  for(let i=0;i<axis.length-1;i++)midZones.push([axis[i]+sz,axis[i+1]-sz]);
+  const px=(a,t)=>along?[X(a),Y(t)]:[X(t),Y(a)];
+  function rebar(bc,thickness,strip){
+    const seg=(zones,cls,off)=>zones.map(([s,e])=>{
+      const [x1,y1]=px(s,bc),[x2,y2]=px(e,bc);
+      return along?`<line class="bar ${cls}" x1="${x1}" x2="${x2}" y1="${y1+off}" y2="${y2+off}"/>`
+                 :`<line class="bar ${cls}" x1="${x1+off}" x2="${x2+off}" y1="${y1}" y2="${y2}"/>`;
+    }).join('');
+    let out=seg(midZones,'top',-6)+seg(supportZones,'bottom',6);
+    if(thickness*scale<30)return out;
+    const lab=(txt,zone,off)=>{
+      if(!zone)return '';
+      const [x,y]=px((zone[0]+zone[1])/2,bc);
+      return along?`<text class="bar-label" x="${x}" y="${y+off}" text-anchor="middle">${txt}</text>`
+                 :`<text class="bar-label" x="${x+off}" y="${y}" text-anchor="middle" transform="rotate(-90 ${x+off} ${y})">${txt}</text>`;
+    };
+    const t=spec(strip,'top'),b=spec(strip,'bottom');
+    return out+lab(t,midZones[0],-11)+lab(b,supportZones[1]||supportZones[0],19);
+  }
+  const bars=[rebar(centre,cw,'column'),
+    rebar((centre-total/2+centre-cw/2)/2,total/2-cw/2,'middle'),
+    rebar((centre+cw/2+centre+total/2)/2,total/2-cw/2,'middle')].join('');
   const lines=[];
   for(const v of gx)lines.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${Y(0)-16}" y2="${Y(H)+16}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="7 5"/>`);
   for(const v of gy)lines.push(`<line x1="${X(0)-16}" x2="${X(W)+16}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="7 5"/>`);
@@ -51,23 +85,35 @@ function diagram(p,o){
     dimH(X(gx[0]),X(gx[1]),MT-24,`l1 = ${fmt(p.l1,0)}`),
     dimV(Y(gy[0]),Y(gy[1]),X(W)+26,`l2 = ${fmt(p.l2,0)}`),
     dimH(X(gx[0]-f/2),X(gx[0]+f/2),Y(H)+22,`기초 ${fmt(f,0)}`),
-    along?dimH(X(gx[0]+f/2),X(gx[1]-f/2),Y(gy[1])-10,`기초면 ${fmt(gap,0)}`)
-         :dimV(Y(gy[0]+f/2),Y(gy[1]-f/2),X(gx[1])+10,`기초면 ${fmt(gap,0)}`)
+    // Kept on the first grid line so it never runs under the rebar labels.
+    along?dimH(X(gx[0]+f/2),X(gx[1]-f/2),Y(gy[0])-10,`기초면 ${fmt(gap,0)}`)
+         :dimV(Y(gy[0]+f/2),Y(gy[1]-f/2),X(gx[0])+10,`기초면 ${fmt(gap,0)}`)
   ].join('');
   const label=along?`<text x="${X(0)}" y="${Y(centre-total/2)-6}">X 방향 설계대 (폭 ${fmt(total,0)} mm)</text>`
     :`<text x="${X(centre-total/2)}" y="${Y(0)-6}">Y 방향 설계대 (폭 ${fmt(total,0)} mm)</text>`;
   return `<svg viewBox="0 0 ${ML+W*scale+MR} ${MT+H*scale+MB}" role="img" aria-label="기둥 그리드 ${fmt(p.l1,0)} × ${fmt(p.l2,0)} mm, 독립기초 ${fmt(f,0)} mm 정사각형, ${DIR[planDir]} 방향 설계대 주열대 폭 ${fmt(cw,0)} mm">`+
     `<rect x="${X(0)}" y="${Y(0)}" width="${W*scale}" height="${H*scale}" fill="var(--code)" stroke="var(--line)"/>`+
-    strips+lines.join('')+pads.join('')+cols.join('')+dims+label+`</svg>`;
+    strips+lines.join('')+pads.join('')+cols.join('')+bars+dims+label+`</svg>`;
 }
 function renderPlan(p,o){
   if(!o.directions.length){get('s_diagram').innerHTML='';get('s_plan_controls').innerHTML='';return;}
   const d=o.directions.find(x=>x.dir===planDir)||o.directions[0];
+  const pick=(strip,f)=>{
+    const rows=d.rows.filter(r=>r.strip===strip&&r.face===f);
+    return rows.length?rows.reduce((a,b)=>b.Mu>a.Mu?b:a):null;
+  };
+  const cell=r=>r?`${r.suggestion?`${r.suggestion.bar}@${r.suggestion.spacing}`:'<span class="warn">배근 불가</span>'} <small>Mu ${fmt(r.Mu,1)}</small>`:'—';
+  const specs=['column','middle'].map(s=>
+    `<tr><td>${s==='column'?'주열대':'중간대'}</td><td>${cell(pick(s,'top'))}</td><td>${cell(pick(s,'bottom'))}</td></tr>`).join('');
+  const rule=dash=>`<svg width="34" height="9" aria-hidden="true"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--bar)" stroke-width="2.4"${dash?' stroke-dasharray="7 5"':''}/></svg>`;
   get('s_plan_controls').innerHTML=['l1','l2'].map(dir=>
     `<button type="button" data-plan-dir="${dir}" aria-pressed="${planDir===dir}">${DIR[dir]} 방향 설계대</button>`).join('')+
     `<span>주열대 ${fmt(d.columnWidth,0)} · 중간대 ${fmt(d.middleWidth,0)} mm</span>`;
   get('s_diagram').innerHTML=diagram(p,o)+
+    `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근</b> · 중앙부 정모멘트</span><span>${rule(true)} 점선 <b>하부근</b> · 받침부 부모멘트</span></div>`+
+    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>${DIR[planDir]} 방향 설계대</th><th>상부근 (실선)</th><th>하부근 (점선)</th></tr></thead><tbody>${specs}</tbody></table></div>`+
     `<p class="beam-muted">회색 사각형이 독립기초, 파란 사각형이 기둥(표시용), 검은 점선이 기둥 그리드입니다. 파란 띠가 주열대, 녹색 띠가 중간대이며 <b>클릭하면 아래 검토표에서 해당 행이 강조</b>됩니다. 설계대는 패널이 아니라 그리드 선을 중심으로 잡힙니다.</p>`+
+    `<p class="beam-muted">철근은 필요한 구간에만 그렸습니다. 상부근은 중앙부, 하부근은 받침부 구간이며 표시 길이는 개념도로 정착·연장길이를 나타내지 않습니다. 표기값은 제안 배근이고, 부모멘트 단면이 둘인 단부 경간에서는 Mu가 큰 쪽을 표시합니다.</p>`+
     `<p class="beam-muted">순경간 ln = ${fmt(d.ln,0)} mm${d.floored?` — 기초면 사이 ${fmt(d.raw,0)} mm가 0.65 l 하한 ${fmt(d.floor,0)} mm보다 작아 하한을 적용했습니다.`:''}</p>`;
 }
 function renderLoad(p,o){
