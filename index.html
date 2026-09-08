@@ -29,11 +29,31 @@ body{margin:0;background:var(--bg);color:var(--ink);
 header{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
 header h1{margin:0;font-size:17px;letter-spacing:-.2px}
 header p{margin:3px 0 0;font-size:12.5px;color:var(--dim)}
-nav{display:flex;gap:4px;overflow-x:auto;padding:8px 12px 0;background:var(--panel);
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px 0;background:var(--panel);
   border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-nav button{flex:0 0 auto;background:none;border:none;border-bottom:2px solid transparent;
-  color:var(--dim);padding:8px 12px;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap}
-nav button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.menu{position:relative}
+.menu-top{background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);
+  padding:8px 12px;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.menu-top::after{content:"▾";margin-left:5px;font-size:11px}
+.menu-top.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.menu-top[aria-expanded=true]{color:var(--accent)}
+.menu-list{position:absolute;top:100%;left:0;z-index:10;margin:0;padding:4px;min-width:190px;
+  list-style:none;background:var(--panel);border:1px solid var(--line);border-radius:0 0 8px 8px;
+  box-shadow:0 6px 18px rgba(0,0,0,.14)}
+.menu:last-child .menu-list{left:auto;right:0}
+.menu-list button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;
+  padding:8px 10px;border:none;border-radius:5px;background:none;color:var(--ink);font:inherit;
+  text-align:left;cursor:pointer;white-space:nowrap}
+.menu-list button:hover:not(:disabled){background:var(--code);color:var(--accent)}
+.menu-list button[aria-current]{color:var(--accent);font-weight:600}
+.menu-list button:disabled{color:var(--dim);cursor:not-allowed}
+.menu-list button:disabled::after{content:"준비 중";font-size:11px;border:1px solid var(--line);
+  border-radius:99px;padding:1px 7px}
+/* Narrow screens wrap the top row, so anchor the panel to the nav, not the button. */
+@media(max-width:520px){
+  .menu{position:static}
+  .menu-list,.menu:last-child .menu-list{left:12px;right:12px;min-width:0}
+}
 main{max-width:900px;margin:0 auto;padding:14px 12px 60px}
 section.tab{display:none}
 section.tab.on{display:block}
@@ -114,14 +134,45 @@ main:has(#t1.on){max-width:1440px}
 
 <header>
   <h1>KDS 구조검토</h1>
-  <p>RC 보 · RC 기둥 P-M · 철골 보 · 철골 기둥 &nbsp;|&nbsp; KDS 14 20 xx / KDS 14 31 xx</p>
+  <p>설계하중 · 철근콘크리트 · 철골 · 구조해석 &nbsp;|&nbsp; KDS 14 20 xx / KDS 14 31 xx</p>
 </header>
 
-<nav id="nav">
-  <button data-t="t1" class="on">RC 보</button>
-  <button data-t="t2">RC 기둥 P-M</button>
-  <button data-t="t3">철골 보</button>
-  <button data-t="t4">철골 기둥</button>
+<nav id="nav" aria-label="검토 항목">
+  <div class="menu">
+    <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">설계하중</button>
+    <ul class="menu-list" hidden>
+      <li><button type="button" disabled>설계 하중표</button></li>
+      <li><button type="button" disabled>풍하중</button></li>
+      <li><button type="button" disabled>지진하중</button></li>
+    </ul>
+  </div>
+  <div class="menu">
+    <button type="button" class="menu-top on" aria-haspopup="true" aria-expanded="false">철근콘크리트</button>
+    <ul class="menu-list" hidden>
+      <li><button type="button" disabled>1방향 슬래브</button></li>
+      <li><button type="button" disabled>2방향 슬래브</button></li>
+      <li><button type="button" disabled>내수압 슬래브</button></li>
+      <li><button type="button" data-t="t1" aria-current="page">보</button></li>
+      <li><button type="button" data-t="t2">기둥</button></li>
+      <li><button type="button" disabled>벽체</button></li>
+      <li><button type="button" disabled>기초</button></li>
+    </ul>
+  </div>
+  <div class="menu">
+    <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">철골</button>
+    <ul class="menu-list" hidden>
+      <li><button type="button" data-t="t3">보</button></li>
+      <li><button type="button" data-t="t4">기둥</button></li>
+      <li><button type="button" disabled>볼트 접합부</button></li>
+      <li><button type="button" disabled>용접 접합부</button></li>
+    </ul>
+  </div>
+  <div class="menu">
+    <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">구조해석</button>
+    <ul class="menu-list" hidden>
+      <li><button type="button" disabled>프레임 해석</button></li>
+    </ul>
+  </div>
 </nav>
 
 <main>
@@ -334,13 +385,31 @@ const $ = id => document.getElementById(id);
 const V = id => parseFloat($(id).value);
 const f = (x,n) => (isFinite(x) ? x.toFixed(n) : "-");
 
-document.querySelectorAll('#nav button').forEach(btn=>{
-  btn.onclick = ()=>{
-    document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('on'));
-    document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('on'));
-    btn.classList.add('on'); $(btn.dataset.t).classList.add('on');
+function closeMenus(){
+  document.querySelectorAll('#nav .menu-list').forEach(l=>l.hidden=true);
+  document.querySelectorAll('#nav .menu-top').forEach(b=>b.setAttribute('aria-expanded','false'));
+}
+document.querySelectorAll('#nav .menu').forEach(menu=>{
+  const top=menu.querySelector('.menu-top'), list=menu.querySelector('.menu-list');
+  top.onclick = e=>{
+    e.stopPropagation();
+    const opening = list.hidden;
+    closeMenus();
+    if(opening){ list.hidden=false; top.setAttribute('aria-expanded','true'); }
   };
+  list.querySelectorAll('button[data-t]').forEach(item=>{
+    item.onclick = ()=>{
+      document.querySelectorAll('#nav .menu-top').forEach(b=>b.classList.remove('on'));
+      document.querySelectorAll('#nav .menu-list button').forEach(b=>b.removeAttribute('aria-current'));
+      document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('on'));
+      top.classList.add('on'); item.setAttribute('aria-current','page');
+      $(item.dataset.t).classList.add('on');
+      closeMenus();
+    };
+  });
 });
+document.addEventListener('click',closeMenus);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMenus(); });
 
 /* 출력 버퍼 */
 let B=[];
