@@ -103,12 +103,12 @@ function suggest(p,Mu,face,bar){
   }
   return null;
 }
-// The bottom mat carries no design moment, so it only has to close the gap
-// between the top steel and the section minimum, within the spacing cap.
-function suggestBottom(p,bar,AsTop){
+// The bottom mat must carry the footing-face negative moment and, together with
+// the top mat, close the section minimum — all within the spacing cap.
+function suggestBottom(p,Mu,bar,AsTop){
   const AsMin=minimumSteel(p);
   for(const spacing of [...SPACINGS].sort((x,y)=>y-x)){
-    let r;try{r=check(p,0,'bottom',bar,spacing);}catch(e){continue;}
+    let r;try{r=check(p,Mu,'bottom',bar,spacing);}catch(e){continue;}
     if(r.ok&&r.As+AsTop>=AsMin-1e-9)return r;
   }
   return null;
@@ -121,31 +121,34 @@ function sections(p,qu,dir){
   const ends=END_CASES[p.endCase],interior=p.spanType==='interior';
   const positive={key:'positive',label:'중앙부 정모멘트',face:'top',
     coef:interior?.35:ends.positive,column:COLUMN_STRIP.positive};
-  // The negative moment is delivered into the footing, which is designed
-  // separately, so it is reported but never sizes this slab's reinforcement.
-  const supports=interior
-    ?[{key:'negative',label:'받침부 부모멘트',coef:.65,column:COLUMN_STRIP.interior}]
-    :[{key:'exterior',label:'외부 받침부 부모멘트',coef:ends.exterior,column:COLUMN_STRIP.exterior},
-      {key:'interior',label:'내부 받침부 부모멘트',coef:ends.interior,column:COLUMN_STRIP.interior}];
+  // 4.1.3.3(1) places the negative moment at the face of the support, and the
+  // support here is the footing, so that section is slab and this slab's bottom
+  // mat carries it. What happens inside the footing footprint is the footing's.
+  const negatives=interior
+    ?[{key:'negative',label:'기초면 부모멘트',face:'bottom',coef:.65,column:COLUMN_STRIP.interior}]
+    :[{key:'exterior',label:'외부 기초면 부모멘트',face:'bottom',coef:ends.exterior,column:COLUMN_STRIP.exterior},
+      {key:'interior',label:'내부 기초면 부모멘트',face:'bottom',coef:ends.interior,column:COLUMN_STRIP.interior}];
   const split=(part,strip)=>{
     const width=strip==='column'?columnWidth:middleWidth;
     const share=strip==='column'?part.column:1-part.column;
     const total=part.coef*m.Mo*share;
     return {dir,strip,width,share,total,Mu:width>0?total/(width/1000):0,...part};
   };
-  const rows=['column','middle'].map(strip=>{
-    const r=split(positive,strip);
-    return {...r,check:r.width>0?check(p,r.Mu,'top',p.bar,p.spacing):null,
-      suggestion:r.width>0?suggest(p,r.Mu,'top',p.bar):null};
-  });
-  const support=supports.flatMap(part=>['column','middle'].map(strip=>split(part,strip)));
-  // No design moment reaches the bottom face; it only tops the section up to
-  // the shrinkage minimum, sized against the lightest suggested top mat.
-  const AsTop=Math.min(...rows.map(r=>r.suggestion?r.suggestion.As:0));
-  const bottom={face:'bottom',key:'minimum',label:'하부근 · 설계 모멘트 없음',Mu:0,
-    check:check(p,0,'bottom',p.bar,p.spacing),suggestion:suggestBottom(p,p.bar,AsTop)};
-  const minimum=sectionMinimum(p,rows[0].check?rows[0].check.As:0,bottom.check.As);
-  return {dir,span,transverse,columnWidth,middleWidth,...m,positive,supports,rows,support,bottom,minimum};
+  const support=negatives.flatMap(part=>['column','middle'].map(strip=>split(part,strip)));
+  const rows=[],minimums=[];
+  for(const strip of ['column','middle']){
+    const top=split(positive,strip);
+    // An end span has two negative sections; the heavier one sizes the mat.
+    const worst=negatives.map(part=>split(part,strip)).reduce((a,b)=>b.Mu>a.Mu?b:a);
+    const live=top.width>0;
+    const topRow={...top,check:live?check(p,top.Mu,'top',p.bar,p.spacing):null,
+      suggestion:live?suggest(p,top.Mu,'top',p.bar):null};
+    const botRow={...worst,check:live?check(p,worst.Mu,'bottom',p.bar,p.spacing):null,
+      suggestion:live&&topRow.suggestion?suggestBottom(p,worst.Mu,p.bar,topRow.suggestion.As):null};
+    rows.push(topRow,botRow);
+    if(live)minimums.push({strip,...sectionMinimum(p,topRow.check.As,botRow.check.As)});
+  }
+  return {dir,span,transverse,columnWidth,middleWidth,...m,positive,negatives,rows,support,minimums};
 }
 function limits(p){
   const ratio=Math.max(p.l1,p.l2)/Math.min(p.l1,p.l2),notes=[];

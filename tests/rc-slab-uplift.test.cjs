@@ -22,11 +22,12 @@ test('clear span is measured between footing faces and floored at 0.65 l',()=>{
 test('static moment and interior distribution match independent arithmetic',()=>{
   const o=S.calculate(base),qu=o.load.qu,d=o.directions[0];
   near(d.Mo,qu*8*Math.pow(5.5,2)/8);
-  near(d.rows.reduce((s,r)=>s+r.total,0),.35*d.Mo);
-  near(d.support.reduce((s,r)=>s+r.total,0),.65*d.Mo);
+  const top=d.rows.filter(r=>r.face==='top'),bottom=d.rows.filter(r=>r.face==='bottom');
+  near(top.reduce((s,r)=>s+r.total,0),.35*d.Mo);
+  near(bottom.reduce((s,r)=>s+r.total,0),.65*d.Mo);
   // Beamless slab: column strip takes 60% of positive and 75% of negative.
-  near(d.rows.find(r=>r.strip==='column').total,.60*.35*d.Mo);
-  near(d.support.find(r=>r.strip==='column').total,.75*.65*d.Mo);
+  near(top.find(r=>r.strip==='column').total,.60*.35*d.Mo);
+  near(bottom.find(r=>r.strip==='column').total,.75*.65*d.Mo);
 });
 test('design strips split the transverse span and moments per metre follow the width',()=>{
   const o=S.calculate({...base,l1:8000,l2:6000}),d=o.directions[0];
@@ -34,52 +35,59 @@ test('design strips split the transverse span and moments per metre follow the w
   near(d.middleWidth,6000-d.columnWidth);
   for(const r of [...d.rows,...d.support])near(r.Mu,r.total/(r.width/1000));
 });
-test('the slab is designed for midspan only; the support moment goes to the footing',()=>{
+test('each face takes the moment that puts it in tension',()=>{
   const d=S.calculate(base).directions[0];
+  const db=R.BARS[base.bar].diameter;
   for(const r of d.rows){
-    assert.equal(r.face,'top');assert.equal(r.key,'positive');
-    near(r.check.d,base.h-base.coverTop-R.BARS[base.bar].diameter/2);
+    // Midspan sags upward under uplift, so the top face carries the positive
+    // moment and the footing-face negative moment lands on the bottom.
+    assert.equal(r.face,r.key==='positive'?'top':'bottom');
+    near(r.check.d,base.h-(r.face==='top'?base.coverTop:base.coverBottom)-db/2);
   }
-  // Support moments are reported as bare numbers, never sized here.
-  assert.ok(d.support.length);
-  for(const r of d.support){assert.equal(r.check,undefined);assert.equal(r.suggestion,undefined);}
+  assert.equal(d.rows.filter(r=>r.face==='top').length,2);
+  assert.equal(d.rows.filter(r=>r.face==='bottom').length,2);
 });
-test('the bottom mat carries no moment and tops the section up to the minimum',()=>{
+test('the footing-face moment sizes the bottom mat',()=>{
   const d=S.calculate(base).directions[0];
-  assert.equal(d.bottom.face,'bottom');assert.equal(d.bottom.Mu,0);
-  // Bottom bars sit under the larger ground-cast cover, so d is smaller.
-  near(d.bottom.check.d,base.h-base.coverBottom-R.BARS[base.bar].diameter/2);
-  const deep=S.calculate({...base,hw:6}).directions[0];
-  assert.ok(deep.support[0].Mu>1.5*d.support[0].Mu,'수두를 올리면 받침부 모멘트는 커진다');
-  assert.equal(deep.bottom.Mu,0,'하부근에는 설계 모멘트가 없다');
-  for(const o of [d,deep]){
-    const top=Math.min(...o.rows.map(r=>r.suggestion.As));
-    assert.equal(S.sectionMinimum(base,top,o.bottom.suggestion.As).ok,true);
-  }
+  const bottom=d.rows.find(r=>r.face==='bottom'&&r.strip==='column');
+  near(bottom.Mu,.75*.65*d.Mo/(d.columnWidth/1000));
+  assert.ok(bottom.suggestion.phiMn>=bottom.Mu,'제안 배근이 부모멘트를 견딘다');
+  // Raising the head raises that moment, so the bottom mat has to tighten.
+  const pick=hw=>S.calculate({...base,hw}).directions[0].rows.find(r=>r.face==='bottom'&&r.strip==='column');
+  const deeper=pick(4);
+  assert.ok(deeper.Mu>bottom.Mu);
+  assert.ok(deeper.suggestion.spacing<bottom.suggestion.spacing);
+  // Past what the chosen bar can carry at any spacing there is no suggestion.
+  const extreme=pick(9);
+  assert.equal(extreme.suggestion,null);assert.equal(extreme.check.ok,false);
 });
 test('the shrinkage minimum is a section total, not a per-face requirement',()=>{
-  const d=S.calculate(base).directions[0],m=d.minimum;
-  near(m.AsMin,S.minimumSteel(base));
-  near(m.total,m.AsTop+m.AsBottom);near(m.ratio,m.total/(1000*base.h));
-  assert.equal(m.ok,true);
+  const d=S.calculate(base).directions[0];
+  assert.equal(d.minimums.length,2);
+  for(const m of d.minimums){
+    near(m.AsMin,S.minimumSteel(base));
+    near(m.total,m.AsTop+m.AsBottom);near(m.ratio,m.total/(1000*base.h));
+    assert.equal(m.ok,true);
+  }
   // Half the requirement on each face passes as a section but fails alone.
   const half=S.minimumSteel(base)/2;
   assert.equal(S.sectionMinimum(base,half,half).ok,true);
   assert.equal(S.sectionMinimum(base,half,0).ok,false);
 });
-test('the bottom mat closes the gap left by the top mat',()=>{
+test('the bottom mat also closes the gap left by the top mat',()=>{
   const p={...base,h:700,fy:400},AsMin=S.minimumSteel(p);
   near(AsMin,.0020*1000*700);
-  const tight=S.suggestBottom(p,'D16',200);
+  // With no moment the spacing is driven purely by the section minimum.
+  const tight=S.suggestBottom(p,0,'D16',200);
   assert.ok(tight.As+200>=AsMin);
   for(const x of S.SPACINGS.filter(v=>v>tight.spacing))
     assert.ok(R.BARS.D16.area*1000/x+200<AsMin,`${x}은 너무 넓다`);
   // A generous top mat lets the bottom relax to the spacing cap.
-  const loose=S.suggestBottom(p,'D16',AsMin);
+  const loose=S.suggestBottom(p,0,'D16',AsMin);
   assert.equal(loose.spacing,Math.max(...S.SPACINGS.filter(v=>v<=loose.sMax)));
 });
 test('flexural capacity agrees with the independent singly reinforced formula',()=>{
-  const o=S.calculate(base),r=o.directions[0].rows.find(x=>x.strip==='column').check;
+  const o=S.calculate(base),r=o.directions[0].rows.find(x=>x.strip==='column'&&x.face==='top').check;
   const As=1000/200*R.BARS.D16.area,k=R.concrete(30);
   near(r.As,As);
   const a=As*500/(.85*k.eta*30*1000);
@@ -89,12 +97,17 @@ test('flexural capacity agrees with the independent singly reinforced formula',(
 test('end span uses the selected table 4.1-1 case and adds the exterior section',()=>{
   for(let endCase=0;endCase<S.END_CASES.length;endCase++){
     const c=S.END_CASES[endCase],o=S.calculate({...base,spanType:'end',endCase}),d=o.directions[0];
-    assert.equal(d.rows.length,2);assert.equal(d.support.length,4);
-    near(d.rows.reduce((s,r)=>s+r.total,0),c.positive*d.Mo);
+    assert.equal(d.rows.length,4);assert.equal(d.support.length,4);
+    near(d.rows.filter(r=>r.face==='top').reduce((s,r)=>s+r.total,0),c.positive*d.Mo);
     for(const key of ['exterior','interior'])
       near(d.support.filter(r=>r.key===key).reduce((s,r)=>s+r.total,0),c[key]*d.Mo);
     // Exterior support sends its whole moment to the column strip.
     near(d.support.find(r=>r.key==='exterior'&&r.strip==='column').total,c.exterior*d.Mo);
+    // Two negative sections, and the heavier one sizes the bottom mat.
+    for(const strip of ['column','middle']){
+      const worst=Math.max(...d.support.filter(r=>r.strip===strip).map(r=>r.Mu));
+      near(d.rows.find(r=>r.face==='bottom'&&r.strip===strip).Mu,worst);
+    }
   }
 });
 test('shrinkage and temperature steel sets the floor and is capped per metre',()=>{
@@ -117,13 +130,18 @@ test('a section fails when capacity or spacing is short',()=>{
   assert.equal(sparse.ok,true);
   assert.equal(S.sectionMinimum({...base,h:400},sparse.As,0).ok,false);
 });
-test('suggested top spacing is the widest one that carries its moment',()=>{
+test('suggested spacing is the widest one that carries its moment',()=>{
   const d=S.calculate(base).directions[0];
   for(const r of d.rows){
     const s=r.suggestion;assert.ok(s,'제안이 있어야 함');
     assert.equal(s.ok,true);assert.ok(s.phiMn>=r.Mu);assert.ok(s.spacing<=s.sMax);
     for(const x of S.SPACINGS.filter(v=>v>s.spacing))
-      assert.equal(S.check(base,r.Mu,'top',base.bar,x).ok,false,`${x} should fail`);
+      assert.equal(S.check(base,r.Mu,r.face,base.bar,x).ok,false,`${x} should fail`);
+  }
+  // Every suggested pair still clears the section minimum.
+  for(const strip of ['column','middle']){
+    const pair=d.rows.filter(r=>r.strip===strip);
+    assert.equal(S.sectionMinimum(base,...pair.map(r=>r.suggestion.As)).ok,true);
   }
 });
 test('no net uplift returns a message instead of fabricated moments',()=>{

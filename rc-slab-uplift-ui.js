@@ -27,9 +27,10 @@ function diagram(p,o){
   const d=o.directions.find(x=>x.dir===planDir)||o.directions[0];
   const cw=d.columnWidth,total=d.transverse,along=planDir==='l1';
   const centre=along?gy[1]:gx[1];
-  const pick=s=>s?`${s.bar}@${s.spacing}`:'배근 불가';
-  const spec=strip=>pick((d.rows.find(r=>r.strip===strip)||{}).suggestion);
-  const bottomSpec=()=>pick(d.bottom.suggestion);
+  const spec=(strip,f)=>{
+    const r=d.rows.find(x=>x.strip===strip&&x.face===f);
+    return r&&r.suggestion?`${r.suggestion.bar}@${r.suggestion.spacing}`:'배근 불가';
+  };
   const band=(from,to,strip)=>{
     const fill=strip==='column'?'var(--accent)':'var(--ok)';
     const r=along
@@ -58,7 +59,7 @@ function diagram(p,o){
       return along?`<text class="bar-label" x="${x}" y="${y+off}" text-anchor="middle">${txt}</text>`
                  :`<text class="bar-label" x="${x+off}" y="${y}" text-anchor="middle" transform="rotate(-90 ${x+off} ${y})">${txt}</text>`;
     };
-    return out+lab(`${spec(strip)}(T)`,-11)+lab(`${bottomSpec()}(B)`,19);
+    return out+lab(`${spec(strip,'top')}(T)`,-11)+lab(`${spec(strip,'bottom')}(B)`,19);
   }
   // The middle strip lies either side of the column strip but is one design
   // strip with one result, so it is drawn once rather than mirrored.
@@ -92,21 +93,23 @@ function diagram(p,o){
 function renderPlan(p,o){
   if(!o.directions.length){get('s_diagram').innerHTML='';get('s_plan_controls').innerHTML='';return;}
   const d=o.directions.find(x=>x.dir===planDir)||o.directions[0];
-  const spec=s=>s?`${s.bar}@${s.spacing}`:'<span class="warn">배근 불가</span>';
-  const bot=`${spec(d.bottom.suggestion)} <small>단면 최소철근</small>`;
-  const specs=['column','middle'].map(s=>{
-    const r=d.rows.find(x=>x.strip===s);
-    return `<tr><td>${s==='column'?'주열대':'중간대'}</td><td>${spec(r&&r.suggestion)} <small>Mu ${fmt(r?r.Mu:NaN,1)}</small></td><td>${bot}</td></tr>`;
-  }).join('');
+  const cell=(strip,f)=>{
+    const r=d.rows.find(x=>x.strip===strip&&x.face===f);
+    if(!r)return '—';
+    const s=r.suggestion?`${r.suggestion.bar}@${r.suggestion.spacing}`:'<span class="warn">배근 불가</span>';
+    return `${s} <small>Mu ${fmt(r.Mu,1)}</small>`;
+  };
+  const specs=['column','middle'].map(s=>
+    `<tr><td>${s==='column'?'주열대':'중간대'}</td><td>${cell(s,'top')}</td><td>${cell(s,'bottom')}</td></tr>`).join('');
   const rule=dash=>`<svg width="34" height="9" aria-hidden="true"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--bar)" stroke-width="2.4"${dash?' stroke-dasharray="7 5"':''}/></svg>`;
   get('s_plan_controls').innerHTML=['l1','l2'].map(dir=>
     `<button type="button" data-plan-dir="${dir}" aria-pressed="${planDir===dir}">${DIR[dir]} 방향 설계대</button>`).join('')+
     `<span>주열대 ${fmt(d.columnWidth,0)} · 중간대 ${fmt(d.middleWidth,0)} mm</span>`;
   get('s_diagram').innerHTML=diagram(p,o)+
-    `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근 (T)</b> · 중앙부 정모멘트</span><span>${rule(true)} 점선 <b>하부근 (B)</b> · 최소철근</span></div>`+
+    `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근 (T)</b> · 중앙부 정모멘트</span><span>${rule(true)} 점선 <b>하부근 (B)</b> · 기초면 부모멘트</span></div>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>${DIR[planDir]} 방향 설계대</th><th>상부근 (T · 실선)</th><th>하부근 (B · 점선)</th></tr></thead><tbody>${specs}</tbody></table></div>`+
     `<p class="beam-muted">회색 사각형이 독립기초, 파란 사각형이 기둥(표시용), 검은 점선이 기둥 그리드입니다. 파란 띠가 주열대, 녹색 띠가 중간대이며 <b>클릭하면 아래 검토표에서 해당 행이 강조</b>됩니다. 설계대는 패널이 아니라 그리드 선을 중심으로 잡힙니다.</p>`+
-    `<p class="beam-muted">시공성을 위해 상하부근을 끊지 않고 전 구간 동일하게 배근하는 실무 관행에 따라 두 층 모두 연속으로 표시합니다. 상부근은 중앙부 정모멘트로 정하고, 하부근은 받침부 부모멘트를 기초가 담당하므로 상부근과 합쳐 단면 최소철근을 채우는 양으로 정합니다. 중간대는 주열대 양쪽에 놓이지만 하나의 설계대이므로 철근을 한 번만 그립니다.</p>`+
+    `<p class="beam-muted">시공성을 위해 상하부근을 끊지 않고 전 구간 동일하게 배근하는 실무 관행에 따라 두 층 모두 연속으로 표시합니다. 상부근은 중앙부 정모멘트로, 하부근은 기초면 부모멘트로 정하고 둘을 합쳐 단면 최소철근을 확인합니다. 중간대는 주열대 양쪽에 놓이지만 하나의 설계대이므로 철근을 한 번만 그립니다.</p>`+
     `<p class="beam-muted">순경간 ln = ${fmt(d.ln,0)} mm${d.floored?` — 기초면 사이 ${fmt(d.raw,0)} mm가 0.65 l 하한 ${fmt(d.floor,0)} mm보다 작아 하한을 적용했습니다.`:''}</p>`;
 }
 function renderLoad(p,o){
@@ -129,24 +132,21 @@ function renderGeometry(p,o){
 }
 function renderSections(p,o){
   if(!o.directions.length){get('s_sections').innerHTML='';return;}
-  const min=o.directions[0].minimum;
-  const cells=(r,c,s)=>`<td>${face(r.face)}</td><td>${Number.isFinite(r.Mu)&&r.Mu>0?fmt(r.Mu,1):'—'}</td><td>${fmt(c.d,1)}</td><td>${fmt(c.As,0)}</td><td>${fmt(c.phi,3)}</td><td class="beam-phi">${fmt(c.phiMn,1)}</td><td class="${c.ok?'ok':'warn'}">${c.ok?'충족':c.reasons.join('<br>')}</td><td>${s?`${s.bar}@${s.spacing}`:'<span class="warn">없음</span>'}</td>`;
-  const rows=o.directions.flatMap(d=>[
-    ...d.rows.map(r=>`<tr data-dir="${d.dir}" data-strip="${r.strip}"><td>${DIR[d.dir]}</td><td>상부근 · ${r.label}</td><td>${r.strip==='column'?'주열대':'중간대'} <small>${fmt(100*r.share,0)}%</small></td>${cells(r,r.check,r.suggestion)}</tr>`),
-    `<tr><td>${DIR[d.dir]}</td><td>하부근 · 설계 모멘트 없음</td><td>전 구간</td>${cells(d.bottom,d.bottom.check,d.bottom.suggestion)}</tr>`
-  ]).join('');
-  const support=o.directions.flatMap(d=>d.support.map(r=>
-    `<tr><td>${DIR[d.dir]}</td><td>${r.label}</td><td>${r.strip==='column'?'주열대':'중간대'} <small>${fmt(100*r.share,0)}%</small></td><td>${fmt(r.Mu,1)}</td><td>${fmt(r.total,1)}</td></tr>`)).join('');
-  get('s_sections').innerHTML=`<p class="slab-note"><b>양압력은 상향이라 중앙부는 슬래브 상부가 인장입니다.</b> 통상 중력하중 슬래브와 반대이므로 배근 위치를 확인하세요. 받침부 부모멘트는 기초가 담당하므로 이 슬래브의 배근을 정하지 않으며, 하부근은 단면 최소철근이 지배합니다. 수축·온도철근량은 KDS 14 20 50 4.6.2에 따라 <b>전체 단면적 기준</b>이므로 상부근과 하부근을 더해 검사합니다.</p>`+
+  const rows=o.directions.flatMap(d=>d.rows.map(r=>{
+    const c=r.check,s=r.suggestion;
+    return `<tr data-dir="${d.dir}" data-strip="${r.strip}"><td>${DIR[d.dir]}</td><td>${r.face==='top'?'상부근':'하부근'} · ${r.label}</td><td>${r.strip==='column'?'주열대':'중간대'} <small>${fmt(100*r.share,0)}%</small></td><td>${face(r.face)}</td><td>${fmt(r.Mu,1)}</td><td>${fmt(c.d,1)}</td><td>${fmt(c.As,0)}</td><td>${fmt(c.phi,3)}</td><td class="beam-phi">${fmt(c.phiMn,1)}</td><td class="${c.ok?'ok':'warn'}">${c.ok?'충족':c.reasons.join('<br>')}</td><td>${s?`${s.bar}@${s.spacing}`:'<span class="warn">없음</span>'}</td></tr>`;
+  })).join('');
+  const mins=o.directions[0].minimums.map(m=>
+    `<tr><td>${m.strip==='column'?'주열대':'중간대'}</td><td>${fmt(m.AsTop,0)}</td><td>${fmt(m.AsBottom,0)}</td><td>${fmt(m.total,0)}</td><td>${fmt(100*m.ratio,3)}%</td><td class="${m.ok?'ok':'warn'}">${m.ok?'충족':'미달'}</td></tr>`).join('');
+  get('s_sections').innerHTML=`<p class="slab-note"><b>양압력은 상향이라 인장면이 통상 중력하중 슬래브와 반대입니다.</b> 중앙부 정모멘트는 슬래브 상부가, 기초면 부모멘트는 슬래브 하부가 인장이므로 배근 위치를 확인하세요. 부모멘트의 위치는 KDS 14 20 70 4.1.3.3(1)에 따라 <b>받침부 면 = 기초면</b>이고, 그 단면은 기초가 아니라 슬래브이므로 하부근이 저항합니다.</p>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>방향</th><th>검토 대상</th><th>설계대</th><th>인장면</th><th>Mu (kN·m/m)</th><th>d (mm)</th><th>As (mm²/m)</th><th>φ</th><th>φMn (kN·m/m)</th><th>판정</th><th>제안 배근</th></tr></thead><tbody>${rows}</tbody></table></div>`+
     `<dl class="beam-values"><div><dt>입력 배근</dt><dd>${p.bar} @ ${fmt(p.spacing,0)} mm</dd></div>`+
     `<div><dt>단면 최소철근량 (수축·온도)</dt><dd>${fmt(o.AsMin,0)} mm²/m · ρ ${fmt(100*o.minimumRatio,3)}%</dd></div>`+
-    `<div><dt>입력 배근 상부 + 하부</dt><dd class="${min.ok?'ok':'warn'}">${fmt(min.AsTop,0)} + ${fmt(min.AsBottom,0)} = ${fmt(min.total,0)} mm²/m · ρ ${fmt(100*min.ratio,3)}% ${min.ok?'충족':'미달'}</dd></div>`+
     `<div><dt>위험단면 최대 철근간격</dt><dd>${fmt(o.maxSpacing,0)} mm</dd></div></dl>`+
-    `<p class="beam-muted">상부근 행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 입력한 규격으로 φMn ≥ Mu, 최소철근량, 최대간격을 모두 만족하는 가장 넓은 간격입니다. 정착·이음·단부 연장길이는 별도입니다.</p>`+
-    `<h3 class="beam-subheading">받침부 부모멘트 — 기초 설계 대상</h3>`+
-    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>방향</th><th>위험단면</th><th>설계대</th><th>Mu (kN·m/m)</th><th>설계대 전체 (kN·m)</th></tr></thead><tbody>${support}</tbody></table></div>`+
-    `<p class="beam-muted">참고값입니다. 이 모멘트는 독립기초로 전달되어 기초에서 저항하므로 위 슬래브 배근에 반영하지 않았습니다. 기초 설계는 이 화면의 범위가 아닙니다.</p>`;
+    `<p class="beam-muted">행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 입력한 규격으로 φMn ≥ Mu와 최대간격을 만족하는 가장 넓은 간격이며, 하부근은 상부근과 합쳐 단면 최소철근도 만족시킵니다. 단부 경간처럼 부모멘트 단면이 둘이면 Mu가 큰 쪽이 하부근을 정합니다. 정착·이음·단부 연장길이는 별도입니다.</p>`+
+    `<h3 class="beam-subheading">단면 최소철근 — 상부근 + 하부근 (입력 배근 기준)</h3>`+
+    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>설계대</th><th>상부 As (mm²/m)</th><th>하부 As (mm²/m)</th><th>합계</th><th>ρ</th><th>판정</th></tr></thead><tbody>${mins}</tbody></table></div>`+
+    `<p class="beam-muted">수축·온도철근량은 KDS 14 20 50 4.6.2에 따라 콘크리트 <b>전체 단면적</b>에 대한 비이므로 상부근과 하부근을 더해 검사합니다. 각 면이 개별로 만족할 필요는 없습니다.</p>`;
 }
 function renderBasis(p,o){
   get('s_basis').innerHTML=`<ul class="beam-basis">`+
