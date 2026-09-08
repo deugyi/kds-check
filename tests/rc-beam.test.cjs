@@ -27,20 +27,29 @@ test('compression packing respects top cover and separation from tensile rows',(
   }
 });
 function near(a,b,t=1e-7){assert.ok(Math.abs(a-b)<=t,`${a} != ${b}`);}
+// Corner bar centre from the concrete face, nesting inside the stirrup bend.
+const corner=(ds,R)=>40+ds+Math.max(R,2*ds-(2*ds-R)/Math.SQRT2);
 test('single yielded layer agrees with independent closed-form moment',()=>{
   const o=R.calculate(base),r=o.results.find(x=>x.total===4);
-  // 4-D25: As=2026.8; d=600-40-9.53-25.4/2=537.77.
-  near(r.As,2026.8);near(r.d,537.77);near(r.phiMn,336.35110824);
-  near(r.c,(2026.8*400/(.85*24*400))/.8);near(r.phi,.85);
+  // 4-D25: As=2026.8; d = 600 − corner offset with a D10 stirrup bend.
+  const d=600-corner(9.53,25.4/2),a=2026.8*400/(.85*24*400);
+  near(r.As,2026.8);near(r.d,d);near(r.phiMn,.85*2026.8*400*(d-a/2)/1e6);
+  near(r.c,a/.8);near(r.phi,.85);
 });
 test('selected stirrup changes packing at the width boundary',()=>{
-  assert.equal(R.geometry({...base,b:360,stirrup:'D10'}).perLayer,5);
-  assert.equal(R.geometry({...base,b:360,stirrup:'D13'}).perLayer,4);
-  assert.equal(R.geometry({...base,b:360,stirrup:'D16'}).perLayer,4);
-  near(R.geometry({...base,stirrup:'D16'}).edge-R.geometry(base).edge,6.37);
+  assert.equal(R.geometry({...base,b:370,stirrup:'D10'}).perLayer,5);
+  assert.equal(R.geometry({...base,b:370,stirrup:'D13'}).perLayer,4);
+  assert.equal(R.geometry({...base,b:370,stirrup:'D16'}).perLayer,4);
+  near(R.geometry({...base,stirrup:'D16'}).edge-R.geometry(base).edge,corner(15.9,12.7)-corner(9.53,12.7));
+});
+test('bend radius pushes corner bars in and never pulls them past the straight legs',()=>{
+  for(const stirrup of R.STIRRUPS)for(const bar of ['D10','D25','D35']){
+    const g=R.geometry({...base,stirrup,bar}),st=R.BARS[stirrup].diameter,db=R.BARS[bar].diameter;
+    near(g.bend,2*st);assert.ok(g.edge>=40+st+db/2-1e-9);near(g.edge,corner(st,db/2));
+  }
 });
 test('maximum-width packing boundary never rounds up infeasible count',()=>{
-  const limit=2*(40+9.53)+5*25.4+4*(100/3);
+  const limit=2*corner(9.53,25.4/2)+4*(25.4+100/3);
   assert.equal(R.geometry({...base,b:limit}).perLayer,5);
   assert.equal(R.geometry({...base,b:limit-.001}).perLayer,4);
 });

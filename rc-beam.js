@@ -21,27 +21,34 @@ function validate(p){
   if((p.compressionCount??0)>0&&!BARS[p.compressionBar]) throw Error('압축철근 규격을 선택해 주세요.');
   if(p.aggregate>Math.min(p.b,p.h)/5) throw Error('골재 최대치수가 단면 최소 치수의 1/5을 초과합니다.');
 }
+// A corner bar nests inside the stirrup bend arc, so its centre sits further in
+// than a bar merely tangent to the two straight legs. Radii below the bend fit
+// against the legs instead and keep the tangent position.
+function cornerOffset(p,st,radius){
+  const bend=2*st.diameter;
+  return p.cover+st.diameter+Math.max(radius,bend-(bend-radius)/Math.SQRT2);
+}
 function geometry(p){
   validate(p);
-  const bar=BARS[p.bar],st=BARS[p.stirrup],db=bar.diameter;
-  const edge=p.cover+st.diameter+db/2;
+  const bar=BARS[p.bar],st=BARS[p.stirrup],db=bar.diameter,bend=2*st.diameter;
+  const edge=cornerOffset(p,st,db/2);
   const horizontalClear=Math.max(25,db,4*p.aggregate/3);
   const verticalClear=Math.max(25,4*p.aggregate/3);
-  const usable=p.b-2*(p.cover+st.diameter);
+  const usable=p.b-2*edge+db;
   const perLayer=Math.max(0,Math.floor((usable+horizontalClear+1e-9)/(db+horizontalClear)));
   let maxLayers=Math.max(0,Math.min(3,Math.floor((p.h-2*edge+1e-9)/(db+verticalClear))+1));
   let compression=null;
   if((p.compressionCount??0)>0){
-    const cb=BARS[p.compressionBar],count=p.compressionCount,ce=p.cover+st.diameter+cb.diameter/2;
+    const cb=BARS[p.compressionBar],count=p.compressionCount,ce=cornerOffset(p,st,cb.diameter/2);
     const clear=Math.max(25,cb.diameter,4*p.aggregate/3);
-    const capacity=Math.max(0,Math.floor((usable+clear+1e-9)/(cb.diameter+clear)));
+    const capacity=Math.max(0,Math.floor((p.b-2*ce+cb.diameter+clear+1e-9)/(cb.diameter+clear)));
     if(count>capacity)throw Error(`압축철근은 상부 1단에 최대 ${capacity}가닥까지 배치할 수 있습니다.`);
     const xs=count===1?[p.b/2]:Array.from({length:count},(_,i)=>ce+(p.b-2*ce)*i/(count-1));
     compression={count,d:ce,xs,bar:cb};
     const minDepth=ce+cb.diameter/2+verticalClear+db/2;
     maxLayers=Math.max(0,Math.min(maxLayers,Math.floor((p.h-edge-minDepth+1e-9)/(db+verticalClear))+1));
   }
-  return {bar,st,edge,horizontalClear,verticalClear,usable,perLayer,maxLayers,compression};
+  return {bar,st,bend,edge,horizontalClear,verticalClear,usable,perLayer,maxLayers,compression};
 }
 // Select paired positions on the bottom-row grid, maintaining vertical alignment.
 function positions(base,count,edge,width){

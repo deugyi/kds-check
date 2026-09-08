@@ -22,7 +22,8 @@ test('stirrups are averaged over 1m without double-counting end stations',()=>{
   const {g,r}=sample(),p={...base,stirrupSpacing:300},q=C.quantities(p,g,r,C.skin(p,g,r));near(q.stations,10/3);
 });
 test('shear matches KDS concrete and vertical stirrup formulas',()=>{
-  const {g,r}=sample(),v=C.shear({...base,Vu:100},g,r),d=537.77;
+  const {g,r}=sample(),v=C.shear({...base,Vu:100},g,r);
+  const d=600-(40+9.53+(2*9.53-(2*9.53-25.4/2)/Math.SQRT2));
   near(v.Av,142.66);near(v.Vc,Math.sqrt(24)*400*d/6000);near(v.Vs,142.66*400*d/200/1000);near(v.phiVn,.75*(v.Vc+v.Vs));
   near(v.avMin,.35*400*200/400);assert.equal(v.ok,true);near(v.ratio,100/v.phiVn);
 });

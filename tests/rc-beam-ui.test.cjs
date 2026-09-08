@@ -19,7 +19,7 @@ function load(){
   return {nodes,context};
 }
 test('HTML and scripts initialize with the expected controls and initial results',()=>{
-  const {nodes,context}=load();assert.equal(nodes.b_error.hidden,true);assert.match(nodes.b_rows.innerHTML,/336\.35/);assert.match(nodes.b_diagram.innerHTML,/<svg/);
+  const {nodes,context}=load();assert.equal(nodes.b_error.hidden,true);assert.match(nodes.b_rows.innerHTML,/418\.83/);assert.match(nodes.b_diagram.innerHTML,/<svg/);
   assert.equal(vm.runInContext('typeof runCol',context),'function');assert.equal(vm.runInContext('typeof runSteelBeam',context),'function');assert.equal(vm.runInContext('typeof runSteelCol',context),'function');
 });
 
@@ -43,7 +43,7 @@ test('quantity, shear and skin controls update with selected section and clear o
   nodes.b_b.value='';nodes.b_b.events.input();assert.equal(nodes.b_results.hidden,true);assert.equal(nodes.b_quantities.innerHTML,'');
 });
 test('changing stirrup refreshes rows; bad input clears stale results',()=>{
-  const {nodes}=load();nodes.b_b.value='360';nodes.b_b.events.input();assert.match(nodes.b_rows.innerHTML,/data-key="5"/);
+  const {nodes}=load();nodes.b_b.value='370';nodes.b_b.events.input();assert.match(nodes.b_rows.innerHTML,/data-key="5"/);
   nodes.b_stirrup.value='D13';nodes.b_stirrup.events.input();assert.doesNotMatch(nodes.b_rows.innerHTML,/data-key="5"/);
   nodes.b_b.value='';nodes.b_b.events.input();assert.equal(nodes.b_results.hidden,true);assert.equal(nodes.b_error.hidden,false);assert.equal(nodes.b_rows.innerHTML,'');
   nodes.b_b.value='400';nodes.b_b.events.input();assert.equal(nodes.b_error.hidden,true);assert.equal(nodes.b_results.hidden,false);
