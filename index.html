@@ -120,6 +120,19 @@ main:has(#t5.on){max-width:1440px}
 .slab-face.top{color:var(--accent)}.slab-face.bottom{color:var(--warn)}
 .slab-note{background:var(--code);border-left:3px solid var(--accent);padding:12px 14px;
   margin:0 0 14px;font-size:14px;border-radius:0 6px 6px 0}
+.slab-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.slab-controls button{background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  color:var(--dim);padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}
+.slab-controls button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);font-weight:600}
+.slab-controls span{font-size:13px;color:var(--dim);margin-left:auto}
+#s_diagram svg{width:100%;max-width:600px;display:block;margin:0 auto}
+#s_diagram text{fill:var(--ink);font-size:11px}
+#s_diagram text.dim{fill:var(--dim)}
+.slab-strip{cursor:pointer}
+.slab-strip rect{fill-opacity:.16;stroke-width:0}
+.slab-strip:hover rect{fill-opacity:.3}
+.slab-strip[data-on=true] rect{fill-opacity:.42;stroke-width:2;stroke:currentColor}
+.beam-table tr.selected td{background:var(--code)}
 @media(max-width:650px){#t5 .card{padding:16px}}
 @media(max-width:360px){#t5 .beam-inputs{grid-template-columns:1fr}}
 
@@ -381,6 +394,7 @@ main:has(#t5.on){max-width:1440px}
       <label><b>그리드 경간 Y (mm)</b><input id="s_l2" type="number" min="1000" step="100" value="8000"></label>
       <label><b>독립기초 크기 (mm)</b><input id="s_footing" type="number" min="100" step="100" value="2500"></label>
       <label><b>슬래브 두께 (mm)</b><input id="s_h" type="number" min="100" step="50" value="400"></label>
+      <label><b>기둥 크기 (mm)</b><input id="s_col" type="number" min="0" step="50" value="600"><span>평면도 표시용 · 계산 미사용</span></label>
     </div><p class="beam-muted">순경간은 기초면 사이 거리이며 0.65 × 경간을 하한으로 둡니다. 지지점은 독립기초이므로 기둥 치수는 모멘트 산정에 쓰지 않습니다.</p></div>
 
     <div class="card"><h2>3. 하중</h2><div class="grid beam-inputs">
@@ -413,6 +427,10 @@ main:has(#t5.on){max-width:1440px}
     <div id="s_error" role="alert" hidden></div>
     <div id="s_results">
       <div class="beam-toolbar"><button type="button" class="go" id="s_print">PDF로 저장</button></div>
+      <div class="card"><h2>평면 · 설계대</h2>
+        <div class="slab-controls" id="s_plan_controls"></div>
+        <div id="s_diagram"></div>
+      </div>
       <div class="card"><h2>하중 산정</h2><div id="s_load" aria-live="polite"></div></div>
       <div class="card"><h2>설계대 · 전체 정적 모멘트</h2><div id="s_geometry"></div></div>
       <div class="card"><h2>위험단면 휨 검토</h2><div id="s_sections"></div></div>
