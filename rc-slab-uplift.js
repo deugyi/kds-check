@@ -103,24 +103,31 @@ function sections(p,qu,dir){
   const m=moment(qu,span,transverse,p.footing);
   const columnWidth=Math.min(2*Math.min(.25*p.l1,.25*p.l2),transverse);
   const middleWidth=transverse-columnWidth;
-  const parts=p.spanType==='interior'
-    ?[{key:'negative',label:'받침부 부모멘트',coef:.65,face:'bottom',column:COLUMN_STRIP.interior},
-      {key:'positive',label:'중앙부 정모멘트',coef:.35,face:'top',column:COLUMN_STRIP.positive}]
-    :[{key:'exterior',label:'외부 받침부 부모멘트',coef:END_CASES[p.endCase].exterior,face:'bottom',column:COLUMN_STRIP.exterior},
-      {key:'positive',label:'중앙부 정모멘트',coef:END_CASES[p.endCase].positive,face:'top',column:COLUMN_STRIP.positive},
-      {key:'interior',label:'내부 받침부 부모멘트',coef:END_CASES[p.endCase].interior,face:'bottom',column:COLUMN_STRIP.interior}];
-  const rows=[];
-  for(const part of parts){
-    const total=part.coef*m.Mo;
-    for(const strip of ['column','middle']){
-      const width=strip==='column'?columnWidth:middleWidth,share=strip==='column'?part.column:1-part.column;
-      const Mu=width>0?total*share/(width/1000):0;
-      rows.push({dir,strip,width,share,total:total*share,Mu,...part,
-        check:width>0?check(p,Mu,part.face,p.bar,p.spacing):null,
-        suggestion:width>0?suggest(p,Mu,part.face,p.bar):null});
-    }
-  }
-  return {dir,span,transverse,columnWidth,middleWidth,...m,parts,rows};
+  const ends=END_CASES[p.endCase],interior=p.spanType==='interior';
+  const positive={key:'positive',label:'중앙부 정모멘트',face:'top',
+    coef:interior?.35:ends.positive,column:COLUMN_STRIP.positive};
+  // The negative moment is delivered into the footing, which is designed
+  // separately, so it is reported but never sizes this slab's reinforcement.
+  const supports=interior
+    ?[{key:'negative',label:'받침부 부모멘트',coef:.65,column:COLUMN_STRIP.interior}]
+    :[{key:'exterior',label:'외부 받침부 부모멘트',coef:ends.exterior,column:COLUMN_STRIP.exterior},
+      {key:'interior',label:'내부 받침부 부모멘트',coef:ends.interior,column:COLUMN_STRIP.interior}];
+  const split=(part,strip)=>{
+    const width=strip==='column'?columnWidth:middleWidth;
+    const share=strip==='column'?part.column:1-part.column;
+    const total=part.coef*m.Mo*share;
+    return {dir,strip,width,share,total,Mu:width>0?total/(width/1000):0,...part};
+  };
+  const rows=['column','middle'].map(strip=>{
+    const r=split(positive,strip);
+    return {...r,check:r.width>0?check(p,r.Mu,'top',p.bar,p.spacing):null,
+      suggestion:r.width>0?suggest(p,r.Mu,'top',p.bar):null};
+  });
+  const support=supports.flatMap(part=>['column','middle'].map(strip=>split(part,strip)));
+  // No design moment reaches the bottom face, so shrinkage steel governs it.
+  const bottom={face:'bottom',key:'minimum',label:'하부근 · 최소철근 지배',Mu:0,
+    check:check(p,0,'bottom',p.bar,p.spacing),suggestion:suggest(p,0,'bottom',p.bar)};
+  return {dir,span,transverse,columnWidth,middleWidth,...m,positive,supports,rows,support,bottom};
 }
 function limits(p){
   const ratio=Math.max(p.l1,p.l2)/Math.min(p.l1,p.l2),notes=[];

@@ -27,13 +27,9 @@ function diagram(p,o){
   const d=o.directions.find(x=>x.dir===planDir)||o.directions[0];
   const cw=d.columnWidth,total=d.transverse,along=planDir==='l1';
   const centre=along?gy[1]:gx[1];
-  // Where a span has two negative sections, the drawing labels the governing one.
-  const spec=(strip,faceKey)=>{
-    const rows=d.rows.filter(r=>r.strip===strip&&r.face===faceKey);
-    if(!rows.length)return '—';
-    const worst=rows.reduce((a,b)=>b.Mu>a.Mu?b:a);
-    return worst.suggestion?`${worst.suggestion.bar}@${worst.suggestion.spacing}`:'배근 불가';
-  };
+  const pick=s=>s?`${s.bar}@${s.spacing}`:'배근 불가';
+  const spec=strip=>pick((d.rows.find(r=>r.strip===strip)||{}).suggestion);
+  const bottomSpec=()=>pick(d.bottom.suggestion);
   const band=(from,to,strip)=>{
     const fill=strip==='column'?'var(--accent)':'var(--ok)';
     const r=along
@@ -43,29 +39,26 @@ function diagram(p,o){
   };
   const strips=[band(centre-cw/2,centre+cw/2,'column'),
     band(centre-total/2,centre-cw/2,'middle'),band(centre+cw/2,centre+total/2,'middle')].join('');
-  /* Top steel resists the midspan positive moment, bottom steel the negative
-   * moment over the footings, so each is drawn only where it is needed. */
-  const axis=along?gx:gy,span=along?p.l1:p.l2,extent=along?W:H,sz=.25*span;
-  const supportZones=axis.map(v=>[Math.max(0,v-sz),Math.min(extent,v+sz)]);
-  const midZones=[];
-  for(let i=0;i<axis.length-1;i++)midZones.push([axis[i]+sz,axis[i+1]-sz]);
+  /* Practice runs both mats continuously for buildability rather than cutting
+   * them off where each moment sign ends, so the drawing shows one
+   * uninterrupted top layer and one bottom layer per strip. */
+  const extent=along?W:H;
   const px=(a,t)=>along?[X(a),Y(t)]:[X(t),Y(a)];
   function rebar(bc,thickness,strip){
-    const seg=(zones,cls,off)=>zones.map(([s,e])=>{
-      const [x1,y1]=px(s,bc),[x2,y2]=px(e,bc);
+    const line=(cls,off)=>{
+      const [x1,y1]=px(0,bc),[x2,y2]=px(extent,bc);
       return along?`<line class="bar ${cls}" x1="${x1}" x2="${x2}" y1="${y1+off}" y2="${y2+off}"/>`
                  :`<line class="bar ${cls}" x1="${x1+off}" x2="${x2+off}" y1="${y1}" y2="${y2}"/>`;
-    }).join('');
-    let out=seg(midZones,'top',-6)+seg(supportZones,'bottom',6);
+    };
+    const out=line('top',-6)+line('bottom',6);
     if(thickness*scale<30)return out;
-    const lab=(txt,zone,off)=>{
-      if(!zone)return '';
-      const [x,y]=px((zone[0]+zone[1])/2,bc);
+    const anchor=along?(gx[0]+gx[1])/2:(gy[0]+gy[1])/2;
+    const lab=(txt,off)=>{
+      const [x,y]=px(anchor,bc);
       return along?`<text class="bar-label" x="${x}" y="${y+off}" text-anchor="middle">${txt}</text>`
                  :`<text class="bar-label" x="${x+off}" y="${y}" text-anchor="middle" transform="rotate(-90 ${x+off} ${y})">${txt}</text>`;
     };
-    const t=spec(strip,'top'),b=spec(strip,'bottom');
-    return out+lab(t,midZones[0],-11)+lab(b,supportZones[1]||supportZones[0],19);
+    return out+lab(`${spec(strip)}(T)`,-11)+lab(`${bottomSpec()}(B)`,19);
   }
   const bars=[rebar(centre,cw,'column'),
     rebar((centre-total/2+centre-cw/2)/2,total/2-cw/2,'middle'),
@@ -98,22 +91,21 @@ function diagram(p,o){
 function renderPlan(p,o){
   if(!o.directions.length){get('s_diagram').innerHTML='';get('s_plan_controls').innerHTML='';return;}
   const d=o.directions.find(x=>x.dir===planDir)||o.directions[0];
-  const pick=(strip,f)=>{
-    const rows=d.rows.filter(r=>r.strip===strip&&r.face===f);
-    return rows.length?rows.reduce((a,b)=>b.Mu>a.Mu?b:a):null;
-  };
-  const cell=r=>r?`${r.suggestion?`${r.suggestion.bar}@${r.suggestion.spacing}`:'<span class="warn">배근 불가</span>'} <small>Mu ${fmt(r.Mu,1)}</small>`:'—';
-  const specs=['column','middle'].map(s=>
-    `<tr><td>${s==='column'?'주열대':'중간대'}</td><td>${cell(pick(s,'top'))}</td><td>${cell(pick(s,'bottom'))}</td></tr>`).join('');
+  const spec=s=>s?`${s.bar}@${s.spacing}`:'<span class="warn">배근 불가</span>';
+  const bot=`${spec(d.bottom.suggestion)} <small>최소철근 지배</small>`;
+  const specs=['column','middle'].map(s=>{
+    const r=d.rows.find(x=>x.strip===s);
+    return `<tr><td>${s==='column'?'주열대':'중간대'}</td><td>${spec(r&&r.suggestion)} <small>Mu ${fmt(r?r.Mu:NaN,1)}</small></td><td>${bot}</td></tr>`;
+  }).join('');
   const rule=dash=>`<svg width="34" height="9" aria-hidden="true"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--bar)" stroke-width="2.4"${dash?' stroke-dasharray="7 5"':''}/></svg>`;
   get('s_plan_controls').innerHTML=['l1','l2'].map(dir=>
     `<button type="button" data-plan-dir="${dir}" aria-pressed="${planDir===dir}">${DIR[dir]} 방향 설계대</button>`).join('')+
     `<span>주열대 ${fmt(d.columnWidth,0)} · 중간대 ${fmt(d.middleWidth,0)} mm</span>`;
   get('s_diagram').innerHTML=diagram(p,o)+
-    `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근</b> · 중앙부 정모멘트</span><span>${rule(true)} 점선 <b>하부근</b> · 받침부 부모멘트</span></div>`+
-    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>${DIR[planDir]} 방향 설계대</th><th>상부근 (실선)</th><th>하부근 (점선)</th></tr></thead><tbody>${specs}</tbody></table></div>`+
+    `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근 (T)</b> · 중앙부 정모멘트</span><span>${rule(true)} 점선 <b>하부근 (B)</b> · 최소철근</span></div>`+
+    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>${DIR[planDir]} 방향 설계대</th><th>상부근 (T · 실선)</th><th>하부근 (B · 점선)</th></tr></thead><tbody>${specs}</tbody></table></div>`+
     `<p class="beam-muted">회색 사각형이 독립기초, 파란 사각형이 기둥(표시용), 검은 점선이 기둥 그리드입니다. 파란 띠가 주열대, 녹색 띠가 중간대이며 <b>클릭하면 아래 검토표에서 해당 행이 강조</b>됩니다. 설계대는 패널이 아니라 그리드 선을 중심으로 잡힙니다.</p>`+
-    `<p class="beam-muted">철근은 필요한 구간에만 그렸습니다. 상부근은 중앙부, 하부근은 받침부 구간이며 표시 길이는 개념도로 정착·연장길이를 나타내지 않습니다. 표기값은 제안 배근이고, 부모멘트 단면이 둘인 단부 경간에서는 Mu가 큰 쪽을 표시합니다.</p>`+
+    `<p class="beam-muted">시공성을 위해 상하부근을 끊지 않고 전 구간 동일하게 배근하는 실무 관행에 따라 두 층 모두 연속으로 표시합니다. 상부근은 중앙부 정모멘트로 정하고, 하부근은 받침부 부모멘트를 기초가 담당하므로 최소철근이 지배합니다.</p>`+
     `<p class="beam-muted">순경간 ln = ${fmt(d.ln,0)} mm${d.floored?` — 기초면 사이 ${fmt(d.raw,0)} mm가 0.65 l 하한 ${fmt(d.floor,0)} mm보다 작아 하한을 적용했습니다.`:''}</p>`;
 }
 function renderLoad(p,o){
@@ -136,14 +128,20 @@ function renderGeometry(p,o){
 }
 function renderSections(p,o){
   if(!o.directions.length){get('s_sections').innerHTML='';return;}
-  const rows=o.directions.flatMap(d=>d.rows.map(r=>{
-    const c=r.check,s=r.suggestion,strip=r.strip==='column'?'주열대':'중간대';
-    return `<tr data-dir="${d.dir}" data-strip="${r.strip}"><td>${DIR[d.dir]}</td><td>${r.label}</td><td>${strip} <small>${fmt(100*r.share,0)}%</small></td><td>${face(r.face)}</td><td>${fmt(r.Mu,1)}</td><td>${fmt(c.d,1)}</td><td>${fmt(c.As,0)}</td><td>${fmt(c.phi,3)}</td><td class="beam-phi">${fmt(c.phiMn,1)}</td><td class="${c.ok?'ok':'warn'}">${c.ok?'충족':c.reasons.join('<br>')}</td><td>${s?`${s.bar}@${s.spacing}`:'<span class="warn">없음</span>'}</td></tr>`;
-  })).join('');
-  get('s_sections').innerHTML=`<p class="slab-note"><b>양압력은 상향입니다.</b> 통상 중력하중 슬래브와 인장면이 반대입니다. 중앙부 정모멘트는 <b>슬래브 상부</b>가, 받침부 부모멘트는 <b>슬래브 하부</b>가 인장입니다. 배근 위치를 반대로 넣지 않도록 확인하세요.</p>`+
-    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>방향</th><th>위험단면</th><th>설계대</th><th>인장면</th><th>Mu (kN·m/m)</th><th>d (mm)</th><th>As (mm²/m)</th><th>φ</th><th>φMn (kN·m/m)</th><th>판정</th><th>제안 배근</th></tr></thead><tbody>${rows}</tbody></table></div>`+
+  const cells=(r,c,s)=>`<td>${face(r.face)}</td><td>${Number.isFinite(r.Mu)&&r.Mu>0?fmt(r.Mu,1):'—'}</td><td>${fmt(c.d,1)}</td><td>${fmt(c.As,0)}</td><td>${fmt(c.phi,3)}</td><td class="beam-phi">${fmt(c.phiMn,1)}</td><td class="${c.ok?'ok':'warn'}">${c.ok?'충족':c.reasons.join('<br>')}</td><td>${s?`${s.bar}@${s.spacing}`:'<span class="warn">없음</span>'}</td>`;
+  const rows=o.directions.flatMap(d=>[
+    ...d.rows.map(r=>`<tr data-dir="${d.dir}" data-strip="${r.strip}"><td>${DIR[d.dir]}</td><td>상부근 · ${r.label}</td><td>${r.strip==='column'?'주열대':'중간대'} <small>${fmt(100*r.share,0)}%</small></td>${cells(r,r.check,r.suggestion)}</tr>`),
+    `<tr><td>${DIR[d.dir]}</td><td>하부근 · 설계 모멘트 없음</td><td>전 구간</td>${cells(d.bottom,d.bottom.check,d.bottom.suggestion)}</tr>`
+  ]).join('');
+  const support=o.directions.flatMap(d=>d.support.map(r=>
+    `<tr><td>${DIR[d.dir]}</td><td>${r.label}</td><td>${r.strip==='column'?'주열대':'중간대'} <small>${fmt(100*r.share,0)}%</small></td><td>${fmt(r.Mu,1)}</td><td>${fmt(r.total,1)}</td></tr>`)).join('');
+  get('s_sections').innerHTML=`<p class="slab-note"><b>양압력은 상향이라 중앙부는 슬래브 상부가 인장입니다.</b> 통상 중력하중 슬래브와 반대이므로 배근 위치를 확인하세요. 받침부 부모멘트는 기초가 담당하므로 이 슬래브의 배근을 정하지 않으며, 하부근은 최소철근이 지배합니다.</p>`+
+    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>방향</th><th>검토 대상</th><th>설계대</th><th>인장면</th><th>Mu (kN·m/m)</th><th>d (mm)</th><th>As (mm²/m)</th><th>φ</th><th>φMn (kN·m/m)</th><th>판정</th><th>제안 배근</th></tr></thead><tbody>${rows}</tbody></table></div>`+
     `<dl class="beam-values"><div><dt>입력 배근</dt><dd>${p.bar} @ ${fmt(p.spacing,0)} mm</dd></div><div><dt>최소철근량 (수축·온도)</dt><dd>${fmt(o.AsMin,0)} mm²/m · ρ ${fmt(100*o.minimumRatio,3)}%</dd></div><div><dt>위험단면 최대 철근간격</dt><dd>${fmt(o.maxSpacing,0)} mm</dd></div></dl>`+
-    `<p class="beam-muted">행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 입력한 규격으로 φMn ≥ Mu, 최소철근량, 최대간격을 모두 만족하는 가장 넓은 간격입니다. 정착·이음·단부 연장길이는 별도입니다.</p>`;
+    `<p class="beam-muted">상부근 행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 입력한 규격으로 φMn ≥ Mu, 최소철근량, 최대간격을 모두 만족하는 가장 넓은 간격입니다. 정착·이음·단부 연장길이는 별도입니다.</p>`+
+    `<h3 class="beam-subheading">받침부 부모멘트 — 기초 설계 대상</h3>`+
+    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>방향</th><th>위험단면</th><th>설계대</th><th>Mu (kN·m/m)</th><th>설계대 전체 (kN·m)</th></tr></thead><tbody>${support}</tbody></table></div>`+
+    `<p class="beam-muted">참고값입니다. 이 모멘트는 독립기초로 전달되어 기초에서 저항하므로 위 슬래브 배근에 반영하지 않았습니다. 기초 설계는 이 화면의 범위가 아닙니다.</p>`;
 }
 function renderBasis(p,o){
   get('s_basis').innerHTML=`<ul class="beam-basis">`+

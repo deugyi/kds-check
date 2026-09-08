@@ -22,28 +22,40 @@ test('clear span is measured between footing faces and floored at 0.65 l',()=>{
 test('static moment and interior distribution match independent arithmetic',()=>{
   const o=S.calculate(base),qu=o.load.qu,d=o.directions[0];
   near(d.Mo,qu*8*Math.pow(5.5,2)/8);
-  const neg=d.rows.filter(r=>r.key==='negative'),pos=d.rows.filter(r=>r.key==='positive');
-  near(neg.reduce((s,r)=>s+r.total,0),.65*d.Mo);
-  near(pos.reduce((s,r)=>s+r.total,0),.35*d.Mo);
-  // Beamless slab: column strip takes 75% of negative and 60% of positive.
-  near(neg.find(r=>r.strip==='column').total,.75*.65*d.Mo);
-  near(pos.find(r=>r.strip==='column').total,.60*.35*d.Mo);
+  near(d.rows.reduce((s,r)=>s+r.total,0),.35*d.Mo);
+  near(d.support.reduce((s,r)=>s+r.total,0),.65*d.Mo);
+  // Beamless slab: column strip takes 60% of positive and 75% of negative.
+  near(d.rows.find(r=>r.strip==='column').total,.60*.35*d.Mo);
+  near(d.support.find(r=>r.strip==='column').total,.75*.65*d.Mo);
 });
 test('design strips split the transverse span and moments per metre follow the width',()=>{
   const o=S.calculate({...base,l1:8000,l2:6000}),d=o.directions[0];
   near(d.columnWidth,2*Math.min(.25*8000,.25*6000));
   near(d.middleWidth,6000-d.columnWidth);
-  for(const r of d.rows)near(r.Mu,r.total/(r.width/1000));
+  for(const r of [...d.rows,...d.support])near(r.Mu,r.total/(r.width/1000));
 });
-test('uplift inverts the tension face against a gravity slab',()=>{
-  for(const r of S.calculate(base).directions[0].rows){
-    assert.equal(r.face,r.key==='positive'?'top':'bottom');
-    // Bottom bars sit under the larger ground-cast cover, so d is smaller.
-    near(r.check.d,base.h-(r.face==='top'?base.coverTop:base.coverBottom)-R.BARS[base.bar].diameter/2);
+test('the slab is designed for midspan only; the support moment goes to the footing',()=>{
+  const d=S.calculate(base).directions[0];
+  for(const r of d.rows){
+    assert.equal(r.face,'top');assert.equal(r.key,'positive');
+    near(r.check.d,base.h-base.coverTop-R.BARS[base.bar].diameter/2);
   }
+  // Support moments are reported as bare numbers, never sized here.
+  assert.ok(d.support.length);
+  for(const r of d.support){assert.equal(r.check,undefined);assert.equal(r.suggestion,undefined);}
+});
+test('the bottom mat follows minimum steel rather than the support moment',()=>{
+  const d=S.calculate(base).directions[0];
+  assert.equal(d.bottom.face,'bottom');assert.equal(d.bottom.Mu,0);
+  // Bottom bars sit under the larger ground-cast cover, so d is smaller.
+  near(d.bottom.check.d,base.h-base.coverBottom-R.BARS[base.bar].diameter/2);
+  near(d.bottom.check.AsMin,S.minimumSteel(base));
+  const deep=S.calculate({...base,hw:6}).directions[0];
+  assert.ok(deep.support[0].Mu>1.5*d.support[0].Mu,'수두를 올리면 받침부 모멘트는 커진다');
+  assert.equal(deep.bottom.suggestion.spacing,d.bottom.suggestion.spacing,'하부근은 그대로다');
 });
 test('flexural capacity agrees with the independent singly reinforced formula',()=>{
-  const o=S.calculate(base),r=o.directions[0].rows.find(x=>x.key==='positive'&&x.strip==='column').check;
+  const o=S.calculate(base),r=o.directions[0].rows.find(x=>x.strip==='column').check;
   const As=1000/200*R.BARS.D16.area,k=R.concrete(30);
   near(r.As,As);
   const a=As*500/(.85*k.eta*30*1000);
@@ -53,10 +65,12 @@ test('flexural capacity agrees with the independent singly reinforced formula',(
 test('end span uses the selected table 4.1-1 case and adds the exterior section',()=>{
   for(let endCase=0;endCase<S.END_CASES.length;endCase++){
     const c=S.END_CASES[endCase],o=S.calculate({...base,spanType:'end',endCase}),d=o.directions[0];
-    assert.equal(d.rows.length,6);
-    for(const key of ['exterior','positive','interior'])
-      near(d.rows.filter(r=>r.key===key).reduce((s,r)=>s+r.total,0),c[key]*d.Mo);
-    near(d.rows.find(r=>r.key==='exterior'&&r.strip==='column').total,c.exterior*d.Mo);
+    assert.equal(d.rows.length,2);assert.equal(d.support.length,4);
+    near(d.rows.reduce((s,r)=>s+r.total,0),c.positive*d.Mo);
+    for(const key of ['exterior','interior'])
+      near(d.support.filter(r=>r.key===key).reduce((s,r)=>s+r.total,0),c[key]*d.Mo);
+    // Exterior support sends its whole moment to the column strip.
+    near(d.support.find(r=>r.key==='exterior'&&r.strip==='column').total,c.exterior*d.Mo);
   }
 });
 test('shrinkage and temperature steel sets the floor and is capped per metre',()=>{
@@ -68,7 +82,7 @@ test('shrinkage and temperature steel sets the floor and is capped per metre',()
   assert.equal(S.maxSpacing({h:120}),240);
 });
 test('a section fails when capacity, minimum steel or spacing is short',()=>{
-  const heavy=S.calculate(base).directions[0].rows.find(x=>x.key==='negative'&&x.strip==='column');
+  const heavy=S.calculate({...base,hw:9,h:250,spacing:300}).directions[0].rows.find(x=>x.strip==='column');
   assert.equal(heavy.check.ok,false);
   assert.ok(heavy.check.reasons.includes('설계휨강도 부족'));
   assert.ok(heavy.check.phiMn<heavy.Mu);
@@ -78,7 +92,8 @@ test('a section fails when capacity, minimum steel or spacing is short',()=>{
   assert.ok(wide.reasons.includes('위험단면 철근 최대간격 초과'));
 });
 test('suggested spacing is the widest one that clears every condition',()=>{
-  for(const r of S.calculate(base).directions[0].rows){
+  const d=S.calculate(base).directions[0];
+  for(const r of [...d.rows,d.bottom]){
     const s=r.suggestion;assert.ok(s,'제안이 있어야 함');
     assert.equal(s.ok,true);assert.ok(s.phiMn>=r.Mu);assert.ok(s.As>=s.AsMin);assert.ok(s.spacing<=s.sMax);
     const tighter=S.SPACINGS.filter(x=>x>s.spacing);
