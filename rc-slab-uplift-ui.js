@@ -44,14 +44,14 @@ function diagram(p,o){
    * uninterrupted top layer and one bottom layer per strip. */
   const extent=along?W:H;
   const px=(a,t)=>along?[X(a),Y(t)]:[X(t),Y(a)];
-  function rebar(bc,thickness,strip,labelled){
+  function rebar(bc,thickness,strip){
     const line=(cls,off)=>{
       const [x1,y1]=px(0,bc),[x2,y2]=px(extent,bc);
       return along?`<line class="bar ${cls}" x1="${x1}" x2="${x2}" y1="${y1+off}" y2="${y2+off}"/>`
                  :`<line class="bar ${cls}" x1="${x1+off}" x2="${x2+off}" y1="${y1}" y2="${y2}"/>`;
     };
     const out=line('top',-6)+line('bottom',6);
-    if(!labelled||thickness*scale<30)return out;
+    if(thickness*scale<30)return out;
     const anchor=along?(gx[0]+gx[1])/2:(gy[0]+gy[1])/2;
     const lab=(txt,off)=>{
       const [x,y]=px(anchor,bc);
@@ -60,10 +60,10 @@ function diagram(p,o){
     };
     return out+lab(`${spec(strip)}(T)`,-11)+lab(`${bottomSpec()}(B)`,19);
   }
-  // Both halves of the middle strip carry the same bars, so only one is labelled.
-  const bars=[rebar(centre,cw,'column',true),
-    rebar((centre-total/2+centre-cw/2)/2,total/2-cw/2,'middle',true),
-    rebar((centre+cw/2+centre+total/2)/2,total/2-cw/2,'middle',false)].join('');
+  // The middle strip lies either side of the column strip but is one design
+  // strip with one result, so it is drawn once rather than mirrored.
+  const bars=[rebar(centre,cw,'column'),
+    rebar((centre-total/2+centre-cw/2)/2,total/2-cw/2,'middle')].join('');
   const lines=[];
   for(const v of gx)lines.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${Y(0)-16}" y2="${Y(H)+16}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="7 5"/>`);
   for(const v of gy)lines.push(`<line x1="${X(0)-16}" x2="${X(W)+16}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="7 5"/>`);
@@ -106,7 +106,7 @@ function renderPlan(p,o){
     `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근 (T)</b> · 중앙부 정모멘트</span><span>${rule(true)} 점선 <b>하부근 (B)</b> · 최소철근</span></div>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>${DIR[planDir]} 방향 설계대</th><th>상부근 (T · 실선)</th><th>하부근 (B · 점선)</th></tr></thead><tbody>${specs}</tbody></table></div>`+
     `<p class="beam-muted">회색 사각형이 독립기초, 파란 사각형이 기둥(표시용), 검은 점선이 기둥 그리드입니다. 파란 띠가 주열대, 녹색 띠가 중간대이며 <b>클릭하면 아래 검토표에서 해당 행이 강조</b>됩니다. 설계대는 패널이 아니라 그리드 선을 중심으로 잡힙니다.</p>`+
-    `<p class="beam-muted">시공성을 위해 상하부근을 끊지 않고 전 구간 동일하게 배근하는 실무 관행에 따라 두 층 모두 연속으로 표시합니다. 상부근은 중앙부 정모멘트로 정하고, 하부근은 받침부 부모멘트를 기초가 담당하므로 상부근과 합쳐 단면 최소철근을 채우는 양으로 정합니다.</p>`+
+    `<p class="beam-muted">시공성을 위해 상하부근을 끊지 않고 전 구간 동일하게 배근하는 실무 관행에 따라 두 층 모두 연속으로 표시합니다. 상부근은 중앙부 정모멘트로 정하고, 하부근은 받침부 부모멘트를 기초가 담당하므로 상부근과 합쳐 단면 최소철근을 채우는 양으로 정합니다. 중간대는 주열대 양쪽에 놓이지만 하나의 설계대이므로 철근을 한 번만 그립니다.</p>`+
     `<p class="beam-muted">순경간 ln = ${fmt(d.ln,0)} mm${d.floored?` — 기초면 사이 ${fmt(d.raw,0)} mm가 0.65 l 하한 ${fmt(d.floor,0)} mm보다 작아 하한을 적용했습니다.`:''}</p>`;
 }
 function renderLoad(p,o){
