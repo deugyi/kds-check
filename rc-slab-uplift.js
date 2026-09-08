@@ -83,18 +83,33 @@ function arrangement(p,bar,spacing,face){
 function check(p,Mu,face,bar,spacing){
   const a=arrangement(p,bar,spacing,face);
   if(a.d<=0)throw Error('피복과 철근 지름이 슬래브 두께를 초과합니다.');
-  const r=capacity(p,a.d,a.As),AsMin=minimumSteel(p),sMax=maxSpacing(p),reasons=[];
+  const r=capacity(p,a.d,a.As),sMax=maxSpacing(p),reasons=[];
   if(r.phiMn<Mu-1e-9)reasons.push('설계휨강도 부족');
-  if(a.As<AsMin-1e-9)reasons.push('최소철근량 미달');
   if(spacing>sMax+1e-9)reasons.push('위험단면 철근 최대간격 초과');
   if(!r.ductile)reasons.push('최소허용변형률 미달');
-  return {...a,...r,Mu,AsMin,sMax,face,reasons,ok:!reasons.length};
+  return {...a,...r,Mu,sMax,face,reasons,ok:!reasons.length};
 }
-// Widest spacing of the chosen bar that clears every condition at this section.
+// 4.6.2 defines the ratio against the whole concrete section, so the two faces
+// are summed rather than each being asked to carry the full amount.
+function sectionMinimum(p,AsTop,AsBottom){
+  const AsMin=minimumSteel(p),total=AsTop+AsBottom;
+  return {AsMin,AsTop,AsBottom,total,ratio:total/(1000*p.h),ok:total>=AsMin-1e-9};
+}
+// Widest spacing of the chosen bar that carries the moment within the spacing cap.
 function suggest(p,Mu,face,bar){
   for(const spacing of [...SPACINGS].sort((x,y)=>y-x)){
     let r;try{r=check(p,Mu,face,bar,spacing);}catch(e){continue;}
     if(r.ok)return r;
+  }
+  return null;
+}
+// The bottom mat carries no design moment, so it only has to close the gap
+// between the top steel and the section minimum, within the spacing cap.
+function suggestBottom(p,bar,AsTop){
+  const AsMin=minimumSteel(p);
+  for(const spacing of [...SPACINGS].sort((x,y)=>y-x)){
+    let r;try{r=check(p,0,'bottom',bar,spacing);}catch(e){continue;}
+    if(r.ok&&r.As+AsTop>=AsMin-1e-9)return r;
   }
   return null;
 }
@@ -124,10 +139,13 @@ function sections(p,qu,dir){
       suggestion:r.width>0?suggest(p,r.Mu,'top',p.bar):null};
   });
   const support=supports.flatMap(part=>['column','middle'].map(strip=>split(part,strip)));
-  // No design moment reaches the bottom face, so shrinkage steel governs it.
-  const bottom={face:'bottom',key:'minimum',label:'하부근 · 최소철근 지배',Mu:0,
-    check:check(p,0,'bottom',p.bar,p.spacing),suggestion:suggest(p,0,'bottom',p.bar)};
-  return {dir,span,transverse,columnWidth,middleWidth,...m,positive,supports,rows,support,bottom};
+  // No design moment reaches the bottom face; it only tops the section up to
+  // the shrinkage minimum, sized against the lightest suggested top mat.
+  const AsTop=Math.min(...rows.map(r=>r.suggestion?r.suggestion.As:0));
+  const bottom={face:'bottom',key:'minimum',label:'하부근 · 설계 모멘트 없음',Mu:0,
+    check:check(p,0,'bottom',p.bar,p.spacing),suggestion:suggestBottom(p,p.bar,AsTop)};
+  const minimum=sectionMinimum(p,rows[0].check?rows[0].check.As:0,bottom.check.As);
+  return {dir,span,transverse,columnWidth,middleWidth,...m,positive,supports,rows,support,bottom,minimum};
 }
 function limits(p){
   const ratio=Math.max(p.l1,p.l2)/Math.min(p.l1,p.l2),notes=[];
@@ -144,6 +162,7 @@ function calculate(p){
     AsMin:minimumSteel(p),maxSpacing:maxSpacing(p),minimumRatio:minimumRatio(p.fy)};
 }
 root.RCSlabUplift={BARS,SPACINGS,END_CASES,COLUMN_STRIP,load,clearSpan,moment,
-  minimumRatio,minimumSteel,maxSpacing,capacity,check,suggest,limits,calculate};
+  minimumRatio,minimumSteel,sectionMinimum,maxSpacing,capacity,check,suggest,
+  suggestBottom,limits,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCSlabUplift;
 })(typeof globalThis!=='undefined'?globalThis:this);

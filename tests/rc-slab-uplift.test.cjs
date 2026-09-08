@@ -44,15 +44,39 @@ test('the slab is designed for midspan only; the support moment goes to the foot
   assert.ok(d.support.length);
   for(const r of d.support){assert.equal(r.check,undefined);assert.equal(r.suggestion,undefined);}
 });
-test('the bottom mat follows minimum steel rather than the support moment',()=>{
+test('the bottom mat carries no moment and tops the section up to the minimum',()=>{
   const d=S.calculate(base).directions[0];
   assert.equal(d.bottom.face,'bottom');assert.equal(d.bottom.Mu,0);
   // Bottom bars sit under the larger ground-cast cover, so d is smaller.
   near(d.bottom.check.d,base.h-base.coverBottom-R.BARS[base.bar].diameter/2);
-  near(d.bottom.check.AsMin,S.minimumSteel(base));
   const deep=S.calculate({...base,hw:6}).directions[0];
   assert.ok(deep.support[0].Mu>1.5*d.support[0].Mu,'수두를 올리면 받침부 모멘트는 커진다');
-  assert.equal(deep.bottom.suggestion.spacing,d.bottom.suggestion.spacing,'하부근은 그대로다');
+  assert.equal(deep.bottom.Mu,0,'하부근에는 설계 모멘트가 없다');
+  for(const o of [d,deep]){
+    const top=Math.min(...o.rows.map(r=>r.suggestion.As));
+    assert.equal(S.sectionMinimum(base,top,o.bottom.suggestion.As).ok,true);
+  }
+});
+test('the shrinkage minimum is a section total, not a per-face requirement',()=>{
+  const d=S.calculate(base).directions[0],m=d.minimum;
+  near(m.AsMin,S.minimumSteel(base));
+  near(m.total,m.AsTop+m.AsBottom);near(m.ratio,m.total/(1000*base.h));
+  assert.equal(m.ok,true);
+  // Half the requirement on each face passes as a section but fails alone.
+  const half=S.minimumSteel(base)/2;
+  assert.equal(S.sectionMinimum(base,half,half).ok,true);
+  assert.equal(S.sectionMinimum(base,half,0).ok,false);
+});
+test('the bottom mat closes the gap left by the top mat',()=>{
+  const p={...base,h:700,fy:400},AsMin=S.minimumSteel(p);
+  near(AsMin,.0020*1000*700);
+  const tight=S.suggestBottom(p,'D16',200);
+  assert.ok(tight.As+200>=AsMin);
+  for(const x of S.SPACINGS.filter(v=>v>tight.spacing))
+    assert.ok(R.BARS.D16.area*1000/x+200<AsMin,`${x}은 너무 넓다`);
+  // A generous top mat lets the bottom relax to the spacing cap.
+  const loose=S.suggestBottom(p,'D16',AsMin);
+  assert.equal(loose.spacing,Math.max(...S.SPACINGS.filter(v=>v<=loose.sMax)));
 });
 test('flexural capacity agrees with the independent singly reinforced formula',()=>{
   const o=S.calculate(base),r=o.directions[0].rows.find(x=>x.strip==='column').check;
@@ -81,23 +105,25 @@ test('shrinkage and temperature steel sets the floor and is capped per metre',()
   assert.equal(S.maxSpacing({h:400}),300);
   assert.equal(S.maxSpacing({h:120}),240);
 });
-test('a section fails when capacity, minimum steel or spacing is short',()=>{
+test('a section fails when capacity or spacing is short',()=>{
   const heavy=S.calculate({...base,hw:9,h:250,spacing:300}).directions[0].rows.find(x=>x.strip==='column');
   assert.equal(heavy.check.ok,false);
   assert.ok(heavy.check.reasons.includes('설계휨강도 부족'));
   assert.ok(heavy.check.phiMn<heavy.Mu);
-  const sparse=S.check({...base,h:400},1,'top','D10',300);
-  assert.ok(sparse.As<sparse.AsMin);assert.ok(sparse.reasons.includes('최소철근량 미달'));
   const wide=S.check({...base,h:120},1,'top','D16',300);
   assert.ok(wide.reasons.includes('위험단면 철근 최대간격 초과'));
+  // A single sparse face is fine on its own; only the section total can fail.
+  const sparse=S.check({...base,h:400},1,'top','D10',300);
+  assert.equal(sparse.ok,true);
+  assert.equal(S.sectionMinimum({...base,h:400},sparse.As,0).ok,false);
 });
-test('suggested spacing is the widest one that clears every condition',()=>{
+test('suggested top spacing is the widest one that carries its moment',()=>{
   const d=S.calculate(base).directions[0];
-  for(const r of [...d.rows,d.bottom]){
+  for(const r of d.rows){
     const s=r.suggestion;assert.ok(s,'제안이 있어야 함');
-    assert.equal(s.ok,true);assert.ok(s.phiMn>=r.Mu);assert.ok(s.As>=s.AsMin);assert.ok(s.spacing<=s.sMax);
-    const tighter=S.SPACINGS.filter(x=>x>s.spacing);
-    for(const x of tighter)assert.equal(S.check(base,r.Mu,r.face,base.bar,x).ok,false,`${x} should fail`);
+    assert.equal(s.ok,true);assert.ok(s.phiMn>=r.Mu);assert.ok(s.spacing<=s.sMax);
+    for(const x of S.SPACINGS.filter(v=>v>s.spacing))
+      assert.equal(S.check(base,r.Mu,'top',base.bar,x).ok,false,`${x} should fail`);
   }
 });
 test('no net uplift returns a message instead of fabricated moments',()=>{
