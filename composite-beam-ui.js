@@ -107,6 +107,7 @@ function update(){
 get('cb_gr').innerHTML='<option value="">직접입력</option>'+
   Object.keys(SteelSection.STEEL).map(k=>`<option${k==='SM355'?' selected':''}>${k}</option>`).join('');
 for(const id of ['cb_gr','cb_tf'])get(id).addEventListener('input',syncGrade);
+SectionPicker.bind(get('cb_sec'),{H:get('cb_H'),B:get('cb_B'),tw:get('cb_tw'),tf:get('cb_tf')},syncGrade);
 get('cb_print').addEventListener('click',()=>{
   const closed=[...document.querySelectorAll('#t6 details')].filter(d=>!d.open);
   closed.forEach(d=>{d.open=true;});

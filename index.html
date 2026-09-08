@@ -116,6 +116,7 @@ main:has(#t1.on){max-width:1440px}
 #t2 a,#t3 a,#t5 a,#t6 a{color:var(--accent)}
 #t2 .beam-inputs,#t3 .beam-inputs,#t5 .beam-inputs,#t6 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #t2 [hidden],#t3 [hidden],#t5 [hidden],#t6 [hidden]{display:none!important}
+.beam-inputs>label.beam-wide{grid-column:1/-1}
 main:has(#t2.on),main:has(#t3.on),main:has(#t5.on),main:has(#t6.on){max-width:1440px}
 #c_pm svg,#sb_flexure svg{width:100%;max-width:660px;display:block;margin:0 auto}
 #c_diagram svg,#sb_props svg,#cb_summary svg{width:100%;max-width:280px;display:block;margin:0 auto}
@@ -361,12 +362,13 @@ text.cap-label{fill:var(--warn)}
     </div><p class="beam-muted">강종을 고르면 플랜지 두께 tf 기준으로 KDS 14 31 05 표 3.4-1의 Fy를 자동 대입합니다. 직접입력을 고르면 Fy를 그대로 씁니다.</p></div>
 
     <div class="card"><h2>2. 단면 (H × B × tw × tf)</h2><div class="grid beam-inputs">
+      <label class="beam-wide"><b>KS 규격</b><select id="sb_sec"></select></label>
       <label><b>총춤 H (mm)</b><input id="sb_H" type="number" min="50" step="10" value="600"></label>
       <label><b>폭 B (mm)</b><input id="sb_B" type="number" min="20" step="10" value="200"></label>
       <label><b>웨브 tw (mm)</b><input id="sb_tw" type="number" min="1" step="1" value="11"></label>
       <label><b>플랜지 tf (mm)</b><input id="sb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="sb_J" type="number" min="0" step="any" placeholder="비우면 자동"><span>규격표값이 있으면 입력</span></label>
-    </div></div>
+    </div><p class="beam-muted">KS D 3502 규격을 고르면 네 치수가 채워집니다. 치수를 직접 고치면 목록은 직접입력으로 돌아갑니다. 압연 필릿반경은 단면성능에 반영하지 않습니다.</p></div>
 
     <div class="card"><h2>3. 비지지길이 · 소요강도</h2><div class="grid beam-inputs">
       <label><b>Lb (mm)</b><input id="sb_lb" type="number" min="1" step="100" value="3000"></label>
@@ -402,6 +404,7 @@ text.cap-label{fill:var(--warn)}
   <div class="card">
     <h2>단면 (2축대칭 H형강)</h2>
     <div class="grid">
+      <label><b>KS 규격</b><select id="sc_sec"></select></label>
       <label><b>H (mm)</b><input id="sc_H" value="400" onchange="steelFy('sc')"></label>
       <label><b>B (mm)</b><input id="sc_B" value="400"></label>
       <label><b>t<sub>w</sub> (mm)</b><input id="sc_tw" value="13"></label>
@@ -496,12 +499,13 @@ text.cap-label{fill:var(--warn)}
     </div></div>
 
     <div class="card"><h2>2. 강재 단면</h2><div class="grid beam-inputs">
+      <label class="beam-wide"><b>KS 규격</b><select id="cb_sec"></select></label>
       <label><b>총춤 H (mm)</b><input id="cb_H" type="number" min="50" step="10" value="600"></label>
       <label><b>폭 B (mm)</b><input id="cb_B" type="number" min="20" step="10" value="200"></label>
       <label><b>웨브 tw (mm)</b><input id="cb_tw" type="number" min="1" step="1" value="11"></label>
       <label><b>플랜지 tf (mm)</b><input id="cb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="cb_J" type="number" min="0" step="any" placeholder="비우면 자동"></label>
-    </div></div>
+    </div><p class="beam-muted">KS D 3502 규격을 고르면 네 치수가 채워집니다.</p></div>
 
     <div class="card"><h2>3. 슬래브 · 배치</h2><div class="grid beam-inputs">
       <label><b>보 경간 (mm)</b><input id="cb_span" type="number" min="500" step="100" value="9000"></label>
@@ -561,7 +565,7 @@ text.cap-label{fill:var(--warn)}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260909-1"></script>
+<script src="steel-section.js?v=20260909-2"></script>
 <script>
 /* =======================================================================
    공통
@@ -623,6 +627,45 @@ function steelFy(pre){
 }
 steelFy('sc');
 const hProps=(H,Bf,tw,tf,rolled,Jman)=>SteelSection.hProps(H,Bf,tw,tf,Jman);
+
+/* KS 규격 H형강 선택. 규격을 고르면 H·B·tw·tf 를 채우고, 치수를 손으로 고치면
+   일치하는 규격이 없는 한 '직접입력'으로 돌아간다. 필릿반경 r 은 채우지 않는다.
+   hProps 가 필릿을 공제하지 않기 때문이며 그 쪽이 안전측이다. */
+var SectionPicker=(function(){
+  const near=(a,b)=>Math.abs(a-b)<1e-6;
+  function options(){
+    const group=use=>'<optgroup label="'+(use==='beam'?'보용':'기둥용')+'">'+
+      SteelSection.sectionList(use).map(s=>'<option>'+s.name+'</option>').join('')+'</optgroup>';
+    return '<option value="">직접입력</option>'+group('beam')+group('column');
+  }
+  // sel 을 채우고, 규격 선택 시 dims 의 네 입력을 갱신한다.
+  function bind(sel,dims,after){
+    sel.innerHTML=options();
+    sel.addEventListener('change',()=>{
+      const s=SteelSection.findSection(sel.value);
+      if(!s)return;
+      for(const k of ['H','B','tw','tf']){
+        dims[k].value=s[k];
+        dims[k].dispatchEvent(new Event('input',{bubbles:true}));
+      }
+      if(after)after(s);
+    });
+    const resync=()=>match(sel,dims);
+    for(const k of ['H','B','tw','tf'])dims[k].addEventListener('input',resync);
+    resync();
+  }
+  function match(sel,dims){
+    const v=k=>Number(dims[k].value);
+    const hit=SteelSection.SECTIONS.find(s=>near(s.H,v('H'))&&near(s.B,v('B'))&&
+      near(s.tw,v('tw'))&&near(s.tf,v('tf')));
+    sel.value=hit?hit.name:'';
+  }
+  return {options,bind,match};
+})();
+(function(){
+  const d={H:$('sc_H'),B:$('sc_B'),tw:$('sc_tw'),tf:$('sc_tf')};
+  SectionPicker.bind($('sc_sec'),d,()=>{steelFy('sc');});
+})();
 
 /* =======================================================================
    TAB 4 : 철골 기둥  KDS 14 31 10 (4.2)
@@ -691,16 +734,16 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="steel-beam.js?v=20260909-1"></script>
-<script src="steel-beam-ui.js?v=20260909-1"></script>
-<script src="rc-beam.js?v=20260909-1"></script>
-<script src="rc-beam-checks.js?v=20260909-1"></script>
-<script src="rc-beam-ui.js?v=20260909-1"></script>
-<script src="rc-column.js?v=20260909-1"></script>
-<script src="rc-column-ui.js?v=20260909-1"></script>
-<script src="rc-slab-uplift.js?v=20260909-1"></script>
-<script src="rc-slab-uplift-ui.js?v=20260909-1"></script>
-<script src="composite-beam.js?v=20260909-1"></script>
-<script src="composite-beam-ui.js?v=20260909-1"></script>
+<script src="steel-beam.js?v=20260909-2"></script>
+<script src="steel-beam-ui.js?v=20260909-2"></script>
+<script src="rc-beam.js?v=20260909-2"></script>
+<script src="rc-beam-checks.js?v=20260909-2"></script>
+<script src="rc-beam-ui.js?v=20260909-2"></script>
+<script src="rc-column.js?v=20260909-2"></script>
+<script src="rc-column-ui.js?v=20260909-2"></script>
+<script src="rc-slab-uplift.js?v=20260909-2"></script>
+<script src="rc-slab-uplift-ui.js?v=20260909-2"></script>
+<script src="composite-beam.js?v=20260909-2"></script>
+<script src="composite-beam-ui.js?v=20260909-2"></script>
 </body>
 </html>
