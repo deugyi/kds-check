@@ -6,8 +6,10 @@ const exp=(n,d=4)=>Number.isFinite(n)?n.toExponential(d):'—';
 const num=id=>{const v=get(id).value.trim();return v===''?NaN:Number(v);};
 function read(){
   const j=get('sb_J').value.trim();
+  const ks=SectionPicker.selected(get('sb_mode'),get('sb_sec'));
   return {H:num('sb_H'),B:num('sb_B'),tw:num('sb_tw'),tf:num('sb_tf'),
-    Fy:num('sb_fy'),E:num('sb_e'),rolled:get('sb_rl').value==='1',
+    Fy:num('sb_fy'),E:num('sb_e'),rolled:get('sb_mode').value==='ks',
+    r:ks?ks.r:null,section:ks,
     J:j===''?null:Number(j),Lb:num('sb_lb'),Cb:num('sb_cb'),Mu:num('sb_mu'),Vu:num('sb_vu')};
 }
 function syncGrade(){
@@ -68,6 +70,7 @@ function renderProps(p,o){
     `<div><dt>Iy / ry</dt><dd>${exp(s.Iy)} mm⁴ / ${fmt(s.ry,2)} mm</dd></div>`+
     `<div><dt>ho / Cw</dt><dd>${fmt(s.ho,1)} mm / ${exp(s.Cw)} mm⁶</dd></div>`+
     `<div><dt>J / rts</dt><dd>${exp(s.J)} mm⁴ / ${fmt(s.rts,2)} mm</dd></div>`+
+    `<div><dt>단면 구분</dt><dd>${p.section?`KS ${p.section.name} · 필릿 r = ${p.section.r} mm 포함`:'Built-up · 필릿 없음'}</dd></div>`+
     `<div><dt>플랜지 b/2tf</dt><dd>${fmt(c.flange.ratio,3)} · λp ${fmt(c.flange.lp,3)} · λr ${fmt(c.flange.lr,3)} ${badge(c.flange.grade)}</dd></div>`+
     `<div><dt>웨브 h/tw</dt><dd>${fmt(c.web.ratio,3)} · λp ${fmt(c.web.lp,3)} · λr ${fmt(c.web.lr,3)} ${badge(c.web.grade)}</dd></div></dl>`+
     (o.notes.length?`<ul class="beam-basis">${o.notes.map(n=>`<li class="warn">${n}</li>`).join('')}</ul>`:'')+
@@ -130,7 +133,8 @@ function update(){
 get('sb_gr').innerHTML='<option value="">직접입력</option>'+
   Object.keys(SteelSection.STEEL).map(k=>`<option${k==='SM355'?' selected':''}>${k}</option>`).join('');
 for(const id of ['sb_gr','sb_tf','sb_H'])get(id).addEventListener('input',syncGrade);
-SectionPicker.bind(get('sb_sec'),{H:get('sb_H'),B:get('sb_B'),tw:get('sb_tw'),tf:get('sb_tf')},syncGrade);
+SectionPicker.bind(get('sb_mode'),get('sb_sec'),
+  {H:get('sb_H'),B:get('sb_B'),tw:get('sb_tw'),tf:get('sb_tf')},()=>{syncGrade();update();});
 get('sb_print').addEventListener('click',()=>{
   const closed=[...document.querySelectorAll('#t3 details')].filter(d=>!d.open);
   closed.forEach(d=>{d.open=true;});

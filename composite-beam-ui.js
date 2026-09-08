@@ -5,8 +5,10 @@ const fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{minimumFractionD
 const num=id=>{const v=get(id).value.trim();return v===''?NaN:Number(v);};
 function read(){
   const j=get('cb_J').value.trim(),edge=get('cb_edge').value.trim();
+  const ks=SectionPicker.selected(get('cb_mode'),get('cb_sec'));
   return {H:num('cb_H'),B:num('cb_B'),tw:num('cb_tw'),tf:num('cb_tf'),
-    Fy:num('cb_fy'),E:num('cb_e'),rolled:get('cb_rl').value==='1',J:j===''?null:Number(j),
+    Fy:num('cb_fy'),E:num('cb_e'),rolled:get('cb_mode').value==='ks',J:j===''?null:Number(j),
+    r:ks?ks.r:null,section:ks,
     span:num('cb_span'),spacing:num('cb_spacing'),edge:edge===''?null:Number(edge),
     ts:num('cb_ts'),hr:0,fck:num('cb_fck'),wc:num('cb_wc'),
     stud:get('cb_stud').value,Fu:num('cb_fu'),studCount:Math.round(num('cb_ncount')),studLength:num('cb_slen'),
@@ -107,7 +109,8 @@ function update(){
 get('cb_gr').innerHTML='<option value="">직접입력</option>'+
   Object.keys(SteelSection.STEEL).map(k=>`<option${k==='SM355'?' selected':''}>${k}</option>`).join('');
 for(const id of ['cb_gr','cb_tf'])get(id).addEventListener('input',syncGrade);
-SectionPicker.bind(get('cb_sec'),{H:get('cb_H'),B:get('cb_B'),tw:get('cb_tw'),tf:get('cb_tf')},syncGrade);
+SectionPicker.bind(get('cb_mode'),get('cb_sec'),
+  {H:get('cb_H'),B:get('cb_B'),tw:get('cb_tw'),tf:get('cb_tf')},()=>{syncGrade();update();});
 get('cb_print').addEventListener('click',()=>{
   const closed=[...document.querySelectorAll('#t6 details')].filter(d=>!d.open);
   closed.forEach(d=>{d.open=true;});

@@ -81,11 +81,12 @@ function shear(props,p,cls){
 }
 function calculate(p){
   validate(p);
-  const props=S.hProps(p.H,p.B,p.tw,p.tf,p.J);
+  const props=S.hProps(p.H,p.B,p.tw,p.tf,p.J,p.r);
   const cls=classify(props,p);
   const notes=[];
-  if(p.rolled&&!(Number.isFinite(p.J)&&p.J>0))
-    notes.push('압연형강의 J는 필릿을 포함하지 않아 규격표값보다 작게(안전측) 나옵니다. 규격표값이 있으면 직접 입력하세요.');
+  const manualJ=Number.isFinite(p.J)&&p.J>0;
+  if(p.rolled&&!manualJ&&!(Number.isFinite(p.r)&&p.r>0))
+    notes.push('압연형강인데 필릿반경 r을 모르므로 J를 얇은판 합산으로만 산정했습니다. 규격표값보다 작게(안전측) 나옵니다.');
   if(cls.web.grade!=='조밀')
     return {props,cls,notes,supported:false,
       message:'웨브가 조밀단면이 아닙니다. 비조밀·세장 웨브는 4.3.2.1.1.4/5의 대상이며 이 화면에서 다루지 않습니다.'};

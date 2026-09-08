@@ -97,10 +97,20 @@ test('a non-compact web is reported rather than silently calculated',()=>{
   assert.equal(o.flexure,undefined);
   assert.equal(o.cls.web.grade!=='조밀',true);
 });
-test('rolled sections warn that J excludes the fillet',()=>{
+test('J only falls back to the thin-walled sum when the fillet is unknown',()=>{
+  // A rolled section with no fillet radius is the one case that gets a warning.
   assert.ok(B.calculate(base).notes.some(n=>n.includes('필릿')));
+  assert.deepEqual(B.calculate({...base,r:22}).notes,[]);
   assert.deepEqual(B.calculate({...base,J:2.5e6}).notes,[]);
   assert.deepEqual(B.calculate({...base,rolled:false}).notes,[]);
+  // The fillet raises J, which lengthens Lr and lifts the elastic branch.
+  const bare=B.calculate(base),ks=B.calculate({...base,r:22});
+  assert.ok(ks.props.J>bare.props.J);
+  near(ks.props.J,S.torsionConstant(base.H,base.B,base.tw,base.tf,22));
+  const long={...base,Lb:12000};
+  assert.ok(B.calculate({...long,r:22}).flexure.Mn>B.calculate(long).flexure.Mn);
+  // A supplied J still wins over both.
+  near(B.calculate({...base,r:22,J:2.5e6}).props.J,2.5e6);
 });
 test('invalid geometry and demands are rejected',()=>{
   for(const k of ['H','B','tw','tf','Fy','E','Lb','Cb'])

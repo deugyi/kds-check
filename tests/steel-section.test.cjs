@@ -31,6 +31,39 @@ test('the tabulated area matches hProps, which ignores the fillet',()=>{
     assert.equal(s.A,2*s.B*s.tf+(s.H-2*s.tf)*s.tw);
   }
 });
+/* J is the one property the fillet enters. The KS H tab carries no J column,
+ * so it is computed with the standard rolled-fillet correction. */
+test('the fillet raises J and only J',()=>{
+  const [H,B,tw,tf,r]=[400,400,13,21,22];
+  const thin=(2*B*Math.pow(tf,3)+(H-tf)*Math.pow(tw,3))/3;
+  assert.ok(Math.abs(S.torsionConstant(H,B,tw,tf,0)-thin)<1e-9);
+  assert.equal(S.filletTorsion(tw,tf,0),0);
+  assert.equal(S.filletTorsion(tw,tf,NaN),0);
+  const withFillet=S.torsionConstant(H,B,tw,tf,r);
+  assert.ok(withFillet>thin);
+  assert.ok(Math.abs(withFillet-thin-S.filletTorsion(tw,tf,r))<1e-9);
+  // Every other property is untouched by r.
+  const a=S.hProps(H,B,tw,tf,null,0),b=S.hProps(H,B,tw,tf,null,r);
+  for(const k of ['A','Ix','Sx','Zx','Iy','rx','ry','ho','Cw','rts','hw','Zy'])
+    assert.equal(a[k],b[k],k);
+  assert.ok(b.J>a.J);
+  // A supplied J overrides the fillet calculation.
+  assert.equal(S.hProps(H,B,tw,tf,1.23e6,r).J,1.23e6);
+});
+test('the stored J matches published KS torsion constants',()=>{
+  // Spot values from the KS/JIS section tables, matched within 1.5%.
+  const published={'H-400×400×13×21':3.12e6,'H-600×200×11×17':1.16e6,
+    'H-300×300×10×15':9.03e5,'H-900×300×16×28':6.55e6};
+  for(const [name,J] of Object.entries(published)){
+    const s=S.findSection(name);
+    assert.ok(Math.abs(s.J-J)/J<.015,`${name}: ${s.J.toExponential(3)} vs ${J.toExponential(3)}`);
+  }
+  // Every section's J is the one hProps computes from its own fillet radius.
+  for(const s of S.SECTIONS){
+    assert.equal(s.J,S.hProps(s.H,s.B,s.tw,s.tf,null,s.r).J);
+    assert.ok(s.J>S.torsionConstant(s.H,s.B,s.tw,s.tf,0),s.name);
+  }
+});
 test('the list is ordered by depth and geometrically sane',()=>{
   for(let i=1;i<S.SECTIONS.length;i++)
     assert.ok(S.SECTIONS[i].H>=S.SECTIONS[i-1].H,'춤 순서');

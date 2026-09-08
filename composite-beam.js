@@ -88,7 +88,7 @@ function plasticMoment(p,props,be,V){
 }
 function calculate(p){
   validate(p);
-  const props=S.hProps(p.H,p.B,p.tw,p.tf,p.J);
+  const props=S.hProps(p.H,p.B,p.tw,p.tf,p.J,p.r);
   const web=(p.H-2*p.tf)/p.tw,webLimit=3.76*Math.sqrt(p.E/p.Fy);
   // 4.5.2(2): a compact web gets the plastic moment, otherwise the yield moment.
   if(web>webLimit)throw Error(`웨브 h/tw = ${web.toFixed(1)}가 3.76√(E/Fy) = ${webLimit.toFixed(1)}를 초과합니다. 이 경우 항복모멘트로 산정해야 하며 이 화면에서 다루지 않습니다.`);

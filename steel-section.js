@@ -31,15 +31,31 @@ function yieldStrength(grade,tf){
   for(const [limit,Fy] of s.t)if(tf<=limit)return Fy;
   return s.t[s.t.length-1][1];
 }
-/* Doubly symmetric H. The rolled fillet is ignored throughout: J comes out
- * smaller and h/tw larger than the mill table, both on the safe side. */
-function hProps(H,Bf,tw,tf,Jman){
+/* 비틀림상수 J.
+ * 얇은판 합산 (2B·tf³ + (H − tf)tw³)/3 은 용접 조립단면에 그대로 맞는다.
+ * 압연형강은 웨브-플랜지 접합부의 필릿이 J를 눈에 띄게 키우므로, 필릿반경 r이
+ * 주어지면 표준 보정항 2αD⁴ 를 더한다. D는 필릿부에 내접하는 최대 원의 지름,
+ * α는 그 원의 기여를 맞춘 계수이다 (CISC, Torsional Section Properties of
+ * Steel Shapes, 2002 — AISC 형강표의 J도 같은 식으로 산정한다).
+ * 규격표 J를 알고 있으면 Jman으로 덮어쓸 수 있다. */
+function filletTorsion(tw,tf,r){
+  if(!Number.isFinite(r)||r<=0)return 0;
+  const D=(Math.pow(tf+r,2)+tw*(r+tw/4))/(2*r+tf);
+  const a=-.042+.2204*(tw/tf)+.1355*(r/tf)-.0865*(tw*r/(tf*tf))-.0725*(tw*tw/(tf*tf));
+  return 2*a*Math.pow(D,4);
+}
+function torsionConstant(H,Bf,tw,tf,r){
+  return (2*Bf*Math.pow(tf,3)+(H-tf)*Math.pow(tw,3))/3+filletTorsion(tw,tf,r);
+}
+/* Doubly symmetric H. The rolled fillet is left out of A, I and Z — the KS
+ * table's own areas are computed the same way — and enters only through J. */
+function hProps(H,Bf,tw,tf,Jman,r){
   const hw=H-2*tf,A=2*Bf*tf+hw*tw;
   const Ix=(Bf*Math.pow(H,3)-(Bf-tw)*Math.pow(hw,3))/12,Sx=2*Ix/H;
   const Zx=Bf*tf*(H-tf)+tw*hw*hw/4;
   const Iy=2*tf*Math.pow(Bf,3)/12+hw*Math.pow(tw,3)/12;
   const ho=H-tf,Cw=Iy*ho*ho/4;
-  let J=(2*Bf*Math.pow(tf,3)+(H-tf)*Math.pow(tw,3))/3;
+  let J=torsionConstant(H,Bf,tw,tf,r);
   if(Number.isFinite(Jman)&&Jman>0)J=Jman;
   return {A,Ix,Sx,Zx,Iy,rx:Math.sqrt(Ix/A),ry:Math.sqrt(Iy/A),ho,Cw,J,
     rts:Math.sqrt(Math.sqrt(Iy*Cw)/Sx),hw,Zy:tf*Bf*Bf/2+hw*tw*tw/4};
@@ -131,11 +147,12 @@ const SECTION_ROWS=[
 ];
 const SECTIONS=SECTION_ROWS.map(([use,H,B,tw,tf,r])=>({
   use,H,B,tw,tf,r,name:`H-${H}×${B}×${tw}×${tf}`,
-  A:2*B*tf+(H-2*tf)*tw}));
+  A:2*B*tf+(H-2*tf)*tw,J:torsionConstant(H,B,tw,tf,r)}));
 const SECTION_BY_NAME=new Map(SECTIONS.map(s=>[s.name,s]));
 function findSection(name){return SECTION_BY_NAME.get(name)||null;}
 // 용도별 목록. 각각 총춤 순서로 정렬되어 있다.
 function sectionList(use){return use?SECTIONS.filter(s=>s.use===use):SECTIONS;}
-root.SteelSection={E,STEEL,SECTIONS,findSection,sectionList,yieldStrength,hProps};
+root.SteelSection={E,STEEL,SECTIONS,findSection,sectionList,yieldStrength,
+  filletTorsion,torsionConstant,hProps};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.SteelSection;
 })(typeof globalThis!=='undefined'?globalThis:this);
