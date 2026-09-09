@@ -10,9 +10,19 @@ const load=n=>typeof module!=='undefined'&&module.exports?require(n):null;
 const S=load('./steel-section.js')||root.SteelSection;
 const SB=load('./steel-beam.js')||root.SteelBeam;
 const PHI_B=.90;                       // 4.5.2(2)
-const STUDS={D13:{d:12.7,a:126.7},D16:{d:15.9,a:198.6},D19:{d:19.1,a:286.5},D22:{d:22.2,a:387.1}};
+const STUDS=Object.fromEntries([13,16,19,22].map(d=>['D'+d,{d,a:Math.PI*d*d/4}]));
 function positive(v,name){if(!Number.isFinite(v)||v<=0)throw Error(`${name}은 0보다 큰 숫자여야 합니다.`);}
 function nonnegative(v,name){if(!Number.isFinite(v)||v<0)throw Error(`${name}은 0 이상의 숫자여야 합니다.`);}
+function studLayout(p){
+  if(p.studsPerRow==null&&p.studSpacing==null)return {count:p.studCount,legacy:true,spacing:p.span/(2*p.studCount),perRow:1,rowsPerHalf:p.studCount,total:2*p.studCount};
+  positive(p.studsPerRow,'한 줄당 스터드 개수');positive(p.studSpacing,'보 길이방향 스터드 간격');
+  if(!Number.isInteger(p.studsPerRow))throw Error('한 줄당 스터드 개수는 정수여야 합니다.');
+  const half=p.span/2,rowsPerHalf=Math.floor((half+1e-9)/p.studSpacing);
+  if(rowsPerHalf<1)throw Error('간격이 반 경간보다 커서 스터드를 배치할 수 없습니다.');
+  const endGap=(half-(rowsPerHalf-1)*p.studSpacing)/2;
+  return {count:rowsPerHalf*p.studsPerRow,perRow:p.studsPerRow,spacing:p.studSpacing,
+    rowsPerHalf,half,endGap,centreGap:2*endGap,total:2*rowsPerHalf*p.studsPerRow,legacy:false};
+}
 function validate(p){
   for(const [k,n] of [['H','총춤 H'],['B','폭 B'],['tw','웨브 두께 tw'],['tf','플랜지 두께 tf'],
     ['Fy','강재 항복강도 Fy'],['E','강재 탄성계수 E'],['span','보 경간'],['spacing','보 간격'],
@@ -20,6 +30,8 @@ function validate(p){
   for(const [k,n] of [['Mu','소요휨모멘트 Mu'],['Vu','소요전단력 Vu'],['MuConstruction','시공 중 소요휨모멘트']])nonnegative(p[k],n);
   if(!STUDS[p.stud])throw Error('스터드 규격을 선택해 주세요.');
   if(!Number.isInteger(p.studCount))throw Error('스터드 개수는 정수여야 합니다.');
+  positive(p.wc,'콘크리트 단위체적 질량');positive(p.studLength,'스터드 길이');
+  if(p.wc<1500||p.wc>2500)throw Error('콘크리트 단위체적 질량은 1,500–2,500 kg/m³입니다.');
   // 4.2(1): the composite provisions are calibrated for this strength range.
   if(p.fck<21||p.fck>70)throw Error('합성구조의 콘크리트 강도는 21–70 MPa입니다. (KDS 14 31 80, 4.2(1))');
   if(2*p.tf>=p.H)throw Error('플랜지 두께가 총춤의 절반 이상입니다.');
@@ -31,9 +43,7 @@ function effectiveWidth(p){
   const each=Math.min(...half.map(h=>h.v));
   return {each,be:2*each,limits:half,governs:half.find(h=>h.v===each).why};
 }
-/* 4.8.2.1 식 (4.8-1). The equation itself was an image in the source document,
- * so the standard form is used: Qn = 0.5 Asa sqrt(fck Ec) <= Rg Rp Asa Fu.
- * Rg and Rp come from 표 4.3-4, which did survive. */
+/* KDS 14 31 80, 4.8-1 and no-deck Rg/Rp table: verified against DOCX math objects, 2026-09-10. */
 function studStrength(p){
   const stud=STUDS[p.stud],Ec=.043*Math.pow(p.wc,1.5)*Math.sqrt(p.fck);
   const Rg=1.0,Rp=.75;                 // 골데크 미사용, 형강에 직접 용접
@@ -87,6 +97,7 @@ function plasticMoment(p,props,be,V){
   return {case:label,a,pna,compSteel,arm:null,comp,tens,Mn};
 }
 function calculate(p){
+  const layout=studLayout(p);p={...p,studCount:layout.count};
   validate(p);
   const props=S.hProps(p.H,p.B,p.tw,p.tf,p.J,p.r);
   const web=(p.H-2*p.tf)/p.tw,webLimit=3.76*Math.sqrt(p.E/p.Fy);
@@ -101,31 +112,40 @@ function calculate(p){
   // 4.6.2: shear is carried by the steel section alone.
   const bare=SB.calculate({...p,Lb:p.LbConstruction,Cb:p.CbConstruction,Mu:p.MuConstruction,Vu:p.Vu});
   const required=Math.ceil(hs.full*1000/st.Qn);      // 4.8.2.3 완전합성 소요개수
-  return {props,ew,Ac,stud:st,shearFlow:hs,plastic:pm,
+  const detail=studDetail(p,st,props,layout);
+  return {props,ew,Ac,stud:st,shearFlow:hs,plastic:pm,layout,
     web:{ratio:web,limit:webLimit},
     phiMn,phi:PHI_B,ratioM:phiMn>0?p.Mu/phiMn:Infinity,okM:p.Mu<=phiMn+1e-9,
     steel:bare,requiredStuds:required,
-    detail:studDetail(p,st,props),
+    detail,
     okV:bare.supported?bare.shear.ok:null,
     okConstruction:bare.supported?bare.flexure.ok:null,
-    ok:(p.Mu<=phiMn+1e-9)&&(bare.supported?bare.shear.ok&&bare.flexure.ok:false)};
+    ok:detail.ok&&(p.Mu<=phiMn+1e-9)&&(bare.supported?bare.shear.ok&&bare.flexure.ok:false)};
 }
 /* 4.8.1(1), 4.8.2(1) and 4.8.2.4 detailing limits. */
-function studDetail(p,st,props){
+function studDetail(p,st,props,placement=studLayout(p)){
   const d=st.stud.d,reasons=[];
   if(d>2.5*p.tf+1e-9)reasons.push('스터드 직경이 플랜지 두께의 2.5배를 초과합니다 (4.8.1(1))');
   if(p.studLength<4*d-1e-9)reasons.push('스터드 길이는 몸체직경의 4배 이상이어야 합니다 (4.8.2(1))');
   if(p.studLength>p.hr+p.ts-25+1e-9)reasons.push('스터드 상단 위 콘크리트 피복이 부족합니다');
   const maxSpacing=Math.min(8*(p.ts+p.hr),900);
   const minLong=6*d,minTrans=4*d;
-  const layout=p.studCount>1?p.span/(p.studCount-1):null;
+  const layout=placement.spacing;
+  if(!placement.legacy&&placement.centreGap>maxSpacing+1e-9)reasons.push('보 중앙의 두 줄 사이 간격이 최대 간격을 초과합니다 (4.8.2.4(5))');
+  const transverse=p.studTransverseSpacing??4*d;
+  if(placement.perRow>1){
+    positive(transverse,'폭 방향 스터드 간격');
+    if(transverse<minTrans-1e-9)reasons.push('폭 방향 중심간 간격이 직경의 4배 미만입니다 (4.8.2.4(4))');
+    if(transverse>maxSpacing+1e-9)reasons.push('폭 방향 중심간 간격이 최대 간격을 초과합니다 (4.8.2.4(5))');
+    if((placement.perRow-1)*transverse+d>p.B+1e-9)reasons.push('폭 방향 스터드가 플랜지 폭을 벗어납니다');
+  }
   if(layout!==null){
     if(layout>maxSpacing+1e-9)reasons.push('스터드 중심간 간격이 최대 간격을 초과합니다 (4.8.2.4(5))');
     if(layout<minLong-1e-9)reasons.push('길이방향 중심간 간격이 직경의 6배 미만입니다 (4.8.2.4(4))');
   }
-  return {d,maxSpacing,minLong,minTrans,layout,reasons,ok:!reasons.length};
+  return {d,maxSpacing,minLong,minTrans,layout,transverse,reasons,ok:!reasons.length};
 }
-root.CompositeBeam={PHI_B,STUDS,effectiveWidth,studStrength,horizontalShear,
+root.CompositeBeam={PHI_B,STUDS,studLayout,effectiveWidth,studStrength,horizontalShear,
   plasticMoment,studDetail,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.CompositeBeam;
 })(typeof globalThis!=='undefined'?globalThis:this);

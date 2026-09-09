@@ -35,8 +35,9 @@ function validate(p){
 }
 // User-specified combination: uplift is driving, resisting dead load is reduced.
 function load(p){
+  nonnegative(p.liveLoad??0,'활하중');
   const selfWeight=p.gammaC*p.h/1000,uplift=p.gammaW*p.hw,dead=selfWeight+p.qsd;
-  return {selfWeight,uplift,dead,qu:1.6*uplift-0.9*dead};
+  return {selfWeight,uplift,dead,live:p.liveLoad??0,qu:1.6*uplift-0.9*dead,gravity:1.2*dead+1.6*(p.liveLoad??0)};
 }
 // Clear span is measured between footing faces, floored at 0.65 l1 by 4.1.3.2(5).
 function clearSpan(span,footing){
@@ -114,7 +115,8 @@ function suggestPair(p,MuTop,MuBottom,bar){
   }
   return null;
 }
-function sections(p,qu,dir){
+function sections(p,qu,dir,combo='uplift'){
+  const isUp=combo==='uplift';
   const span=dir==='l1'?p.l1:p.l2,transverse=dir==='l1'?p.l2:p.l1;
   const m=moment(qu,span,transverse,p.footing);
   const columnWidth=Math.min(2*Math.min(.25*p.l1,.25*p.l2),transverse);
@@ -135,21 +137,24 @@ function sections(p,qu,dir){
     const total=part.coef*m.Mo*share;
     return {dir,strip,width,share,total,Mu:width>0?total/(width/1000):0,...part};
   };
+  if(!isUp){positive.face='bottom';negatives.forEach(r=>r.face='top');}
   const support=negatives.flatMap(part=>['column','middle'].map(strip=>split(part,strip)));
   const rows=[],minimums=[];
   for(const strip of ['column','middle']){
-    const top=split(positive,strip);
+    const centre=split(positive,strip);
     // An end span has two negative sections; the heavier one sizes the mat.
     const worst=negatives.map(part=>split(part,strip)).reduce((a,b)=>b.Mu>a.Mu?b:a);
-    const live=top.width>0,pair=live?suggestPair(p,top.Mu,worst.Mu,p.bar):null;
+    const top=isUp?centre:worst,bottom=isUp?worst:centre;
+    const live=top.width>0,pair=live?suggestPair(p,top.Mu,bottom.Mu,p.bar):null;
     const topRow={...top,check:live?check(p,top.Mu,'top',p.bar,p.spacing):null,
       suggestion:pair?pair.top:null};
-    const botRow={...worst,check:live?check(p,worst.Mu,'bottom',p.bar,p.spacing):null,
+    const botRow={...bottom,check:live?check(p,bottom.Mu,'bottom',p.bar,p.spacing):null,
       suggestion:pair?pair.bottom:null};
     rows.push(topRow,botRow);
     if(live)minimums.push({strip,...sectionMinimum(p,topRow.check.As,botRow.check.As)});
   }
-  return {dir,span,transverse,columnWidth,middleWidth,...m,positive,negatives,rows,support,minimums};
+  rows.forEach(r=>{r.combo=combo;});
+  return {dir,combo,span,transverse,columnWidth,middleWidth,...m,positive,negatives,rows,support,minimums};
 }
 function limits(p){
   const ratio=Math.max(p.l1,p.l2)/Math.min(p.l1,p.l2),notes=[];
@@ -158,11 +163,27 @@ function limits(p){
 }
 function calculate(p){
   validate(p);
-  const w=load(p);
-  if(w.qu<=0)return {load:w,directions:[],limits:limits(p),
+  const w=load(p),mode=p.loadCase??'uplift';
+  if(!['uplift','gravity','both'].includes(mode))throw Error('하중조합을 선택해 주세요.');
+  const combinations=[];
+  if(mode!=='gravity'&&w.qu>0)combinations.push({key:'uplift',label:'양압력 1.6H − 0.9D',qu:w.qu});
+  if(mode!=='uplift')combinations.push({key:'gravity',label:'중력 1.2D + 1.6L',qu:w.gravity});
+  const scope=limits(p);
+  if(mode!=='uplift'&&w.live>2*w.dead){scope.notes.push('활하중 L > 2D: 직접설계법 하중 제한을 벗어나 별도 해석 필요 (4.1.3.1)');scope.ok=false;}
+  if(!combinations.length)return {load:w,combinations,directions:[],limits:scope,
     message:'저항 자중이 계수 양압력 이상이라 순 상향하중이 없습니다. 이 조합에서는 휨 검토 대상이 아닙니다.'};
-  return {load:w,limits:limits(p),message:'',
-    directions:[sections(p,w.qu,'l1'),sections(p,w.qu,'l2')],
+  combinations.forEach(c=>{c.directions=['l1','l2'].map(dir=>sections(p,c.qu,dir,c.key));});
+  const directions=['l1','l2'].map(dir=>{
+    const cases=combinations.map(c=>c.directions.find(d=>d.dir===dir));
+    const d={...cases[0],combo:mode,Mo:Math.max(...cases.map(d=>d.Mo)),rows:[]};
+    for(const strip of ['column','middle']){
+      const selected=['top','bottom'].map(face=>cases.flatMap(c=>c.rows).filter(r=>r.strip===strip&&r.face===face).reduce((a,b)=>!a||b.Mu>a.Mu?b:a,null));
+      const pair=suggestPair(p,selected[0].Mu,selected[1].Mu,p.bar);
+      selected.forEach((r,i)=>d.rows.push({...r,suggestion:scope.ok&&pair?(i?pair.bottom:pair.top):null}));
+    }
+    return d;
+  });
+  return {load:w,combinations,limits:scope,message:w.qu<=0&&mode==='both'?'순 상향하중이 없어 중력하중 조합으로 검토합니다.':'',directions,
     AsMin:minimumSteel(p),maxSpacing:maxSpacing(p),minimumRatio:minimumRatio(p.fy)};
 }
 root.RCSlabUplift={BARS,SPACINGS,END_CASES,COLUMN_STRIP,load,clearSpan,moment,
