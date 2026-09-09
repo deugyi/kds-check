@@ -23,6 +23,16 @@ test('HTML and scripts initialize with the expected controls and initial results
   assert.equal(vm.runInContext('typeof RCColumn',context),'object');assert.match(nodes.c_axes.innerHTML,/<svg/);assert.match(nodes.c_diagram.innerHTML,/<svg/);assert.match(nodes.c_quantities.innerHTML,/만원/);assert.equal(vm.runInContext('typeof SteelBeam',context),'object');assert.match(nodes.sb_flexure.innerHTML,/kN·m/);assert.match(nodes.sb_props.innerHTML,/<svg/);assert.equal(vm.runInContext('typeof runSteelCol',context),'function');
 });
 
+test('composite and slab screens expose new inputs and render the two load combinations',()=>{
+  const {nodes,context}=load();
+  assert.equal(nodes.cb_error.hidden,true);assert.match(nodes.cb_flow.innerHTML,/반 경간 22줄 = 44개/);
+  assert.equal(nodes.s_error.hidden,true);assert.match(nodes.s_load.innerHTML,/1.2D \+ 1.6L/);
+  nodes.s_live.value='10';vm.runInContext(fs.readFileSync(path.join(root,'rc-slab-uplift-ui.js'),'utf8'),context);
+  assert.match(nodes.s_load.innerHTML,/28.78/);assert.match(nodes.s_sections.innerHTML,/중력하중 · 상부근/);
+  nodes.cb_per_row.value='3';vm.runInContext(fs.readFileSync(path.join(root,'composite-beam-ui.js'),'utf8'),context);
+  assert.match(nodes.cb_summary.innerHTML,/미달 항목/);assert.match(nodes.cb_flow.innerHTML,/플랜지 폭/);
+});
+
 test('custom concrete, stirrup strength and compression inputs refresh results',()=>{
   const {nodes}=load();nodes.b_fck.value='custom';nodes.b_fck_custom.value='32.5';nodes.b_fck.events.input();
   assert.equal(nodes.b_custom_field.hidden,false);assert.equal(nodes.b_error.hidden,true);assert.match(nodes.b_basis.innerHTML,/32\.50/);

@@ -96,7 +96,7 @@ test('construction stage and shear reuse the bare steel section',()=>{
   assert.equal(o.okV,b.shear.ok);
 });
 test('stud detailing limits are checked',()=>{
-  assert.equal(CB.calculate(base).detail.ok,true);
+  assert.equal(CB.calculate({...base,studCount:30}).detail.ok,true); // 반 경간 4500 / 30 = 150 mm
   // Diameter over 2.5 tf.
   const fat=CB.calculate({...base,tf:6,stud:'D22'});
   assert.ok(fat.detail.reasons.some(r=>r.includes('2.5배')));
@@ -104,7 +104,7 @@ test('stud detailing limits are checked',()=>{
   const short=CB.calculate({...base,studLength:50});
   assert.ok(short.detail.reasons.some(r=>r.includes('4배')));
   // Spacing beyond min(8 ts, 900).
-  const sparse=CB.calculate({...base,studCount:5});
+  const sparse=CB.calculate({...base,studCount:4});
   near(sparse.detail.maxSpacing,Math.min(8*base.ts,900));
   assert.ok(sparse.detail.reasons.some(r=>r.includes('최대 간격')));
 });
