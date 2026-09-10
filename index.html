@@ -199,7 +199,7 @@ section.tab label,section.tab label b{font-size:14px}section.tab input:not([type
 section.tab .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}section.tab [hidden]{display:none!important}
 main:has(section.tab.on){max-width:1440px}
 #tb_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}
-#tb_diagram svg{width:100%;max-height:360px;display:block}#tb_diagram text{fill:var(--ink);font-size:13px}
+#tb_diagram svg{width:100%;max-height:480px;display:block} #tb_diagram [data-info]{cursor:pointer;outline:none} #tb_diagram [data-info]:hover,#tb_diagram [data-info]:focus{filter:drop-shadow(0 0 3px #2563eb)} #tb_diagram .tb-hit{stroke:transparent;stroke-width:12;fill:none;pointer-events:stroke}#tb_diagram text{fill:var(--ink);font-size:13px}
 #t4 .out{overflow-wrap:anywhere;white-space:pre-wrap}
 
 .tb-stage{margin:14px 0;padding:12px;border:1px solid var(--line);border-left:4px solid var(--stage-color);border-radius:6px}.tb-stage h3{margin:0 0 10px;font-size:14px}.tb-stage .grid{gap:10px}
@@ -618,19 +618,18 @@ main:has(section.tab.on){max-width:1440px}
         <label class="beam-wide"><b>굵은골재 최대치수 (mm)</b><input id="tb_aggregate" type="number" min="1" step="5" value="25"></label>
       </div><p class="beam-muted">하부부터 최대 3단, 피복은 스터럽 바깥면 기준입니다. 압축철근은 산입하지 않습니다.</p></div>
       <div class="card"><h2>7. 이어치기면 · 다월바</h2><p class="beam-muted">거친 이어치기면 · 보통중량 콘크리트 μ = 1.0. 레이턴스를 제거하고 약 6 mm 요철을 확보하는 조건입니다.</p>
-      <label><input type="checkbox" id="tb_cross_anchored"> 유효 스터럽 다리가 각 이어치기면을 관통하고 양측에 정착됨 — 다월바로 인정</label>
-      <label><b>유효 관통 스터럽 다리 수</b><select id="tb_cross_legs"><option>0</option><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label><p class="beam-muted">전체 스터럽 중 접합면 전단마찰에 사용할 다리 수입니다. 위의 관통·정착 확인 시 해당 면적을 인정하고, 부족분만 추가 다월바로 계산합니다.</p>
+      <p class="beam-muted">기본 가정: 모든 스터럽 다리는 각 이어치기면을 관통하고 양측에 정착되어 다월바 역할을 합니다. 추가 다월바도 양측 정착을 가정하며, 스터럽 기여를 제외한 부족분을 검토합니다.</p>
       <div class="grid beam-inputs">
         <label><b>다월바 규격</b><select id="tb_dowel"><option>D13</option><option>D16</option><option selected>D19</option><option>D22</option><option>D25</option><option>D29</option><option>D32</option></select></label>
         <label><b>한 줄당 다월바 개수</b><input id="tb_dowel_count" type="number" min="0" step="1" value="0"></label>
         <label class="beam-wide"><b>보 길이방향 다월바 간격 (mm)</b><input id="tb_dowel_spacing" type="number" min="1" step="25" value="200"></label>
-      </div><label><input type="checkbox" id="tb_dowel_anchored"> 입력 다월바가 이어치기면 양측에 정착됨</label>
-      <p class="beam-muted">동일한 배치를 각 이어치기면에 적용합니다. 정착 미확인 철근은 접합면 강도에 산입하지 않습니다. 전단마찰에 사용하는 항복강도는 최대 500 MPa입니다.</p></div>
+      </div>
+      <p class="beam-muted">동일한 배치를 각 이어치기면에 적용합니다. 정착길이와 실제 시공 상세는 별도 확인 대상입니다. 전단마찰에 사용하는 항복강도는 최대 500 MPa입니다.</p></div>
     </aside>
     <div class="beam-output" aria-label="전이보 타설 결과">
       <div id="tb_error" role="alert" hidden></div>
       <div id="tb_results">
-        <div class="card"><h2>전이보 타설 · 단면 미리보기</h2><p class="beam-muted">아래쪽 1차부터 위쪽 n차까지 색으로 구분합니다. 차수를 선택하면 그 단계까지 타설한 높이를 확인할 수 있습니다.</p><div class="beam-preview"><div><div id="tb_diagram"></div><div id="tb_legend"></div></div><div><p class="beam-layout" id="tb_size"></p><p class="beam-muted">직사각형 전이보</p><dl class="beam-values" id="tb_materials"></dl></div></div></div>
+        <div class="card"><h2>전이보 타설 · 단면 미리보기</h2><p class="beam-muted">아래쪽 1차부터 위쪽 n차까지 색으로 구분합니다. 차수를 선택하면 그 단계까지 타설한 높이를 확인할 수 있습니다.</p><div class="beam-preview"><div><div id="tb_diagram"></div><p id="tb_graph_info" class="beam-muted" aria-live="polite">철근을 가리키거나 선택하면 규격과 배치 정보를 확인할 수 있습니다.</p><p id="tb_graph_note" class="beam-muted"></p><div id="tb_legend"></div></div><div><p class="beam-layout" id="tb_size"></p><p class="beam-muted">직사각형 전이보</p><dl class="beam-values" id="tb_materials"></dl></div></div></div>
         <div class="card"><h2>타설 단계별 자중 · 휨 · 수직 전단</h2><div id="tb_phase_results"></div></div>
         <div class="card"><h2>이어치기면 전단 전달 · 추가 다월바</h2><div id="tb_joint_results"></div></div>
         <div class="card"><h2>계산 가정 · 적용 범위</h2><p class="beam-muted">동바리 해체 후 양단 단순지지, 전 경간 등분포 자중 검토입니다. 타설 중에는 새 콘크리트를 하중으로만 보며 직전 검토 시점의 발현강도와 하부 단면을 사용합니다. 양생 후에는 입력한 시점별 강도로 누적 단면을 검토합니다.</p><p class="beam-muted">휨·수직 전단은 활성 단면의 최소 발현강도를 사용합니다. 발현강도 21 MPa 미만 및 경간/높이 ≤ 4인 깊은보는 적합 판정을 제공하지 않습니다. 이어치기면은 전단흐름과 전단마찰 철근량을 비교하는 예비 검토입니다.</p><p class="beam-muted">자중의 단계별 탄성 응력 이력, 크리프·수축, 변형·균열, 동바리 반력과 해체 순서, 시공이음 상세 및 철근 정착길이의 자동 검토는 포함하지 않습니다. 전체 타설 안전 판정이 아닙니다. <a href="docs/transfer-beam.md" target="_blank" rel="noopener">계산 근거</a></p></div>
@@ -659,7 +658,7 @@ main:has(section.tab.on){max-width:1440px}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260910-10"></script>
+<script src="steel-section.js?v=20260911-11"></script>
 <script>
 /* =======================================================================
    공통
@@ -841,19 +840,20 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="steel-beam.js?v=20260910-10"></script>
-<script src="steel-beam-ui.js?v=20260910-10"></script>
-<script src="rc-beam.js?v=20260910-10"></script>
-<script src="rc-beam-checks.js?v=20260910-10"></script>
-<script src="rc-beam-ui.js?v=20260910-10"></script>
-<script src="rc-column.js?v=20260910-10"></script>
-<script src="rc-column-ui.js?v=20260910-10"></script>
-<script src="rc-slab-uplift.js?v=20260910-10"></script>
-<script src="rc-slab-uplift-ui.js?v=20260910-10"></script>
-<script src="composite-beam.js?v=20260910-10"></script>
-<script src="composite-beam-ui.js?v=20260910-10"></script>
-<script src="concrete-age.js?v=20260910-10"></script>
-<script src="transfer-beam.js?v=20260910-10"></script>
-<script src="transfer-beam-ui.js?v=20260910-10"></script>
+<script src="steel-beam.js?v=20260911-11"></script>
+<script src="steel-beam-ui.js?v=20260911-11"></script>
+<script src="rc-beam.js?v=20260911-11"></script>
+<script src="rc-beam-checks.js?v=20260911-11"></script>
+<script src="rc-beam-ui.js?v=20260911-11"></script>
+<script src="rc-column.js?v=20260911-11"></script>
+<script src="rc-column-ui.js?v=20260911-11"></script>
+<script src="rc-slab-uplift.js?v=20260911-11"></script>
+<script src="rc-slab-uplift-ui.js?v=20260911-11"></script>
+<script src="composite-beam.js?v=20260911-11"></script>
+<script src="composite-beam-ui.js?v=20260911-11"></script>
+<script src="concrete-age.js?v=20260911-11"></script>
+<script src="transfer-beam.js?v=20260911-11"></script>
+<script src="transfer-beam-diagram.js?v=20260911-11"></script>
+<script src="transfer-beam-ui.js?v=20260911-11"></script>
 </body>
 </html>
