@@ -3,13 +3,16 @@
 const get=id=>document.getElementById(id);
 const fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 const num=id=>{const v=get(id).value.trim();return v===''?NaN:Number(v);};
+const UNIT_WEIGHT={water:9.81,concrete:24,plain:23};
 const FACE={top:{label:'상부',cls:'top'},bottom:{label:'하부',cls:'bottom'}};
 const DIR={l1:'X',l2:'Y'};
 const COMBO={uplift:'양압력',gravity:'중력하중'};
 let current=null,planDir='l1',planStrip=null;
 function read(){
+  const plainHeight=num('s_plain_height');
+  if(!Number.isFinite(plainHeight)||plainHeight<0)throw new Error('무근 콘크리트 높이는 0 이상의 숫자로 입력하세요.');
   return {l1:num('s_l1'),l2:num('s_l2'),footing:num('s_footing'),h:num('s_h'),
-    hw:num('s_hw'),liveLoad:num('s_live'),loadCase:get('s_load_case').value,qsd:num('s_qsd'),gammaW:num('s_gw'),gammaC:num('s_gc'),
+    hw:num('s_hw'),liveLoad:num('s_live'),loadCase:get('s_load_case').value,plainHeight,qsd:plainHeight/1000*UNIT_WEIGHT.plain,gammaW:UNIT_WEIGHT.water,gammaC:UNIT_WEIGHT.concrete,
     fck:num('s_fck'),fy:num('s_fy'),bar:get('s_bar').value,spacing:num('s_spacing'),
     coverTop:num('s_cover_top'),coverBottom:num('s_cover_bottom'),
     spanType:get('s_span_type').value,endCase:Number(get('s_end_case').value),
@@ -115,7 +118,7 @@ function renderPlan(p,o){
 }
 function renderLoad(p,o){
   const w=o.load;
-  get('s_load').innerHTML=`<dl class="beam-values"><div><dt>양압력 H</dt><dd>${fmt(w.uplift,2)} kN/m²</dd></div><div><dt>자중 + 고정 상재하중 D</dt><dd>${fmt(w.selfWeight,2)} + ${fmt(p.qsd,2)} = ${fmt(w.dead,2)} kN/m²</dd></div><div><dt>활하중 L</dt><dd>${fmt(w.live,2)} kN/m²</dd></div></dl>`+
+  get('s_load').innerHTML=`<dl class="beam-values"><div><dt>단위중량 (고정)</dt><dd>물 ${UNIT_WEIGHT.water} · 철근콘크리트 ${UNIT_WEIGHT.concrete} · 무근 콘크리트 ${UNIT_WEIGHT.plain} kN/m³</dd></div><div><dt>무근 콘크리트 하중</dt><dd>${fmt(p.plainHeight,0)} / 1,000 × ${UNIT_WEIGHT.plain} = ${fmt(p.qsd,2)} kN/m²</dd></div><div><dt>양압력 H</dt><dd>${fmt(w.uplift,2)} kN/m²</dd></div><div><dt>자중 + 무근 콘크리트 하중 D</dt><dd>${fmt(w.selfWeight,2)} + ${fmt(p.qsd,2)} = ${fmt(w.dead,2)} kN/m²</dd></div><div><dt>활하중 L</dt><dd>${fmt(w.live,2)} kN/m²</dd></div></dl>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>하중조합</th><th>방향</th><th>계수하중 (kN/m²)</th><th>검토</th></tr></thead><tbody>`+
     `<tr><td>0.9D + 1.6H → 1.6H − 0.9D</td><td>상향</td><td>${fmt(w.qu,2)}</td><td>${p.loadCase==='gravity'?'선택 제외':w.qu>0?'반영':'순 상향하중 없음'}</td></tr>`+
     `<tr><td>1.2D + 1.6L</td><td>하향</td><td>${fmt(w.gravity,2)}</td><td>${p.loadCase==='uplift'?'선택 제외':'반영'}</td></tr></tbody></table></div>`+

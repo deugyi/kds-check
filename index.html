@@ -214,11 +214,12 @@ text.cap-label{fill:var(--warn)}
     <ul class="menu-list" hidden>
       <li><button type="button" disabled>1방향 슬래브</button></li>
       <li><button type="button" disabled>2방향 슬래브</button></li>
-      <li><button type="button" data-t="t5">내수압 슬래브</button></li>
       <li><button type="button" data-t="t1" aria-current="page">보</button></li>
+      <li><button type="button" disabled>전이보 타설</button></li>
       <li><button type="button" data-t="t2">기둥</button></li>
       <li><button type="button" disabled>벽체</button></li>
       <li><button type="button" disabled>기초</button></li>
+      <li><button type="button" data-t="t5">내수압 슬래브</button></li>
     </ul>
   </div>
   <div class="menu">
@@ -458,13 +459,11 @@ text.cap-label{fill:var(--warn)}
     </div><p class="beam-muted">순경간은 기초면 사이 거리이며 0.65 × 경간을 하한으로 둡니다. 지지점은 독립기초이므로 기둥 치수는 모멘트 산정에 쓰지 않습니다.</p></div>
 
     <div class="card"><h2>3. 하중</h2><div class="grid beam-inputs">
-      <label><b>지하수위 수두 hw (m)</b><input id="s_hw" type="number" min="0" step="any" value="2"><span>슬래브 하면 기준</span></label>
-      <label><b>고정 상재하중 (kN/m²)</b><input id="s_qsd" type="number" min="0" step="any" value="3.45"></label>
-      <label><b>활하중 L (kN/m²)</b><input id="s_live" type="number" min="0" step="any" value="0"></label>
+      <label><b>지하수위 (m)</b><input id="s_hw" type="number" min="0" step="any" value="2"><span>슬래브 하면 기준</span></label>
+      <label><b>무근 콘크리트 높이 (mm)</b><input id="s_plain_height" type="number" min="0" step="50" value="150"></label>
+      <label><b>활하중 L (kN/m²)</b><input id="s_live" type="number" min="0" step="any" value="3"></label>
       <label><b>검토 하중조합</b><select id="s_load_case"><option value="both" selected>두 조합 비교</option><option value="uplift">양압력 0.9D + 1.6H</option><option value="gravity">중력 1.2D + 1.6L</option></select></label>
-      <label><b>물 단위중량 (kN/m³)</b><input id="s_gw" type="number" min="0" step="any" value="9.81"></label>
-      <label><b>콘크리트 단위중량 (kN/m³)</b><input id="s_gc" type="number" min="0" step="any" value="24"></label>
-    </div><p class="beam-muted">D = 슬래브 자중 + 고정 상재하중. 양압력은 위로, D·L은 아래로 작용합니다. 상향 조합은 1.6H − 0.9D, 하향 조합은 1.2D + 1.6L입니다. 활하중의 기본 0은 미설정 값이므로 실제 값을 입력하세요.</p></div>
+    </div><p class="beam-muted">D = 슬래브 자중 + 무근 콘크리트 하중. 양압력은 위로, D·L은 아래로 작용합니다. 상향 조합은 1.6H − 0.9D, 하향 조합은 1.2D + 1.6L입니다.</p></div>
 
     <div class="card"><h2>4. 배근</h2><div class="grid beam-inputs">
       <label><b>철근 규격</b><select id="s_bar"><option>D10</option><option selected>D13</option><option>D16</option><option>D19</option><option>D22</option><option>D25</option></select></label>
@@ -583,7 +582,7 @@ text.cap-label{fill:var(--warn)}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260910-5"></script>
+<script src="steel-section.js?v=20260910-6"></script>
 <script>
 /* =======================================================================
    공통
@@ -765,16 +764,16 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="steel-beam.js?v=20260910-5"></script>
-<script src="steel-beam-ui.js?v=20260910-5"></script>
-<script src="rc-beam.js?v=20260910-5"></script>
-<script src="rc-beam-checks.js?v=20260910-5"></script>
-<script src="rc-beam-ui.js?v=20260910-5"></script>
-<script src="rc-column.js?v=20260910-5"></script>
-<script src="rc-column-ui.js?v=20260910-5"></script>
-<script src="rc-slab-uplift.js?v=20260910-5"></script>
-<script src="rc-slab-uplift-ui.js?v=20260910-5"></script>
-<script src="composite-beam.js?v=20260910-5"></script>
-<script src="composite-beam-ui.js?v=20260910-5"></script>
+<script src="steel-beam.js?v=20260910-6"></script>
+<script src="steel-beam-ui.js?v=20260910-6"></script>
+<script src="rc-beam.js?v=20260910-6"></script>
+<script src="rc-beam-checks.js?v=20260910-6"></script>
+<script src="rc-beam-ui.js?v=20260910-6"></script>
+<script src="rc-column.js?v=20260910-6"></script>
+<script src="rc-column-ui.js?v=20260910-6"></script>
+<script src="rc-slab-uplift.js?v=20260910-6"></script>
+<script src="rc-slab-uplift-ui.js?v=20260910-6"></script>
+<script src="composite-beam.js?v=20260910-6"></script>
+<script src="composite-beam-ui.js?v=20260910-6"></script>
 </body>
 </html>
