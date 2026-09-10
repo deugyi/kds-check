@@ -40,3 +40,10 @@ test('invalid geometry, release or reinforcement cannot produce capacity results
  for(const patch of [{release:0},{heights:[500,500]},{dowelCount:-1},{span:0}])assert.throws(()=>T.calculate({...base(),...patch}));
  const p=base();p.counts=[50,0,0];assert.equal(T.calculate(p).phases[1].status,'missing');
 });
+
+test('only the confirmed effective stirrup legs contribute as dowel reinforcement',()=>{
+ const p=base();p.crossAnchored=true;p.crossLegs=2;
+ let j=T.calculate(p).phases[3].interfaces[0];near(j.existing,.75*2*126.7*5*400/1000);
+ p.crossLegs=0;j=T.calculate(p).phases[3].interfaces[0];near(j.existing,0);assert.ok(j.requiredArea>0);
+ p.crossLegs=5;assert.throws(()=>T.calculate(p));p.crossLegs=1.5;assert.throws(()=>T.calculate(p));
+});
