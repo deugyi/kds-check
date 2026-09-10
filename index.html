@@ -200,7 +200,7 @@ section.tab .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 main:has(section.tab.on){max-width:1440px}
 #tb_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}
 #tb_diagram svg{width:100%;max-height:480px;display:block} #tb_diagram [data-info]{cursor:pointer;outline:none} #tb_diagram [data-info]:hover,#tb_diagram [data-info]:focus{filter:drop-shadow(0 0 3px #2563eb)} #tb_diagram .tb-hit{stroke:transparent;stroke-width:12;fill:none;pointer-events:stroke}#tb_diagram text{fill:var(--ink);font-size:13px}
-#t4 .out{overflow-wrap:anywhere;white-space:pre-wrap}
+#sc_diagram svg{width:100%;max-height:310px;display:block}#sc_diagram text{font-size:12px;fill:var(--ink)}#sc_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}.sc-meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden}.sc-meter span{display:block;height:100%;background:var(--accent)}
 
 .tb-stage{margin:14px 0;padding:12px;border:1px solid var(--line);border-left:4px solid var(--stage-color);border-radius:6px}.tb-stage h3{margin:0 0 10px;font-size:14px}.tb-stage .grid{gap:10px}
 .tb-legend-item{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 4px 0;font-size:12px}.tb-swatch{width:12px;height:12px;border-radius:3px;background:var(--stage-color)}
@@ -419,39 +419,37 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= 철골 기둥 ================= -->
 <section class="tab" id="t4">
-  <div class="beam-workspace"><aside class="beam-sidebar" aria-label="철골 기둥 입력">
-  <div class="card">
-    <h2>1. 재료 강도</h2>
-    <div class="grid beam-inputs">
-      <label><b>강종</b><select id="sc_gr" onchange="steelFy('sc')"></select></label>
-      <label><b>항복강도 Fy (MPa)</b><input id="sc_fy" value="345"></label>
-      <label><b>탄성계수 E (MPa)</b><input id="sc_e" value="210000"></label>
-    </div>
-  </div>
-  <div class="card">
-    <h2>2. 단면 정보</h2>
-    <div class="grid beam-inputs">
+  <div class="beam-workspace">
+  <aside class="beam-sidebar" aria-label="철골 기둥 입력">
+    <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
+      <label class="beam-wide"><b>강종</b><select id="sc_gr"></select></label>
+      <label><b>항복강도 Fy (MPa)</b><input id="sc_fy" type="number" min="1" step="any" value="345"></label>
+      <label><b>탄성계수 E (MPa)</b><input id="sc_e" type="number" min="1" step="1000" value="210000"></label>
+    </div><p class="beam-muted">강종 선택 시 플랜지 두께 tf에 맞춰 Fy를 자동 적용합니다. Fy를 바꾸려면 강종에서 직접입력을 선택하세요.</p></div>
+    <div class="card"><h2>2. 단면 정보</h2><div class="grid beam-inputs">
       <label class="beam-wide"><b>단면 구분</b><select id="sc_mode"><option value="ks" selected>KS 규격 (압연 H형강)</option><option value="builtup">Built-up (용접 조립)</option></select></label>
       <label class="beam-wide"><b>KS 규격</b><select id="sc_sec"></select></label>
-      <label><b>높이 H (mm)</b><input id="sc_H" value="400" onchange="steelFy('sc')"></label>
-      <label><b>폭 B (mm)</b><input id="sc_B" value="400"></label>
-      <label><b>웨브 두께 tw (mm)</b><input id="sc_tw" value="13"></label>
-      <label><b>플랜지 두께 tf (mm)</b><input id="sc_tf" value="21" onchange="steelFy('sc')"></label>
+      <label><b>높이 H (mm)</b><input id="sc_H" type="number" min="1" step="50" value="400"></label>
+      <label><b>폭 B (mm)</b><input id="sc_B" type="number" min="1" step="50" value="400"></label>
+      <label><b>웨브 두께 tw (mm)</b><input id="sc_tw" type="number" min="1" step="1" value="13"></label>
+      <label><b>플랜지 두께 tf (mm)</b><input id="sc_tf" type="number" min="1" step="1" value="21"></label>
+    </div><p class="beam-muted">KS 규격의 치수는 자동 적용하며, Built-up은 직접 입력합니다. 단면성능은 기존과 같이 필릿을 제외한 직사각형 판으로 계산합니다.</p></div>
+    <div class="card"><h2>3. 좌굴길이 · 소요강도</h2><div class="grid beam-inputs">
+      <label><b>X축 유효좌굴길이 KxLx (mm)</b><input id="sc_klx" type="number" min="1" step="100" value="4000"></label>
+      <label><b>Y축 유효좌굴길이 KyLy (mm)</b><input id="sc_kly" type="number" min="1" step="100" value="4000"></label>
+      <label class="beam-wide"><b>소요압축력 Pu (kN)</b><input id="sc_pu" type="number" min="0" step="100" value="3000"></label>
+    </div><p class="beam-muted">X축은 강축, Y축은 약축입니다. 길이는 유효길이계수 K를 곱한 값이며 입력에 따라 결과가 자동 갱신됩니다. 순수 압축 검토입니다.</p></div>
+  </aside>
+  <div class="beam-output" aria-label="철골 기둥 결과">
+    <div id="sc_error" role="alert" hidden></div>
+    <div id="sc_results">
+      <div class="beam-toolbar"><button type="button" class="go" id="sc_print">PDF로 저장</button></div>
+      <div class="card"><h2>단면 미리보기 · 결과 요약</h2><div class="beam-preview"><div id="sc_diagram"></div><div id="sc_summary"></div></div></div>
+      <div class="card"><h2>단면성능</h2><div id="sc_props"></div></div>
+      <div class="card"><h2>판폭두께비</h2><div id="sc_plate"></div></div>
+      <div class="card"><h2>축별 좌굴 · 압축강도</h2><div id="sc_axes"></div></div>
+      <div class="card"><h2>계산 근거 · 적용 범위</h2><div id="sc_basis"></div><details class="beam-settings"><summary>계산식과 대입값 보기</summary><div id="sc_steps"></div></details></div>
     </div>
-  </div>
-  <div class="card">
-    <h2>3. 좌굴길이 · 소요강도</h2>
-    <div class="grid beam-inputs">
-      <label><b>K<sub>x</sub>L<sub>x</sub> (mm)</b><input id="sc_klx" value="4000"></label>
-      <label><b>K<sub>y</sub>L<sub>y</sub> (mm)</b><input id="sc_kly" value="4000"></label>
-      <label><b>P<sub>u</sub> (kN)</b><input id="sc_pu" value="3000"></label>
-    </div>
-    <div class="row">
-      <button class="go" onclick="runSteelCol()">계산</button>
-      <span class="chk"><input type="checkbox" id="sc_step" checked><label for="sc_step" style="display:inline">유도 과정 표시</label></span>
-    </div>
-  </div>
-  </aside><div class="beam-output" aria-label="철골 기둥 결과"><div class="card"><h2>결과 요약</h2><pre class="out" id="sc_out">입력 후 [계산]</pre></div>
   </div></div>
 </section>
 
@@ -658,7 +656,7 @@ main:has(section.tab.on){max-width:1440px}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260911-11"></script>
+<script src="steel-section.js?v=20260911-12"></script>
 <script>
 /* =======================================================================
    공통
@@ -711,21 +709,6 @@ const judge = (c,t) => c?OK(t):NG(t);
    ===================================================================== */
 /* 철골 공통 : 강종표와 단면성능은 steel-section.js 로 이동. 기둥 화면용 얇은 연결. */
 const STEEL = SteelSection.STEEL;
-$('sc_gr').innerHTML='<option value="">직접입력</option>'+
-  Object.keys(STEEL).map(k=>'<option'+(k==="SM355"?" selected":"")+'>'+k+'</option>').join('');
-function steelFy(pre){
-  const k=$(pre+'_gr').value; if(!k) return;
-  const Fy=SteelSection.yieldStrength(k,V(pre+'_tf'));
-  if(Fy) $(pre+'_fy').value=Fy;
-}
-steelFy('sc');
-// 압연이면 고른 KS 규격의 규격표 J 와 필릿반경을 넘긴다.
-const hProps=function(H,Bf,tw,tf,rolled,Jman){
-  const s=rolled?SectionPicker.selected($('sc_mode'),$('sc_sec')):null;
-  const J=(Number.isFinite(Jman)&&Jman>0)?Jman:(s&&s.listed?s.J:null);
-  return SteelSection.hProps(H,Bf,tw,tf,J,s?s.r:null);
-};
-
 /* 단면 구분 : KS 규격 / Built-up.
    KS 규격이면 목록에서 고른 치수를 그대로 쓰고 직접 고칠 수 없다. 필릿반경 r 이
    함께 넘어가 J 가 필릿을 포함해 산정된다. Built-up 은 용접 조립단면이므로
@@ -768,92 +751,23 @@ var SectionPicker=(function(){
   }
   return {options,find,selected,bind};
 })();
-(function(){
-  const d={H:$('sc_H'),B:$('sc_B'),tw:$('sc_tw'),tf:$('sc_tf')};
-  SectionPicker.bind($('sc_mode'),$('sc_sec'),d,()=>{steelFy('sc');});
-})();
-
-/* =======================================================================
-   TAB 4 : 철골 기둥  KDS 14 31 10 (4.2)
-   ===================================================================== */
-function runSteelCol(){
-  const Fy=V('sc_fy'), E=V('sc_e');
-  const H=V('sc_H'), Bf=V('sc_B'), tw=V('sc_tw'), tf=V('sc_tf');
-  const klx=V('sc_klx'), kly=V('sc_kly'), Pu=V('sc_pu');
-  const st=$('sc_step').checked;
-  const S=hProps(H,Bf,tw,tf,true,0);
-  const phic=0.90;
-
-  HD("단면성능  H"+f(H,0)+"×"+f(Bf,0)+"×"+f(tw,0)+"×"+f(tf,0));
-  P("  Ag = "+f(S.A,0)+" mm²    Ix = "+S.Ix.toExponential(4)+"    Iy = "+S.Iy.toExponential(4)+" mm⁴");
-  P("  rx = "+f(S.rx,2)+" mm    ry = "+f(S.ry,2)+" mm");
-  P("  Fy = "+f(Fy,0)+" MPa    E = "+f(E,0)+" MPa");
-
-  HD("판폭두께비  KDS 14 31 10 표 4.2-2");
-  const lf=Bf/(2*tf), lrf=0.56*Math.sqrt(E/Fy);
-  const hcl=H-2*tf, lw=hcl/tw, lrw=1.49*Math.sqrt(E/Fy);
-  P("  플랜지(자유돌출판 1) b/t = "+f(lf,3)+"    λr = 0.56√(E/Fy) = "+f(lrf,3));
-  P("    → "+(lf<=lrf?"비세장":"세장"));
-  P("  웨브(양연지지판 5) h/tw = "+f(lw,3)+"    λr = 1.49√(E/Fy) = "+f(lrw,3));
-  P("    → "+(lw<=lrw?"비세장":"세장"));
-  if(lf>lrf||lw>lrw){
-    NG("세장판요소 있음 → 4.2.7 적용 대상. 이 툴은 비세장판 단면(4.2.3)만 다룹니다.");
-    flush('sc_out'); return;
-  }
-  OK("비세장판 단면 → 4.2.3 적용 (표 4.2-1)");
-
-  HD("세장비  (4.2.2)");
-  const sx=klx/S.rx, sy=kly/S.ry;
-  P("  KxLx/rx = "+f(klx,0)+"/"+f(S.rx,2)+" = "+f(sx,2));
-  P("  KyLy/ry = "+f(kly,0)+"/"+f(S.ry,2)+" = "+f(sy,2));
-  const sl=Math.max(sx,sy);
-  P("  지배 세장비 KL/r = "+f(sl,2)+"  ("+(sx>=sy?"강축":"약축")+")");
-  if(sl>200) WN("KL/r > 200 (4.2.2 권장 한계 초과)");
-
-  HD("압축강도  (4.2.3)");
-  const Fe=Math.PI*Math.PI*E/(sl*sl);
-  const lim=4.71*Math.sqrt(E/Fy);
-  if(st){
-    P("  식 (4.2-4) Fe = π²E/(KL/r)² = π²×"+f(E,0)+"/"+f(sl,2)+"²");
-  }
-  P("  Fe = "+f(Fe,2)+" MPa      Fy/Fe = "+f(Fy/Fe,4));
-  P("  4.71√(E/Fy) = "+f(lim,2)+"    KL/r = "+f(sl,2));
-  let Fcr, br;
-  if(sl<=lim || Fy/Fe<=2.25){
-    Fcr=Math.pow(0.658, Fy/Fe)*Fy;
-    br="① 비탄성 : 식 (4.2-2)  Fcr = [0.658^(Fy/Fe)]·Fy";
-    if(st) P("  0.658^"+f(Fy/Fe,4)+" = "+f(Math.pow(0.658,Fy/Fe),4));
-  }else{
-    Fcr=0.877*Fe;
-    br="② 탄성 : 식 (4.2-3)  Fcr = 0.877·Fe";
-  }
-  P("  "+br);
-  P("  Fcr = "+f(Fcr,2)+" MPa");
-  const Pn=Fcr*S.A/1000;
-  P("  식 (4.2-1) Pn = Fcr·Ag = "+f(Fcr,2)+"×"+f(S.A,0)+" = "+f(Pn,1)+" kN");
-  P("  φc = 0.90  (4.2.1(1))");
-  LN();
-  P("  φcPn = "+f(phic*Pn,1)+" kN      Pu = "+f(Pu,1)+" kN");
-  P("  Pu/φcPn = "+f(Pu/(phic*Pn),3));
-  judge(Pu<=phic*Pn, "압축강도");
-  WN("비틀림·휨비틀림좌굴(4.2.4)은 미구현. 비틀림 비지지길이가 휨좌굴 비지지길이보다 길면 별도 검토 필요");
-  flush('sc_out');
-}
 </script>
-<script src="steel-beam.js?v=20260911-11"></script>
-<script src="steel-beam-ui.js?v=20260911-11"></script>
-<script src="rc-beam.js?v=20260911-11"></script>
-<script src="rc-beam-checks.js?v=20260911-11"></script>
-<script src="rc-beam-ui.js?v=20260911-11"></script>
-<script src="rc-column.js?v=20260911-11"></script>
-<script src="rc-column-ui.js?v=20260911-11"></script>
-<script src="rc-slab-uplift.js?v=20260911-11"></script>
-<script src="rc-slab-uplift-ui.js?v=20260911-11"></script>
-<script src="composite-beam.js?v=20260911-11"></script>
-<script src="composite-beam-ui.js?v=20260911-11"></script>
-<script src="concrete-age.js?v=20260911-11"></script>
-<script src="transfer-beam.js?v=20260911-11"></script>
-<script src="transfer-beam-diagram.js?v=20260911-11"></script>
-<script src="transfer-beam-ui.js?v=20260911-11"></script>
+<script src="steel-column.js?v=20260911-12"></script>
+<script src="steel-column-ui.js?v=20260911-12"></script>
+<script src="steel-beam.js?v=20260911-12"></script>
+<script src="steel-beam-ui.js?v=20260911-12"></script>
+<script src="rc-beam.js?v=20260911-12"></script>
+<script src="rc-beam-checks.js?v=20260911-12"></script>
+<script src="rc-beam-ui.js?v=20260911-12"></script>
+<script src="rc-column.js?v=20260911-12"></script>
+<script src="rc-column-ui.js?v=20260911-12"></script>
+<script src="rc-slab-uplift.js?v=20260911-12"></script>
+<script src="rc-slab-uplift-ui.js?v=20260911-12"></script>
+<script src="composite-beam.js?v=20260911-12"></script>
+<script src="composite-beam-ui.js?v=20260911-12"></script>
+<script src="concrete-age.js?v=20260911-12"></script>
+<script src="transfer-beam.js?v=20260911-12"></script>
+<script src="transfer-beam-diagram.js?v=20260911-12"></script>
+<script src="transfer-beam-ui.js?v=20260911-12"></script>
 </body>
 </html>
