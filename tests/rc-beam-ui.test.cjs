@@ -30,6 +30,9 @@ test('steel column renders capacity and clears it after invalid input',()=>{
   nodes.sc_pu.value='7000';vm.runInContext('runSteelCol()',context);assert.match(nodes.sc_summary.innerHTML,/압축강도 미달/);
   nodes.sc_pu.value='';vm.runInContext('runSteelCol()',context);assert.equal(nodes.sc_results.hidden,true);assert.equal(nodes.sc_summary.innerHTML,'');
   nodes.sc_pu.value='3000';vm.runInContext('runSteelCol()',context);assert.equal(nodes.sc_error.hidden,true);
+  nodes.sc_mux.value='500';nodes.sc_muy.value='300';vm.runInContext('runSteelCol()',context);
+  assert.match(nodes.sc_interaction.innerHTML,/축력–2축 휨 검토 미달/);assert.match(nodes.sc_moments.innerHTML,/약축/);
+  nodes.sc_mux.value='';vm.runInContext('runSteelCol()',context);assert.equal(nodes.sc_interaction.innerHTML,'');
 });
 
 test('composite and slab screens expose new inputs and render the two load combinations',()=>{
