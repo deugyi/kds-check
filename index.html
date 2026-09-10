@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KDS 구조검토</title>
+<title>현장 대안 검토를 위한 KDS 14/41 구조 설계 검토</title>
 <style>
 :root{
   --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --dim:#6b6b66;
@@ -232,7 +232,7 @@ main:has(section.tab.on){max-width:1440px}
 <body>
 
 <header>
-  <h1>KDS 구조검토</h1>
+  <h1>현장 대안 검토를 위한 KDS 14/41 구조 설계 검토</h1>
 </header>
 
 <nav id="nav" aria-label="검토 항목">
@@ -646,7 +646,7 @@ main:has(section.tab.on){max-width:1440px}
       <label class="beam-wide"><b>평균 콘크리트 양생온도 (℃)</b><input id="tb_temperature" type="number" min="5" max="40" step="1" value="20"></label>
       <p class="beam-muted beam-wide">28일 기준강도는 위의 콘크리트 강도를 사용합니다. 충분한 습윤양생·일정한 평균온도를 가정하며, 각 차수의 경과일수는 ‘타설 단계’에서 입력합니다.</p></div><p class="beam-muted" id="tb_strength_note"></p><div id="tb_strengths" class="grid beam-inputs"></div><p class="beam-muted">간편 추정은 현장 시험값이 아닙니다. 직접 입력 모드에서는 확인 강도를 사용합니다. 21 MPa 미만은 강도 추정값을 표시하되 기존 내력 모델의 판정은 보류합니다.</p></div>
       <div class="card"><h2>5. 지지 · 하중 조건</h2><div class="grid beam-inputs">
-        <label class="beam-wide"><b>동바리 해체 차수 (양생 후)</b><select id="tb_release"><option value="1">1차 양생 후</option><option value="2" selected>2차 양생 후</option></select></label>
+        <label class="beam-wide"><b>동바리 해체 차수 (양생 후)</b><select id="tb_release"><option value="1" selected>1차 양생 후</option><option value="2">2차 양생 후</option></select></label>
         <label><b>자중 하중계수</b><input id="tb_dead_factor" type="number" min="1" step="0.1" value="1.4"></label>
       </div><p class="beam-muted">해체 후 양단 단순지지·전 경간 등분포 자중만 검토합니다. 콘크리트 단위중량 24 kN/m³. 동바리 해체 전 지지력, 작업하중·장비·상부층 하중은 별도입니다.</p></div>
       <div class="card"><h2>6. 하부 인장근 · 스터럽</h2><div class="grid beam-inputs">
