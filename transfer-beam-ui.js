@@ -15,6 +15,9 @@ function strengthControls(){
 function stageControls(equal=false){
   const count=num('tb_count'),h=num('tb_h');
   if(equal||heights.length!==count){const base=Math.floor(h/count);heights=Array.from({length:count},(_,i)=>i===count-1?h-base*(count-1):base);}
+  const release=get('tb_release').value;
+  get('tb_release').innerHTML=heights.map((_,i)=>`<option value="${i+1}">${i+1}차 양생 후</option>`).join('');
+  get('tb_release').value=String(Math.max(1,Math.min(Number(release)||count,count)));
   const selected=get('tb_view').value;
   get('tb_view').innerHTML='<option value="all">전체 단면</option>'+heights.map((_,i)=>`<option value="${i+1}">${i+1}차까지</option>`).join('');
   get('tb_view').value=selected==='all'||Number(selected)<=count?selected:'all';
@@ -45,11 +48,23 @@ function update(){
     get('tb_legend').innerHTML=heights.map((v,i)=>`<span class="tb-legend-item" style="--stage-color:${COLORS[i]}"><i class="tb-swatch"></i>${i+1}차 · ${fmt(v)} mm${i>=shown?' (미타설)':''}</span>`).join('');
     get('tb_size').textContent=`${fmt(b)} × ${fmt(h)} mm · 경간 ${fmt(span)} m`;
     get('tb_materials').innerHTML=[['콘크리트 강도 fck',fck],['주철근 강도 fy',fy],['스터럽 강도 fyt',fyt],['다월바 강도 fy,d',fyd]].map(([name,value])=>`<div><dt>${name}</dt><dd>${fmt(value)} MPa</dd></div>`).join('');
+    renderCalculations();
     get('tb_error').hidden=true;get('tb_results').hidden=false;
   }catch(e){
     get('tb_error').textContent=e.message;get('tb_error').hidden=false;get('tb_results').hidden=true;
-    for(const id of ['tb_diagram','tb_size','tb_materials','tb_legend'])get(id).innerHTML='';
+    for(const id of ['tb_diagram','tb_size','tb_materials','tb_legend','tb_phase_results','tb_joint_results'])get(id).innerHTML='';
   }
+}
+function renderCalculations(){
+  const p={b:num('tb_b'),h:num('tb_h'),span:num('tb_span'),fy:num('tb_fy'),fyt:num('tb_fyt'),fyd:num('tb_fyd'),heights,strengths,
+    release:num('tb_release'),deadFactor:num('tb_dead_factor'),bar:get('tb_bar').value,stirrup:get('tb_stirrup').value,
+    counts:[num('tb_n1'),num('tb_n2'),num('tb_n3')],legs:num('tb_legs'),stirrupSpacing:num('tb_stirrup_spacing'),cover:num('tb_cover'),aggregate:num('tb_aggregate'),
+    dowel:get('tb_dowel').value,dowelCount:num('tb_dowel_count'),dowelSpacing:num('tb_dowel_spacing'),crossAnchored:get('tb_cross_anchored').checked,dowelAnchored:get('tb_dowel_anchored').checked};
+  const o=TransferBeam.calculate(p),val=v=>Number.isFinite(v)?fmt(v):'—';
+  const rows=o.phases.map(r=>`<tr><td>${r.stage}차 ${r.wet?'타설 중':'양생 후'}${!r.wet&&r.stage===p.release?' · 동바리 해체':''}</td><td>${val(r.H)} / ${val(r.loaded)}</td><td>${val(r.fc)}</td><td>${val(r.D)}</td><td>${val(r.M)}</td><td>${val(r.V)}</td><td>${val(r.r?.phiMn)}</td><td>${val(r.shear?.phiVn)}</td><td>${r.message}</td></tr>`).join('');
+  get('tb_phase_results').innerHTML=`<p class="beam-muted">해체 후 양단 단순지지 · D = 24 × b × 누적 높이 (m 단위), wu = ${p.deadFactor}D, Mu = wuL²/8, Vu = wuL/2. 타설 중 강도는 직전 양생 후 입력값을 사용하며 추가 강도 발현을 가정하지 않습니다.</p><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>시점</th><th>내력 / 하중 높이 (mm)</th><th>최소 fc (MPa)</th><th>D (kN/m)</th><th>Mu (kN·m)</th><th>Vu (kN)</th><th>φMn (kN·m)</th><th>φVn (kN)</th><th>계산 상태</th></tr></thead><tbody>${rows}</tbody></table></div><p class="beam-muted">미입력 강도는 0으로 간주하지 않습니다. 동바리 지지 행의 Mu·Vu는 자중 규모를 나타내는 단순보 환산값이며 실제 보 분담력을 뜻하지 않습니다.</p>`;
+  const joints=o.phases.flatMap(r=>r.interfaces.map((j,i)=>`<tr><td>${r.stage}차 ${r.wet?'타설 중':'양생 후'}</td><td>${i+1}/${i+2}차 · ${fmt(j.joint)} mm</td><td>${val(j.demand)}</td><td>${val(j.existing)}</td><td>${val(j.requiredArea)}</td><td>${val(j.available)}</td><td>${r.deep?'깊은보 별도':j.demand>j.cap?'접합면 상한 초과':j.neededCount>j.fit?'폭 내 배치 불가':j.neededCount===0?'추가 불필요':`${p.dowel} ${j.neededCount}개/줄 @${p.dowelSpacing}`}</td><td>${r.deep?'일반 보 결과 참고만':j.reason}</td></tr>`));
+  get('tb_joint_results').innerHTML=joints.length?`<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>시점</th><th>접합면 · 바닥 기준</th><th>소요 전단흐름 (kN/m)</th><th>스터럽 기여 (kN/m)</th><th>추가 Avf (mm²/m)</th><th>입력 배치 강도 (kN/m)</th><th>추가 다월바 소요량</th><th>조건 확인</th></tr></thead><tbody>${joints.join('')}</tbody></table></div><p class="beam-muted">전체 자중을 해당 시점의 합성단면에 적용한 접합면 예비 검토입니다. 전단흐름은 환산 비균열단면과 인장 콘크리트를 제외한 균열단면의 VQ/I 중 큰 값입니다. q의 N/mm는 수치상 kN/m와 같습니다. φ = 0.75, μ = 1.0, fy ≤ 500 MPa. 콘크리트 접합면 상한과 정착이 확인된 기존 스터럽을 반영합니다. 표의 개수는 정착 가능한 철근량 소요값이며 정착길이·간격 상세를 승인하는 값이 아닙니다.</p>`:'<p class="beam-muted">동바리 해체 후 2개 이상 타설층의 발현강도가 입력되면 이어치기면을 검토합니다.</p>';
 }
 get('t7').querySelectorAll('input,select').forEach(el=>el.addEventListener('input',update));
 get('tb_view').addEventListener('input',()=>{strengthControls();update();});
