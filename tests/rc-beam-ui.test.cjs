@@ -58,3 +58,15 @@ test('changing stirrup refreshes rows; bad input clears stale results',()=>{
   nodes.b_b.value='';nodes.b_b.events.input();assert.equal(nodes.b_results.hidden,true);assert.equal(nodes.b_error.hidden,false);assert.equal(nodes.b_rows.innerHTML,'');
   nodes.b_b.value='400';nodes.b_b.events.input();assert.equal(nodes.b_error.hidden,true);assert.equal(nodes.b_results.hidden,false);
 });
+
+test('slab plain concrete height converts mm to load with fixed unit weights',()=>{
+  const {nodes,context}=load();
+  const refresh=()=>vm.runInContext(fs.readFileSync(path.join(root,'rc-slab-uplift-ui.js'),'utf8'),context);
+  assert.equal(nodes.s_live.value,'3');assert.equal(nodes.s_plain_height.value,'150');
+  assert.equal(nodes.s_gw,undefined);assert.equal(nodes.s_gc,undefined);
+  assert.match(nodes.s_load.innerHTML,/3\.45/);assert.match(nodes.s_load.innerHTML,/17\.58/);
+  nodes.s_plain_height.value='300';refresh();
+  assert.match(nodes.s_load.innerHTML,/6\.90/);assert.match(nodes.s_load.innerHTML,/21\.72/);
+  nodes.s_plain_height.value='0';refresh();assert.equal(nodes.s_error.hidden,true);assert.match(nodes.s_load.innerHTML,/13\.44/);
+  for(const bad of ['-1','']){nodes.s_plain_height.value=bad;refresh();assert.equal(nodes.s_results.hidden,true);assert.match(nodes.s_error.textContent,/무근 콘크리트 높이/);assert.equal(nodes.s_load.innerHTML,'');}
+});
