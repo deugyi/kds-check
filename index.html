@@ -200,7 +200,7 @@ section.tab .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 main:has(section.tab.on){max-width:1440px}
 #tb_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}
 #tb_diagram svg{width:100%;max-height:480px;display:block} #tb_diagram [data-info]{cursor:pointer;outline:none} #tb_diagram [data-info]:hover,#tb_diagram [data-info]:focus{filter:drop-shadow(0 0 3px #2563eb)} #tb_diagram .tb-hit{stroke:transparent;stroke-width:12;fill:none;pointer-events:stroke}#tb_diagram text{fill:var(--ink);font-size:13px}
-#sc_diagram svg{width:100%;max-height:310px;display:block}#sc_diagram text{font-size:12px;fill:var(--ink)}#sc_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}.sc-meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden}.sc-meter span{display:block;height:100%;background:var(--accent)}
+#sc_interaction svg{width:100%;max-height:300px;display:block}#sc_interaction svg text{fill:var(--ink);font-size:12px}#sc_diagram svg{width:100%;max-height:310px;display:block}#sc_diagram text{font-size:12px;fill:var(--ink)}#sc_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}.sc-meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden}.sc-meter span{display:block;height:100%;background:var(--accent)}
 
 .tb-stage{margin:14px 0;padding:12px;border:1px solid var(--line);border-left:4px solid var(--stage-color);border-radius:6px}.tb-stage h3{margin:0 0 10px;font-size:14px}.tb-stage .grid{gap:10px}
 .tb-legend-item{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 4px 0;font-size:12px}.tb-swatch{width:12px;height:12px;border-radius:3px;background:var(--stage-color)}
@@ -238,10 +238,15 @@ main:has(section.tab.on){max-width:1440px}
     <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">철골</button>
     <ul class="menu-list" hidden>
       <li><button type="button" data-t="t3">보</button></li>
-      <li><button type="button" data-t="t6">합성보</button></li>
       <li><button type="button" data-t="t4">기둥</button></li>
       <li><button type="button" disabled>볼트 접합부</button></li>
       <li><button type="button" disabled>용접 접합부</button></li>
+    </ul>
+  </div>
+  <div class="menu">
+    <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">합성구조</button>
+    <ul class="menu-list" hidden>
+      <li><button type="button" data-t="t6">합성보</button></li>
     </ul>
   </div>
   <div class="menu">
@@ -438,13 +443,21 @@ main:has(section.tab.on){max-width:1440px}
       <label><b>X축 유효좌굴길이 KxLx (mm)</b><input id="sc_klx" type="number" min="1" step="100" value="4000"></label>
       <label><b>Y축 유효좌굴길이 KyLy (mm)</b><input id="sc_kly" type="number" min="1" step="100" value="4000"></label>
       <label class="beam-wide"><b>소요압축력 Pu (kN)</b><input id="sc_pu" type="number" min="0" step="100" value="3000"></label>
-    </div><p class="beam-muted">X축은 강축, Y축은 약축입니다. 길이는 유효길이계수 K를 곱한 값이며 입력에 따라 결과가 자동 갱신됩니다. 순수 압축 검토입니다.</p></div>
+    </div><p class="beam-muted">X축은 강축, Y축은 약축입니다. 길이는 유효길이계수 K를 곱한 값이며 입력에 따라 결과가 자동 갱신됩니다. 모멘트와 함께 같은 하중조합의 설계력을 입력하세요.</p></div>
+    <div class="card"><h2>4. 강축 · 약축 모멘트</h2><div class="grid beam-inputs">
+      <label><b>강축 모멘트 Mux (kN·m)</b><input id="sc_mux" type="number" step="10" value="0"></label>
+      <label><b>약축 모멘트 Muy (kN·m)</b><input id="sc_muy" type="number" step="10" value="0"></label>
+      <label><b>횡비지지길이 Lb (mm)</b><input id="sc_lb" type="number" min="1" step="100" value="4000"></label>
+      <label><b>모멘트 수정계수 Cb</b><input id="sc_cb" type="number" min="0.1" step="0.1" value="1"></label>
+    </div><p class="beam-muted">Mux·Muy는 2차 효과를 반영한 설계모멘트입니다. 2축대칭 단면이므로 부호에 관계없이 절댓값으로 검토합니다. Lb는 강축 휨의 횡비틀림좌굴 비지지길이이며 KL과 별도입니다. Cb 기본값은 1.0입니다.</p></div>
   </aside>
   <div class="beam-output" aria-label="철골 기둥 결과">
     <div id="sc_error" role="alert" hidden></div>
     <div id="sc_results">
       <div class="beam-toolbar"><button type="button" class="go" id="sc_print">PDF로 저장</button></div>
       <div class="card"><h2>단면 미리보기 · 결과 요약</h2><div class="beam-preview"><div id="sc_diagram"></div><div id="sc_summary"></div></div></div>
+      <div class="card"><h2>축력–2축 휨 상호작용</h2><div id="sc_interaction"></div></div>
+      <div class="card"><h2>강축 · 약축 휨강도</h2><div id="sc_moments"></div></div>
       <div class="card"><h2>단면성능</h2><div id="sc_props"></div></div>
       <div class="card"><h2>판폭두께비</h2><div id="sc_plate"></div></div>
       <div class="card"><h2>축별 좌굴 · 압축강도</h2><div id="sc_axes"></div></div>
@@ -656,7 +669,7 @@ main:has(section.tab.on){max-width:1440px}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260911-12"></script>
+<script src="steel-section.js?v=20260911-13"></script>
 <script>
 /* =======================================================================
    공통
@@ -752,22 +765,22 @@ var SectionPicker=(function(){
   return {options,find,selected,bind};
 })();
 </script>
-<script src="steel-column.js?v=20260911-12"></script>
-<script src="steel-column-ui.js?v=20260911-12"></script>
-<script src="steel-beam.js?v=20260911-12"></script>
-<script src="steel-beam-ui.js?v=20260911-12"></script>
-<script src="rc-beam.js?v=20260911-12"></script>
-<script src="rc-beam-checks.js?v=20260911-12"></script>
-<script src="rc-beam-ui.js?v=20260911-12"></script>
-<script src="rc-column.js?v=20260911-12"></script>
-<script src="rc-column-ui.js?v=20260911-12"></script>
-<script src="rc-slab-uplift.js?v=20260911-12"></script>
-<script src="rc-slab-uplift-ui.js?v=20260911-12"></script>
-<script src="composite-beam.js?v=20260911-12"></script>
-<script src="composite-beam-ui.js?v=20260911-12"></script>
-<script src="concrete-age.js?v=20260911-12"></script>
-<script src="transfer-beam.js?v=20260911-12"></script>
-<script src="transfer-beam-diagram.js?v=20260911-12"></script>
-<script src="transfer-beam-ui.js?v=20260911-12"></script>
+<script src="steel-beam.js?v=20260911-13"></script>
+<script src="steel-column.js?v=20260911-13"></script>
+<script src="steel-column-ui.js?v=20260911-13"></script>
+<script src="steel-beam-ui.js?v=20260911-13"></script>
+<script src="rc-beam.js?v=20260911-13"></script>
+<script src="rc-beam-checks.js?v=20260911-13"></script>
+<script src="rc-beam-ui.js?v=20260911-13"></script>
+<script src="rc-column.js?v=20260911-13"></script>
+<script src="rc-column-ui.js?v=20260911-13"></script>
+<script src="rc-slab-uplift.js?v=20260911-13"></script>
+<script src="rc-slab-uplift-ui.js?v=20260911-13"></script>
+<script src="composite-beam.js?v=20260911-13"></script>
+<script src="composite-beam-ui.js?v=20260911-13"></script>
+<script src="concrete-age.js?v=20260911-13"></script>
+<script src="transfer-beam.js?v=20260911-13"></script>
+<script src="transfer-beam-diagram.js?v=20260911-13"></script>
+<script src="transfer-beam-ui.js?v=20260911-13"></script>
 </body>
 </html>
