@@ -116,7 +116,7 @@ main:has(#t1.on){max-width:1440px}
 #t2 a,#t3 a,#t5 a,#t6 a{color:var(--accent)}
 #t2 .beam-inputs,#t3 .beam-inputs,#t5 .beam-inputs,#t6 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #t2 [hidden],#t3 [hidden],#t4 [hidden],#t5 [hidden],#t6 [hidden]{display:none!important}
-.beam-inputs>label.beam-wide{grid-column:1/-1}
+.beam-inputs>.beam-wide{grid-column:1/-1}
 main:has(#t2.on),main:has(#t3.on),main:has(#t5.on),main:has(#t6.on){max-width:1440px}
 #c_pm svg,#sb_flexure svg{width:100%;max-width:660px;display:block;margin:0 auto}
 #c_diagram svg,#sb_props svg,#cb_summary svg{width:100%;max-width:280px;display:block;margin:0 auto}
@@ -596,7 +596,12 @@ main:has(section.tab.on){max-width:1440px}
         <label><b>타설 차수</b><select id="tb_count"><option value="1">1차</option><option value="2" selected>2차</option><option value="3">3차</option><option value="4">4차</option><option value="5">5차</option><option value="6">6차</option><option value="7">7차</option><option value="8">8차</option><option value="9">9차</option><option value="10">10차</option></select></label>
         <label><b>미리보기 단계</b><select id="tb_view"><option value="all">전체 단면</option></select></label>
       </div><p class="beam-muted">아래에서 위로 순서대로 타설합니다. 각 높이의 합은 전체 보 높이와 같아야 합니다.</p><div id="tb_stages"></div><button type="button" class="beam-view" id="tb_equal">높이 균등 배분</button></div>
-      <div class="card"><h2>4. 검토 시점 발현강도</h2><p class="beam-muted" id="tb_strength_note"></p><div id="tb_strengths" class="grid beam-inputs"></div><p class="beam-muted">해당 검토 시점에 확인한 강도(MPa)를 입력하세요. 미입력은 미확인, 0은 아직 강도를 발휘하지 않는 콘크리트입니다. 날짜에 따른 강도 증가는 자동 가정하지 않습니다.</p></div>
+      <div class="card"><h2>4. 검토 시점 발현강도</h2><div class="grid beam-inputs">
+      <label class="beam-wide"><b>발현강도 산정 방식</b><select id="tb_strength_mode"><option value="estimate" selected>온도·일수 간편 추정</option><option value="manual">확인 강도 직접 입력</option></select></label>
+      </div><div id="tb_age_settings" class="grid beam-inputs">
+      <label class="beam-wide"><b>시멘트 종류 (습윤양생)</b><select id="tb_cement"><option value="normal" selected>1종 보통 포틀랜드</option><option value="rapid">3종 조강 포틀랜드</option><option value="moderate">2종 중용열 포틀랜드</option></select></label>
+      <label class="beam-wide"><b>평균 콘크리트 양생온도 (℃)</b><input id="tb_temperature" type="number" min="5" max="40" step="1" value="20"></label>
+      <p class="beam-muted beam-wide">28일 기준강도는 위의 콘크리트 강도를 사용합니다. 충분한 습윤양생·일정한 평균온도를 가정하며, 각 차수의 경과일수는 ‘타설 단계’에서 입력합니다.</p></div><p class="beam-muted" id="tb_strength_note"></p><div id="tb_strengths" class="grid beam-inputs"></div><p class="beam-muted">간편 추정은 현장 시험값이 아닙니다. 직접 입력 모드에서는 확인 강도를 사용합니다. 21 MPa 미만은 강도 추정값을 표시하되 기존 내력 모델의 판정은 보류합니다.</p></div>
       <div class="card"><h2>5. 지지 · 하중 조건</h2><div class="grid beam-inputs">
         <label class="beam-wide"><b>동바리 해체 차수 (양생 후)</b><select id="tb_release"><option value="1">1차 양생 후</option><option value="2" selected>2차 양생 후</option></select></label>
         <label><b>자중 하중계수</b><input id="tb_dead_factor" type="number" min="1" step="0.1" value="1.4"></label>
@@ -613,7 +618,8 @@ main:has(section.tab.on){max-width:1440px}
         <label class="beam-wide"><b>굵은골재 최대치수 (mm)</b><input id="tb_aggregate" type="number" min="1" step="5" value="25"></label>
       </div><p class="beam-muted">하부부터 최대 3단, 피복은 스터럽 바깥면 기준입니다. 압축철근은 산입하지 않습니다.</p></div>
       <div class="card"><h2>7. 이어치기면 · 다월바</h2><p class="beam-muted">거친 이어치기면 · 보통중량 콘크리트 μ = 1.0. 레이턴스를 제거하고 약 6 mm 요철을 확보하는 조건입니다.</p>
-      <label><input type="checkbox" id="tb_cross_anchored"> 입력 스터럽의 모든 다리가 각 이어치기면을 관통하며 양측에 정착됨</label>
+      <label><input type="checkbox" id="tb_cross_anchored"> 유효 스터럽 다리가 각 이어치기면을 관통하고 양측에 정착됨 — 다월바로 인정</label>
+      <label><b>유효 관통 스터럽 다리 수</b><select id="tb_cross_legs"><option>0</option><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label><p class="beam-muted">전체 스터럽 중 접합면 전단마찰에 사용할 다리 수입니다. 위의 관통·정착 확인 시 해당 면적을 인정하고, 부족분만 추가 다월바로 계산합니다.</p>
       <div class="grid beam-inputs">
         <label><b>다월바 규격</b><select id="tb_dowel"><option>D13</option><option>D16</option><option selected>D19</option><option>D22</option><option>D25</option><option>D29</option><option>D32</option></select></label>
         <label><b>한 줄당 다월바 개수</b><input id="tb_dowel_count" type="number" min="0" step="1" value="0"></label>
@@ -653,7 +659,7 @@ main:has(section.tab.on){max-width:1440px}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260910-9"></script>
+<script src="steel-section.js?v=20260910-10"></script>
 <script>
 /* =======================================================================
    공통
@@ -835,18 +841,19 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="steel-beam.js?v=20260910-9"></script>
-<script src="steel-beam-ui.js?v=20260910-9"></script>
-<script src="rc-beam.js?v=20260910-9"></script>
-<script src="rc-beam-checks.js?v=20260910-9"></script>
-<script src="rc-beam-ui.js?v=20260910-9"></script>
-<script src="rc-column.js?v=20260910-9"></script>
-<script src="rc-column-ui.js?v=20260910-9"></script>
-<script src="rc-slab-uplift.js?v=20260910-9"></script>
-<script src="rc-slab-uplift-ui.js?v=20260910-9"></script>
-<script src="composite-beam.js?v=20260910-9"></script>
-<script src="composite-beam-ui.js?v=20260910-9"></script>
-<script src="transfer-beam.js?v=20260910-9"></script>
-<script src="transfer-beam-ui.js?v=20260910-9"></script>
+<script src="steel-beam.js?v=20260910-10"></script>
+<script src="steel-beam-ui.js?v=20260910-10"></script>
+<script src="rc-beam.js?v=20260910-10"></script>
+<script src="rc-beam-checks.js?v=20260910-10"></script>
+<script src="rc-beam-ui.js?v=20260910-10"></script>
+<script src="rc-column.js?v=20260910-10"></script>
+<script src="rc-column-ui.js?v=20260910-10"></script>
+<script src="rc-slab-uplift.js?v=20260910-10"></script>
+<script src="rc-slab-uplift-ui.js?v=20260910-10"></script>
+<script src="composite-beam.js?v=20260910-10"></script>
+<script src="composite-beam-ui.js?v=20260910-10"></script>
+<script src="concrete-age.js?v=20260910-10"></script>
+<script src="transfer-beam.js?v=20260910-10"></script>
+<script src="transfer-beam-ui.js?v=20260910-10"></script>
 </body>
 </html>

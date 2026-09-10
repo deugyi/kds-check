@@ -46,7 +46,7 @@ function interfaceCheck(p,H,joint,fc,r,lay,Vu,values){
   const q=Math.max(qCracked,qGross),demand=q; // N/mm = kN/m
   const mu=1,phi=.75,steelFy=Math.min(p.fyd,500);
   const st=lay.g.st,db=R.BARS[p.dowel];if(!db)throw Error('다월바 규격을 선택하세요.');
-  const stirrupArea=p.crossAnchored?p.legs*st.area*1000/p.stirrupSpacing:0;
+  const stirrupArea=p.crossAnchored?(p.crossLegs??p.legs)*st.area*1000/p.stirrupSpacing:0;
   const existing=phi*mu*stirrupArea*Math.min(p.fyt,500)/1000;
   const requiredArea=Math.max(0,(demand-existing)*1000/(phi*mu*steelFy));
   const provided=p.dowelCount*db.area*1000/p.dowelSpacing;
@@ -85,6 +85,8 @@ function calculate(p){
   if(!Number.isInteger(p.release)||p.release<1||p.release>p.heights.length)throw Error('동바리 해체 차수를 선택하세요.');
   if(!Number.isInteger(p.legs)||p.legs<2||p.legs>6||!Number.isInteger(p.dowelCount)||p.dowelCount<0)throw Error('스터럽 다리 수와 다월바 개수를 확인하세요.');
   if(![400,500,600].includes(p.fy)||![400,500].includes(p.fyt)||![400,500,600].includes(p.fyd))throw Error('철근 강도를 확인하세요.');
+  const crossLegs=p.crossLegs??p.legs;
+  if(!Number.isInteger(crossLegs)||crossLegs<0||crossLegs>p.legs)throw Error('유효 관통 스터럽 다리 수는 전체 다리 수 이내여야 합니다.');
   const phases=[];
   for(let k=1;k<=p.heights.length;k++){phases.push(phase(p,k,true));phases.push(phase(p,k,false));}
   return {phases};
