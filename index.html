@@ -192,6 +192,15 @@ text.cap-label{fill:var(--warn)}
   input,select{background:#fff;min-height:0!important}
   a{color:inherit;text-decoration:none}
 }
+
+/* Shared calculator presentation across all pages. */
+section.tab{font-size:16px}section.tab .card{padding:20px}section.tab .card h2{font-size:18px}
+section.tab label,section.tab label b{font-size:14px}section.tab input:not([type=checkbox]),section.tab select{min-height:42px;font-size:16px}
+section.tab .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}section.tab [hidden]{display:none!important}
+main:has(section.tab.on){max-width:1440px}
+#tb_error{padding:18px;border:1px solid var(--ng);color:var(--ng);border-radius:8px;margin-bottom:12px}
+#tb_diagram svg{width:100%;max-height:360px;display:block}#tb_diagram text{fill:var(--ink);font-size:13px}
+#t4 .out{overflow-wrap:anywhere;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -215,7 +224,7 @@ text.cap-label{fill:var(--warn)}
       <li><button type="button" disabled>1방향 슬래브</button></li>
       <li><button type="button" disabled>2방향 슬래브</button></li>
       <li><button type="button" data-t="t1" aria-current="page">보</button></li>
-      <li><button type="button" disabled>전이보 타설</button></li>
+      <li><button type="button" data-t="t7">전이보 타설</button></li>
       <li><button type="button" data-t="t2">기둥</button></li>
       <li><button type="button" disabled>벽체</button></li>
       <li><button type="button" disabled>기초</button></li>
@@ -247,9 +256,9 @@ text.cap-label{fill:var(--warn)}
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="RC 보 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
-<label><b>콘크리트 fck (MPa)</b><select id="b_fck"><option>21</option><option>24</option><option>27</option><option selected>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option><option value="custom">직접 입력</option></select></label>
+<label><b>콘크리트 강도 fck (MPa)</b><select id="b_fck"><option>21</option><option>24</option><option>27</option><option selected>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option><option value="custom">직접 입력</option></select></label>
 <label id="b_custom_field" hidden><b>직접 입력 fck (MPa)</b><input id="b_fck_custom" type="number" min="21" max="90" step="any" value="30"><span>21–90 MPa</span></label>
-<label><b>주철근 fy (MPa)</b><select id="b_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label><label><b>스터럽 fyt (MPa)</b><select id="b_fyt"><option value="400">400 MPa</option><option value="500">500 MPa</option></select></label></div><p class="beam-muted">fy는 인장·압축 주철근에 함께 적용합니다. fyt는 전단강도에 적용합니다. 일반 RC 보의 전단철근은 500 MPa 이하입니다.</p></div>
+<label><b>주철근 강도 fy (MPa)</b><select id="b_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label><label><b>스터럽 강도 fyt (MPa)</b><select id="b_fyt"><option value="400">400 MPa</option><option value="500">500 MPa</option></select></label></div><p class="beam-muted">fy는 인장·압축 주철근에 함께 적용합니다. fyt는 전단강도에 적용합니다. 일반 RC 보의 전단철근은 500 MPa 이하입니다.</p></div>
     <div class="card"><h2>2. 단면 정보</h2><div class="grid beam-inputs"><label><b>가로 · 보 폭 b (mm)</b><input id="b_b" type="number" min="50" max="3000" step="50" value="400"></label><label><b>세로 · 보 높이 h (mm)</b><input id="b_h" type="number" min="50" max="5000" step="50" value="600"></label></div></div>
     <div class="card"><h2>3. 철근 규격 · 배치</h2><div class="grid beam-inputs"><label><b>인장철근 규격</b><select id="b_bar"><option>D10</option><option>D13</option><option>D16</option><option>D19</option><option>D22</option><option selected>D25</option><option>D29</option><option>D32</option><option>D35</option></select></label><label><b>스터럽 규격</b><select id="b_stirrup"><option selected>D10</option><option>D13</option><option>D16</option></select></label></div>
     <h3 class="beam-subheading">상부 압축철근</h3><div class="grid beam-inputs"><label><b>압축철근 규격</b><select id="b_compression_bar"><option>D10</option><option>D13</option><option>D16</option><option>D19</option><option>D22</option><option selected>D25</option><option>D29</option><option>D32</option><option>D35</option></select></label><label><b>압축철근 개수 (가닥)</b><input id="b_compression_count" type="number" min="0" step="1" value="0"></label></div>
@@ -309,12 +318,12 @@ text.cap-label{fill:var(--warn)}
     <div class="card"><h2>1. 단면 형상 · 재료</h2><div class="grid beam-inputs">
       <label><b>단면 형상</b><select id="c_shape"><option value="rect" selected>사각기둥</option><option value="circle">원형기둥</option></select></label>
       <label><b>횡보강 형식</b><select id="c_tie"><option value="tie" selected>띠철근 (φ0 = 0.65)</option><option value="spiral">나선철근 (φ0 = 0.70)</option></select></label>
-      <label><b>콘크리트 fck (MPa)</b><input id="c_fck" type="number" min="21" max="90" step="any" value="30"></label>
-      <label><b>주철근 fy (MPa)</b><input id="c_fy" type="number" min="1" max="600" step="any" value="600"></label>
-      <label><b>횡보강근 fyt (MPa)</b><input id="c_fyt" type="number" min="1" max="700" step="any" value="500"></label>
+      <label><b>콘크리트 강도 fck (MPa)</b><input id="c_fck" type="number" min="21" max="90" step="any" value="30"></label>
+      <label><b>주철근 강도 fy (MPa)</b><input id="c_fy" type="number" min="1" max="600" step="any" value="600"></label>
+      <label><b>횡보강근 강도 fyt (MPa)</b><input id="c_fyt" type="number" min="1" max="700" step="any" value="500"></label>
     </div><p class="beam-muted">나선철근은 원형 단면에만 적용합니다. 주철근 fy는 600 MPa, 나선철근 fyt는 700 MPa이 상한입니다.</p></div>
 
-    <div class="card"><h2>2. 단면 치수</h2>
+    <div class="card"><h2>2. 단면 정보</h2>
     <div class="grid beam-inputs" id="c_rect_field">
       <label><b>폭 b (mm)</b><input id="c_b" type="number" min="100" step="50" value="600"><span>X 방향</span></label>
       <label><b>깊이 h (mm)</b><input id="c_h" type="number" min="100" step="50" value="600"><span>Y 방향</span></label>
@@ -368,19 +377,19 @@ text.cap-label{fill:var(--warn)}
 <section class="tab" id="t3">
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="철골 보 입력">
-    <div class="card"><h2>1. 강재</h2><div class="grid beam-inputs">
+    <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
       <label><b>강종</b><select id="sb_gr"></select></label>
-      <label><b>Fy (MPa)</b><input id="sb_fy" type="number" min="1" step="any" value="345"></label>
-      <label><b>E (MPa)</b><input id="sb_e" type="number" min="1" step="any" value="210000"></label>
+      <label><b>항복강도 Fy (MPa)</b><input id="sb_fy" type="number" min="1" step="any" value="345"></label>
+      <label><b>탄성계수 E (MPa)</b><input id="sb_e" type="number" min="1" step="any" value="210000"></label>
     </div><p class="beam-muted">강종을 고르면 플랜지 두께 tf 기준으로 KDS 14 31 05 표 3.4-1의 Fy를 자동 대입합니다. 직접입력을 고르면 Fy를 그대로 씁니다.</p></div>
 
     <div class="card"><h2>2. 단면 (H × B × tw × tf)</h2><div class="grid beam-inputs">
       <label class="beam-wide"><b>단면 구분</b><select id="sb_mode"><option value="ks" selected>KS 규격 (압연 H형강)</option><option value="builtup">Built-up (용접 조립)</option></select></label>
       <label class="beam-wide"><b>KS 규격</b><select id="sb_sec"></select></label>
-      <label><b>총춤 H (mm)</b><input id="sb_H" type="number" min="50" step="10" value="600"></label>
+      <label><b>높이 H (mm)</b><input id="sb_H" type="number" min="50" step="10" value="600"></label>
       <label><b>폭 B (mm)</b><input id="sb_B" type="number" min="20" step="10" value="200"></label>
-      <label><b>웨브 tw (mm)</b><input id="sb_tw" type="number" min="1" step="1" value="11"></label>
-      <label><b>플랜지 tf (mm)</b><input id="sb_tf" type="number" min="1" step="1" value="17"></label>
+      <label><b>웨브 두께 tw (mm)</b><input id="sb_tw" type="number" min="1" step="1" value="11"></label>
+      <label><b>플랜지 두께 tf (mm)</b><input id="sb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="sb_J" type="number" min="0" step="any" placeholder="비우면 자동"><span>규격표값이 있으면 입력</span></label>
     </div><p class="beam-muted">KS 규격을 고르면 KS D 3502:2007의 치수와 <b>규격표의 비틀림상수 J</b>가 그대로 들어갑니다. Built-up은 치수를 직접 넣고 J는 얇은판 합산으로 구합니다. A·I·Z는 두 경우 모두 필릿을 빼고 계산하며, 규격표보다 3% 정도 작게(안전측) 나옵니다.</p></div>
 
@@ -407,28 +416,29 @@ text.cap-label{fill:var(--warn)}
 
 <!-- ================= 철골 기둥 ================= -->
 <section class="tab" id="t4">
+  <div class="beam-workspace"><aside class="beam-sidebar" aria-label="철골 기둥 입력">
   <div class="card">
-    <h2>강재</h2>
-    <div class="grid">
+    <h2>1. 재료 강도</h2>
+    <div class="grid beam-inputs">
       <label><b>강종</b><select id="sc_gr" onchange="steelFy('sc')"></select></label>
-      <label><b>F<sub>y</sub> (MPa)</b><input id="sc_fy" value="345"></label>
-      <label><b>E (MPa)</b><input id="sc_e" value="210000"></label>
+      <label><b>항복강도 Fy (MPa)</b><input id="sc_fy" value="345"></label>
+      <label><b>탄성계수 E (MPa)</b><input id="sc_e" value="210000"></label>
     </div>
   </div>
   <div class="card">
-    <h2>단면 (2축대칭 H형강)</h2>
-    <div class="grid">
-      <label><b>단면 구분</b><select id="sc_mode"><option value="ks" selected>KS 규격 (압연 H형강)</option><option value="builtup">Built-up (용접 조립)</option></select></label>
-      <label><b>KS 규격</b><select id="sc_sec"></select></label>
-      <label><b>H (mm)</b><input id="sc_H" value="400" onchange="steelFy('sc')"></label>
-      <label><b>B (mm)</b><input id="sc_B" value="400"></label>
-      <label><b>t<sub>w</sub> (mm)</b><input id="sc_tw" value="13"></label>
-      <label><b>t<sub>f</sub> (mm)</b><input id="sc_tf" value="21" onchange="steelFy('sc')"></label>
+    <h2>2. 단면 정보</h2>
+    <div class="grid beam-inputs">
+      <label class="beam-wide"><b>단면 구분</b><select id="sc_mode"><option value="ks" selected>KS 규격 (압연 H형강)</option><option value="builtup">Built-up (용접 조립)</option></select></label>
+      <label class="beam-wide"><b>KS 규격</b><select id="sc_sec"></select></label>
+      <label><b>높이 H (mm)</b><input id="sc_H" value="400" onchange="steelFy('sc')"></label>
+      <label><b>폭 B (mm)</b><input id="sc_B" value="400"></label>
+      <label><b>웨브 두께 tw (mm)</b><input id="sc_tw" value="13"></label>
+      <label><b>플랜지 두께 tf (mm)</b><input id="sc_tf" value="21" onchange="steelFy('sc')"></label>
     </div>
   </div>
   <div class="card">
-    <h2>좌굴길이 · 소요강도</h2>
-    <div class="grid">
+    <h2>3. 좌굴길이 · 소요강도</h2>
+    <div class="grid beam-inputs">
       <label><b>K<sub>x</sub>L<sub>x</sub> (mm)</b><input id="sc_klx" value="4000"></label>
       <label><b>K<sub>y</sub>L<sub>y</sub> (mm)</b><input id="sc_kly" value="4000"></label>
       <label><b>P<sub>u</sub> (kN)</b><input id="sc_pu" value="3000"></label>
@@ -438,7 +448,8 @@ text.cap-label{fill:var(--warn)}
       <span class="chk"><input type="checkbox" id="sc_step" checked><label for="sc_step" style="display:inline">유도 과정 표시</label></span>
     </div>
   </div>
-  <div class="card"><h2>결과</h2><pre class="out" id="sc_out">입력 후 [계산]</pre></div>
+  </aside><div class="beam-output" aria-label="철골 기둥 결과"><div class="card"><h2>결과 요약</h2><pre class="out" id="sc_out">입력 후 [계산]</pre></div>
+  </div></div>
 </section>
 
 <!-- ================= 내수압 슬래브 ================= -->
@@ -446,8 +457,8 @@ text.cap-label{fill:var(--warn)}
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="내수압 슬래브 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
-      <label><b>콘크리트 fck (MPa)</b><input id="s_fck" type="number" min="21" max="90" step="any" value="24"></label>
-      <label><b>철근 fy (MPa)</b><select id="s_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label>
+      <label><b>콘크리트 강도 fck (MPa)</b><input id="s_fck" type="number" min="21" max="90" step="any" value="24"></label>
+      <label><b>주철근 강도 fy (MPa)</b><select id="s_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label>
     </div></div>
 
     <div class="card"><h2>2. 기둥 그리드 · 단면</h2><div class="grid beam-inputs">
@@ -506,19 +517,19 @@ text.cap-label{fill:var(--warn)}
 <section class="tab" id="t6">
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="합성보 입력">
-    <div class="card"><h2>1. 강재</h2><div class="grid beam-inputs">
+    <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
       <label><b>강종</b><select id="cb_gr"></select></label>
-      <label><b>Fy (MPa)</b><input id="cb_fy" type="number" min="1" step="any" value="345"></label>
-      <label><b>E (MPa)</b><input id="cb_e" type="number" min="1" step="any" value="210000"></label>
+      <label><b>항복강도 Fy (MPa)</b><input id="cb_fy" type="number" min="1" step="any" value="345"></label>
+      <label><b>탄성계수 E (MPa)</b><input id="cb_e" type="number" min="1" step="any" value="210000"></label>
     </div></div>
 
     <div class="card"><h2>2. 강재 단면</h2><div class="grid beam-inputs">
       <label class="beam-wide"><b>단면 구분</b><select id="cb_mode"><option value="ks" selected>KS 규격 (압연 H형강)</option><option value="builtup">Built-up (용접 조립)</option></select></label>
       <label class="beam-wide"><b>KS 규격</b><select id="cb_sec"></select></label>
-      <label><b>총춤 H (mm)</b><input id="cb_H" type="number" min="50" step="10" value="600"></label>
+      <label><b>높이 H (mm)</b><input id="cb_H" type="number" min="50" step="10" value="600"></label>
       <label><b>폭 B (mm)</b><input id="cb_B" type="number" min="20" step="10" value="200"></label>
-      <label><b>웨브 tw (mm)</b><input id="cb_tw" type="number" min="1" step="1" value="11"></label>
-      <label><b>플랜지 tf (mm)</b><input id="cb_tf" type="number" min="1" step="1" value="17"></label>
+      <label><b>웨브 두께 tw (mm)</b><input id="cb_tw" type="number" min="1" step="1" value="11"></label>
+      <label><b>플랜지 두께 tf (mm)</b><input id="cb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="cb_J" type="number" min="0" step="any" placeholder="비우면 자동"></label>
     </div><p class="beam-muted">KS 규격은 KS D 3502:2007 규격표의 J를 쓰고, Built-up은 얇은판 합산으로 구합니다.</p></div>
 
@@ -527,7 +538,7 @@ text.cap-label{fill:var(--warn)}
       <label><b>인접보 중심간 거리 (mm)</b><input id="cb_spacing" type="number" min="100" step="100" value="3000"></label>
       <label><b>슬래브 두께 (mm)</b><input id="cb_ts" type="number" min="50" step="10" value="150"></label>
       <label><b>가장자리까지 거리 (mm)</b><input id="cb_edge" type="number" min="0" step="100" placeholder="내부보는 비움"></label>
-      <label><b>콘크리트 fck (MPa)</b><input id="cb_fck" type="number" min="21" max="70" step="any" value="30"></label>
+      <label><b>콘크리트 강도 fck (MPa)</b><input id="cb_fck" type="number" min="21" max="70" step="any" value="30"></label>
       <label><b>콘크리트 단위중량 (kg/m³)</b><input id="cb_wc" type="number" min="1000" step="50" value="2300"></label>
     </div><p class="beam-muted">유효폭은 경간의 1/8, 인접보 간격의 1/2, 가장자리까지 거리 중 최솟값을 좌우 합산합니다 (4.5.1(2)). 골데크 없는 충실 슬래브 기준입니다.</p></div>
 
@@ -562,6 +573,32 @@ text.cap-label{fill:var(--warn)}
   </div>
 </section>
 
+<!-- ================= 전이보 타설 ================= -->
+<section class="tab" id="t7">
+  <div class="beam-workspace">
+    <aside class="beam-sidebar" aria-label="전이보 타설 입력">
+      <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
+        <label class="beam-wide"><b>콘크리트 강도 fck (MPa)</b><select id="tb_fck"><option>21</option><option>24</option><option>27</option><option selected>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option><option value="custom">직접 입력</option></select></label>
+        <label class="beam-wide" id="tb_custom_field" hidden><b>직접 입력 fck (MPa)</b><input id="tb_fck_custom" type="number" min="21" max="90" step="any" value="30"><span>21–90 MPa</span></label>
+        <label><b>주철근 강도 fy (MPa)</b><select id="tb_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label>
+        <label><b>스터럽 강도 fyt (MPa)</b><select id="tb_fyt"><option value="400" selected>400 MPa</option><option value="500">500 MPa</option></select></label>
+        <label class="beam-wide"><b>다월바 강도 fy,d (MPa)</b><select id="tb_fyd"><option value="400" selected>400 MPa</option><option value="500">500 MPa</option><option value="600">600 MPa</option></select></label>
+      </div></div>
+      <div class="card"><h2>2. 단면 정보</h2><div class="grid beam-inputs">
+        <label><b>가로 · 보 폭 b (mm)</b><input id="tb_b" type="number" min="50" max="10000" step="50" value="800"></label>
+        <label><b>세로 · 보 높이 h (mm)</b><input id="tb_h" type="number" min="50" max="10000" step="50" value="1500"></label>
+      </div><p class="beam-muted">치수는 50 mm 단위로 조절할 수 있습니다. 입력을 바꾸면 단면도와 요약이 갱신됩니다.</p></div>
+    </aside>
+    <div class="beam-output" aria-label="전이보 타설 결과">
+      <div id="tb_error" role="alert" hidden></div>
+      <div id="tb_results">
+        <div class="card"><h2>전이보 타설 · 단면 미리보기</h2><p class="beam-muted">기본 입력 구성 단계입니다. 현재는 단면 형상과 재료강도를 표시합니다.</p><div class="beam-preview"><div id="tb_diagram"></div><div><p class="beam-layout" id="tb_size"></p><p class="beam-muted">직사각형 전이보</p><dl class="beam-values" id="tb_materials"></dl></div></div></div>
+        <div class="card"><h2>타설 검토</h2><p class="beam-layout">계산 기능 준비 중</p><p class="beam-muted">타설 단계·시공이음·철근 배치 조건은 다음 단계에서 추가합니다. 현재 단면도에는 철근과 타설 경계가 표시되지 않으며, 강도 및 안전 판정은 제공하지 않습니다.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <footer>
@@ -582,7 +619,7 @@ text.cap-label{fill:var(--warn)}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260910-6"></script>
+<script src="steel-section.js?v=20260910-7"></script>
 <script>
 /* =======================================================================
    공통
@@ -764,16 +801,17 @@ function runSteelCol(){
   flush('sc_out');
 }
 </script>
-<script src="steel-beam.js?v=20260910-6"></script>
-<script src="steel-beam-ui.js?v=20260910-6"></script>
-<script src="rc-beam.js?v=20260910-6"></script>
-<script src="rc-beam-checks.js?v=20260910-6"></script>
-<script src="rc-beam-ui.js?v=20260910-6"></script>
-<script src="rc-column.js?v=20260910-6"></script>
-<script src="rc-column-ui.js?v=20260910-6"></script>
-<script src="rc-slab-uplift.js?v=20260910-6"></script>
-<script src="rc-slab-uplift-ui.js?v=20260910-6"></script>
-<script src="composite-beam.js?v=20260910-6"></script>
-<script src="composite-beam-ui.js?v=20260910-6"></script>
+<script src="steel-beam.js?v=20260910-7"></script>
+<script src="steel-beam-ui.js?v=20260910-7"></script>
+<script src="rc-beam.js?v=20260910-7"></script>
+<script src="rc-beam-checks.js?v=20260910-7"></script>
+<script src="rc-beam-ui.js?v=20260910-7"></script>
+<script src="rc-column.js?v=20260910-7"></script>
+<script src="rc-column-ui.js?v=20260910-7"></script>
+<script src="rc-slab-uplift.js?v=20260910-7"></script>
+<script src="rc-slab-uplift-ui.js?v=20260910-7"></script>
+<script src="composite-beam.js?v=20260910-7"></script>
+<script src="composite-beam-ui.js?v=20260910-7"></script>
+<script src="transfer-beam-ui.js?v=20260910-7"></script>
 </body>
 </html>
