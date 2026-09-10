@@ -24,8 +24,8 @@ function syncGrade(){
 }
 /* Composite section with the plastic stress blocks drawn where they act. */
 function sectionView(p,o){
-  const W=340,Hs=280,M=30;
   const total=p.ts+p.H,width=Math.max(o.ew.be,p.B);
+  const W=800,Hs=Math.min(600,Math.max(300,720*total/width+80)),M=40;
   const scale=Math.min((W-2*M)/width,(Hs-2*M)/total);
   const cx=W/2,top=(Hs-total*scale)/2;
   const slabY=top,steelTop=top+p.ts*scale;

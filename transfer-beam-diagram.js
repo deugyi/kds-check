@@ -41,8 +41,9 @@ function render(p,o,shown,colors){
   }
   if(shown===1)notes.push('1차 단면에는 이어치기면이 없습니다.');
   svg+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="var(--ink)"/><text x="200" y="${y+h+25}" text-anchor="middle">b = ${fmt(p.b)} mm · h = ${fmt(p.h)} mm</text>`;
-  get('tb_diagram').innerHTML=`<svg viewBox="0 0 400 ${h+95}" role="group" aria-label="전이보 타설 단계와 철근 단면 미리보기">${svg}</svg><p class="beam-muted">● 파랑: 주철근 · 초록: 스터럽<br>보라 실선: 입력 다월바 · 주황 점선: 필요량 제안</p>`;
-  get('tb_graph_note').textContent=notes.join(' ')+' 선택 단계까지의 계산 시점 중 최대 소요량을 표시합니다. 주황 제안은 내력 계산에 자동 산입하지 않습니다. 스터럽은 전체 높이 선조립 가정이며, 다월바 표시 길이·내부 다리 연결은 개념도입니다. 정착길이·철근 간섭은 별도 검토합니다.';
+  get('tb_diagram').innerHTML=`<svg viewBox="0 0 400 ${h+95}" role="group" aria-label="전이보 타설 단계와 철근 단면 미리보기">${svg}</svg>`;
+  get('tb_rebar_legend').innerHTML='<span>● 파랑: 주철근</span><span>━ 초록: 스터럽</span><span>━ 보라: 입력 다월바</span><span>┄ 주황: 필요량 제안</span>';
+  get('tb_graph_note').innerHTML=`<ul>${notes.map(n=>`<li>${n}</li>`).join('')}</ul><p>선택 단계까지 계산한 시점 중 최대 소요량을 표시합니다. 주황색 제안은 내력 계산에 자동 반영하지 않습니다.</p><p>스터럽은 전체 높이 선조립을 가정합니다. 다월바 표시 길이와 내부 다리 연결은 개념도이며, 정착길이와 철근 간섭은 별도로 검토해야 합니다.</p>`;
   get('tb_graph_info').textContent='철근을 가리키거나 클릭하세요. 키보드 Tab으로도 정보를 확인할 수 있습니다.';
   get('tb_diagram').querySelectorAll('[data-info]').forEach(el=>['pointerenter','focus','click'].forEach(event=>el.addEventListener(event,()=>{get('tb_graph_info').textContent=el.dataset.info;})));
 }

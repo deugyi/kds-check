@@ -204,6 +204,21 @@ main:has(section.tab.on){max-width:1440px}
 
 .tb-stage{margin:14px 0;padding:12px;border:1px solid var(--line);border-left:4px solid var(--stage-color);border-radius:6px}.tb-stage h3{margin:0 0 10px;font-size:14px}.tb-stage .grid{gap:10px}
 .tb-legend-item{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 4px 0;font-size:12px}.tb-swatch{width:12px;height:12px;border-radius:3px;background:var(--stage-color)}
+
+/* Shared report header and full-width drawing captions. */
+.report-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin-bottom:16px;min-width:0}
+.report-notice{margin:0;color:var(--dim);font-size:12px;white-space:nowrap;overflow-x:auto;min-width:0;line-height:1.6}
+.report-toolbar .go{flex-shrink:0;white-space:nowrap;margin:0}
+#cb_summary>svg{width:100%;max-width:none;max-height:520px;margin:10px auto 20px}
+#cb_summary svg text{font-size:14px}
+.tb-preview-card .beam-preview{align-items:center}
+.tb-preview-caption{border-top:1px solid var(--line);padding-top:14px;margin-top:12px;min-width:0}
+.tb-preview-caption .beam-muted{font-size:13px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+#tb_rebar_legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;margin:8px 0}
+#tb_rebar_legend span{white-space:nowrap}#tb_graph_info{padding:9px 12px;background:var(--code);border-radius:6px;margin:12px 0}
+#tb_graph_note p{margin:6px 0}#tb_graph_note ul{margin:8px 0;padding-left:20px}
+@media(max-width:600px){.report-toolbar{gap:10px}.report-notice{font-size:11px}}
+@media print{.report-toolbar{display:block;margin-bottom:4mm}.report-toolbar button{display:none!important}.report-notice{font-size:8pt;white-space:nowrap;overflow:visible}.tb-preview-caption{break-inside:avoid}#tb_graph_info{display:none}.tb-preview-caption .beam-muted{font-size:8pt!important}#cb_summary>svg{max-height:95mm!important}}
 </style>
 </head>
 <body>
@@ -263,6 +278,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= RC 보 ================= -->
 <section class="tab on" id="t1">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="b_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="RC 보 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
@@ -302,7 +318,7 @@ main:has(section.tab.on){max-width:1440px}
   <div class="beam-output" aria-label="RC 보 결과">
   <div id="b_error" role="alert" hidden></div>
   <div id="b_results">
-    <div class="beam-toolbar"><button type="button" class="go" id="b_print">PDF로 저장</button></div>
+
     <div class="card"><h2>결과 요약</h2><div class="beam-preview"><div id="b_diagram"></div><div id="b_selected"></div></div></div>
     <div class="card"><h2>선택 배치 · 보 길이 1m당 물량과 금액</h2><div id="b_quantities" aria-live="polite"></div></div>
     <div class="beam-check-grid"><div class="card"><h2>전단 검토 · 선택 배치</h2><div id="b_shear"></div></div><div class="card"><h2>표피철근 검토 · 선택 배치</h2><div id="b_skin"></div></div></div>
@@ -323,6 +339,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= RC 기둥 ================= -->
 <section class="tab" id="t2">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="c_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="RC 기둥 입력">
     <div class="card"><h2>1. 단면 형상 · 재료</h2><div class="grid beam-inputs">
@@ -372,7 +389,7 @@ main:has(section.tab.on){max-width:1440px}
   <div class="beam-output" aria-label="RC 기둥 결과">
     <div id="c_error" role="alert" hidden></div>
     <div id="c_results">
-      <div class="beam-toolbar"><button type="button" class="go" id="c_print">PDF로 저장</button></div>
+
       <div class="card"><h2>검토 결과</h2><div class="beam-preview"><div id="c_diagram"></div><div id="c_summary"></div></div></div>
       <div id="c_axes"></div>
       <div class="card"><h2>횡보강 상세</h2><div id="c_transverse"></div></div>
@@ -385,6 +402,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= 철골 보 ================= -->
 <section class="tab" id="t3">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="sb_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="철골 보 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
@@ -414,7 +432,7 @@ main:has(section.tab.on){max-width:1440px}
   <div class="beam-output" aria-label="철골 보 결과">
     <div id="sb_error" role="alert" hidden></div>
     <div id="sb_results">
-      <div class="beam-toolbar"><button type="button" class="go" id="sb_print">PDF로 저장</button></div>
+
       <div class="card"><h2>단면성능 · 판폭두께비</h2><div id="sb_props"></div></div>
       <div class="card"><h2>휨강도</h2><div id="sb_flexure"></div></div>
       <div class="card"><h2>전단강도</h2><div id="sb_shear"></div></div>
@@ -426,6 +444,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= 철골 기둥 ================= -->
 <section class="tab" id="t4">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="sc_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="철골 기둥 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
@@ -456,7 +475,7 @@ main:has(section.tab.on){max-width:1440px}
   <div class="beam-output" aria-label="철골 기둥 결과">
     <div id="sc_error" role="alert" hidden></div>
     <div id="sc_results">
-      <div class="beam-toolbar"><button type="button" class="go" id="sc_print">PDF로 저장</button></div>
+
       <div class="card"><h2>단면 미리보기 · 결과 요약</h2><div class="beam-preview"><div id="sc_diagram"></div><div id="sc_summary"></div></div></div>
       <div class="card"><h2>축력–2축 휨 상호작용</h2><div id="sc_interaction"></div></div>
       <div class="card"><h2>강축 · 약축 휨강도</h2><div id="sc_moments"></div></div>
@@ -470,6 +489,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= 내수압 슬래브 ================= -->
 <section class="tab" id="t5">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="s_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="내수압 슬래브 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
@@ -514,7 +534,7 @@ main:has(section.tab.on){max-width:1440px}
   <div class="beam-output" aria-label="내수압 슬래브 결과">
     <div id="s_error" role="alert" hidden></div>
     <div id="s_results">
-      <div class="beam-toolbar"><button type="button" class="go" id="s_print">PDF로 저장</button></div>
+
       <div class="card"><h2>설계 결과 · 휨 배근</h2><p class="slab-note">선택한 하중조합의 상·하부 지배 모멘트를 비교합니다. 전단·뚫림전단·부상 안정은 별도 검토 대상입니다.</p>
         <div class="slab-controls" id="s_plan_controls"></div>
         <div id="s_diagram"></div>
@@ -531,6 +551,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= 합성보 ================= -->
 <section class="tab" id="t6">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="cb_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="합성보 입력">
     <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
@@ -579,7 +600,7 @@ main:has(section.tab.on){max-width:1440px}
   <div class="beam-output" aria-label="합성보 결과">
     <div id="cb_error" role="alert" hidden></div>
     <div id="cb_results">
-      <div class="beam-toolbar"><button type="button" class="go" id="cb_print">PDF로 저장</button></div>
+
       <div class="card"><h2>정모멘트 휨강도</h2><div id="cb_summary"></div></div>
       <div class="card"><h2>수평전단력 · 스터드</h2><div id="cb_flow"></div></div>
       <div class="card"><h2>시공 중 · 전단 (강재단면)</h2><div id="cb_steel"></div></div>
@@ -591,6 +612,7 @@ main:has(section.tab.on){max-width:1440px}
 
 <!-- ================= 전이보 타설 ================= -->
 <section class="tab" id="t7">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="tb_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
     <aside class="beam-sidebar" aria-label="전이보 타설 입력">
       <div class="card"><h2>1. 재료 강도</h2><div class="grid beam-inputs">
@@ -642,7 +664,7 @@ main:has(section.tab.on){max-width:1440px}
     <div class="beam-output" aria-label="전이보 타설 결과">
       <div id="tb_error" role="alert" hidden></div>
       <div id="tb_results">
-        <div class="card"><h2>전이보 타설 · 단면 미리보기</h2><p class="beam-muted">아래쪽 1차부터 위쪽 n차까지 색으로 구분합니다. 차수를 선택하면 그 단계까지 타설한 높이를 확인할 수 있습니다.</p><div class="beam-preview"><div><div id="tb_diagram"></div><p id="tb_graph_info" class="beam-muted" aria-live="polite">철근을 가리키거나 선택하면 규격과 배치 정보를 확인할 수 있습니다.</p><p id="tb_graph_note" class="beam-muted"></p><div id="tb_legend"></div></div><div><p class="beam-layout" id="tb_size"></p><p class="beam-muted">직사각형 전이보</p><dl class="beam-values" id="tb_materials"></dl></div></div></div>
+        <div class="card tb-preview-card"><h2>전이보 타설 · 단면 미리보기</h2><p class="beam-muted">아래쪽 1차부터 위쪽 n차까지 색으로 구분합니다. 차수를 선택하면 그 단계까지 타설한 높이를 확인할 수 있습니다.</p><div class="beam-preview"><div id="tb_diagram"></div><div><p class="beam-layout" id="tb_size"></p><p class="beam-muted">직사각형 전이보</p><dl class="beam-values" id="tb_materials"></dl></div></div><div class="tb-preview-caption"><div id="tb_legend"></div><div id="tb_rebar_legend"></div><p id="tb_graph_info" class="beam-muted" aria-live="polite">철근을 가리키거나 선택하면 규격과 배치 정보를 확인할 수 있습니다.</p><div id="tb_graph_note" class="beam-muted"></div></div></div>
         <div class="card"><h2>타설 단계별 자중 · 휨 · 수직 전단</h2><div id="tb_phase_results"></div></div>
         <div class="card"><h2>이어치기면 전단 전달 · 추가 다월바</h2><div id="tb_joint_results"></div></div>
         <div class="card"><h2>계산 가정 · 적용 범위</h2><p class="beam-muted">동바리 해체 후 양단 단순지지, 전 경간 등분포 자중 검토입니다. 타설 중에는 새 콘크리트를 하중으로만 보며 직전 검토 시점의 발현강도와 하부 단면을 사용합니다. 양생 후에는 입력한 시점별 강도로 누적 단면을 검토합니다.</p><p class="beam-muted">휨·수직 전단은 활성 단면의 최소 발현강도를 사용합니다. 발현강도 21 MPa 미만 및 경간/높이 ≤ 4인 깊은보는 적합 판정을 제공하지 않습니다. 이어치기면은 전단흐름과 전단마찰 철근량을 비교하는 예비 검토입니다.</p><p class="beam-muted">자중의 단계별 탄성 응력 이력, 크리프·수축, 변형·균열, 동바리 반력과 해체 순서, 시공이음 상세 및 철근 정착길이의 자동 검토는 포함하지 않습니다. 전체 타설 안전 판정이 아닙니다. <a href="docs/transfer-beam.md" target="_blank" rel="noopener">계산 근거</a></p></div>
@@ -671,7 +693,7 @@ main:has(section.tab.on){max-width:1440px}
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260911-13"></script>
+<script src="steel-section.js?v=20260911-15"></script>
 <script>
 /* =======================================================================
    공통
@@ -767,22 +789,23 @@ var SectionPicker=(function(){
   return {options,find,selected,bind};
 })();
 </script>
-<script src="steel-beam.js?v=20260911-13"></script>
-<script src="steel-column.js?v=20260911-13"></script>
-<script src="steel-column-ui.js?v=20260911-13"></script>
-<script src="steel-beam-ui.js?v=20260911-13"></script>
-<script src="rc-beam.js?v=20260911-13"></script>
-<script src="rc-beam-checks.js?v=20260911-13"></script>
-<script src="rc-beam-ui.js?v=20260911-13"></script>
-<script src="rc-column.js?v=20260911-13"></script>
-<script src="rc-column-ui.js?v=20260911-13"></script>
-<script src="rc-slab-uplift.js?v=20260911-13"></script>
-<script src="rc-slab-uplift-ui.js?v=20260911-13"></script>
-<script src="composite-beam.js?v=20260911-13"></script>
-<script src="composite-beam-ui.js?v=20260911-13"></script>
-<script src="concrete-age.js?v=20260911-13"></script>
-<script src="transfer-beam.js?v=20260911-13"></script>
-<script src="transfer-beam-diagram.js?v=20260911-13"></script>
-<script src="transfer-beam-ui.js?v=20260911-13"></script>
+<script src="steel-beam.js?v=20260911-15"></script>
+<script src="steel-column.js?v=20260911-15"></script>
+<script src="steel-column-ui.js?v=20260911-15"></script>
+<script src="steel-beam-ui.js?v=20260911-15"></script>
+<script src="rc-beam.js?v=20260911-15"></script>
+<script src="rc-beam-checks.js?v=20260911-15"></script>
+<script src="rc-beam-ui.js?v=20260911-15"></script>
+<script src="rc-column.js?v=20260911-15"></script>
+<script src="rc-column-ui.js?v=20260911-15"></script>
+<script src="rc-slab-uplift.js?v=20260911-15"></script>
+<script src="rc-slab-uplift-ui.js?v=20260911-15"></script>
+<script src="composite-beam.js?v=20260911-15"></script>
+<script src="composite-beam-ui.js?v=20260911-15"></script>
+<script src="concrete-age.js?v=20260911-15"></script>
+<script src="transfer-beam.js?v=20260911-15"></script>
+<script src="transfer-beam-diagram.js?v=20260911-15"></script>
+<script src="transfer-beam-ui.js?v=20260911-15"></script>
+<script src="report-print.js?v=20260911-15"></script>
 </body>
 </html>
