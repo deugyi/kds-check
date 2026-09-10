@@ -23,6 +23,15 @@ test('HTML and scripts initialize with the expected controls and initial results
   assert.equal(vm.runInContext('typeof RCColumn',context),'object');assert.match(nodes.c_axes.innerHTML,/<svg/);assert.match(nodes.c_diagram.innerHTML,/<svg/);assert.match(nodes.c_quantities.innerHTML,/만원/);assert.equal(vm.runInContext('typeof SteelBeam',context),'object');assert.match(nodes.sb_flexure.innerHTML,/kN·m/);assert.match(nodes.sb_props.innerHTML,/<svg/);assert.equal(vm.runInContext('typeof runSteelCol',context),'function');
 });
 
+test('steel column renders capacity and clears it after invalid input',()=>{
+  const {nodes,context}=load();
+  assert.equal(nodes.sc_error.hidden,true);assert.match(nodes.sc_summary.innerHTML,/5,987\.1/);
+  assert.match(nodes.sc_diagram.innerHTML,/<svg/);assert.match(nodes.sc_axes.innerHTML,/Y · 약축 \(지배\)/);
+  nodes.sc_pu.value='7000';vm.runInContext('runSteelCol()',context);assert.match(nodes.sc_summary.innerHTML,/압축강도 미달/);
+  nodes.sc_pu.value='';vm.runInContext('runSteelCol()',context);assert.equal(nodes.sc_results.hidden,true);assert.equal(nodes.sc_summary.innerHTML,'');
+  nodes.sc_pu.value='3000';vm.runInContext('runSteelCol()',context);assert.equal(nodes.sc_error.hidden,true);
+});
+
 test('composite and slab screens expose new inputs and render the two load combinations',()=>{
   const {nodes,context}=load();
   assert.equal(nodes.cb_error.hidden,true);assert.match(nodes.cb_flow.innerHTML,/반 경간 22줄 = 44개/);
