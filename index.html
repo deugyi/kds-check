@@ -219,6 +219,14 @@ main:has(section.tab.on){max-width:1440px}
 #tb_graph_note p{margin:6px 0}#tb_graph_note ul{margin:8px 0;padding-left:20px}
 @media(max-width:600px){.report-toolbar{gap:10px}.report-notice{font-size:11px}}
 @media print{.report-toolbar{display:block;margin-bottom:4mm}.report-toolbar button{display:none!important}.report-notice{font-size:8pt;white-space:nowrap;overflow:visible}.tb-preview-caption{break-inside:avoid}#tb_graph_info{display:none}.tb-preview-caption .beam-muted{font-size:8pt!important}#cb_summary>svg{max-height:95mm!important}}
+/* Consistent screen typography for every design-input sidebar. */
+@media screen{
+  section.tab .beam-sidebar,section.tab .beam-sidebar *{font-size:14px!important}
+  section.tab .beam-sidebar .beam-muted,section.tab .beam-sidebar .beam-muted *,
+  section.tab .beam-sidebar label>span,section.tab .beam-sidebar label>span *,
+  section.tab .beam-sidebar .beam-settings p,section.tab .beam-sidebar .beam-settings p *,
+  section.tab .beam-sidebar summary span{font-size:12px!important}
+}
 </style>
 </head>
 <body>
