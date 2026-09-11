@@ -236,6 +236,24 @@ main:has(section.tab.on){max-width:1440px}
 .br-view-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .br-diagram-caption{font-size:13px;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere;margin:6px 0 16px}
 @media print{.br-view-controls{display:none!important}}
+
+/* Shared calculator surfaces, including future pages. */
+.tab [hidden]{display:none!important}
+@media screen{
+ main:has(.tab.on){max-width:1440px}
+ main .tab{font-size:16px}
+ main .tab .card{padding:20px}
+ main .tab .card h2{font-size:18px}
+ main .tab .beam-sidebar label,main .tab .beam-sidebar label b,main .tab .beam-sidebar input,main .tab .beam-sidebar select{font-size:14px}
+ main .tab .beam-sidebar input,main .tab .beam-sidebar select{min-height:42px}
+ main .tab .beam-sidebar .beam-muted,main .tab .beam-sidebar label span{font-size:12px}
+ main .tab .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ main .tab .report-toolbar .go{font-size:14px;min-height:42px;padding:10px 18px}
+}
+.tab [role="alert"]{padding:14px;border:1px solid var(--ng);border-radius:8px;color:var(--ng)}
+#cc_diagram svg{width:100%;max-height:380px;display:block}
+#cc_interaction svg{width:100%;max-width:480px;display:block;margin:auto}
+@media(max-width:400px){main .tab .beam-inputs{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -280,7 +298,7 @@ main:has(section.tab.on){max-width:1440px}
     <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">합성구조</button>
     <ul class="menu-list" hidden>
       <li><button type="button" data-t="t6">합성보</button></li>
-      <li><button type="button" disabled>합성 기둥</button></li>
+      <li><button type="button" data-t="t9">합성 기둥</button></li>
     </ul>
   </div>
   <div class="menu">
@@ -691,7 +709,7 @@ main:has(section.tab.on){max-width:1440px}
 </section>
 
 <section class="tab" id="t8">
-<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="beam-view" data-report-print>PDF 인쇄</button></div>
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
 <div class="beam-workspace"><aside class="beam-sidebar" aria-label="BH→RH 입력">
 <div class="card"><h2>1. 검토 방식 · 재료 강도</h2><div class="grid beam-inputs">
 <label class="beam-wide"><b>대체 단면 구성</b><select id="br_scheme"><option value="single">RH 단독</option><option value="tee" selected>RH + 하부 역T</option></select></label>
@@ -719,6 +737,9 @@ main:has(section.tab.on){max-width:1440px}
 <div class="card"><h2>검토 범위 · 계산 근거</h2><p class="beam-muted">RH + 역T는 중간 플랜지의 돌출부·필릿을 제외한 일정 웨브 두께의 조립 I형 모델입니다. KDS 14 31 10, 4.3.2.1.1.4·5와 표 4.3-2로 정·부모멘트를 각각 산정합니다. 동일 플랜지·조밀 웨브는 4.3.2.1.1.2·3을 적용합니다. 이 모델은 사용자가 지정한 현장 대안 검토 가정이며 실제 단면의 접합부와 전체 거동 검증을 대신하지 않습니다.</p><p class="beam-muted">KDS 14 31 10, 4.3.2.1.1.2·3(강축 휨·횡비틀림좌굴·국부좌굴), 4.3.2.1.2.2(전단). 기존 철골 보 계산식을 공유합니다. BH는 조밀 플랜지와 조밀·비조밀 웨브를 지원하며, 비조밀 웨브는 4.3.2.1.1.4를 적용합니다. RH는 조밀 웨브 범위입니다.</p>
 <details class="beam-settings"><summary>비교 가정과 제외 항목</summary><p>강종별 항복강도는 공통 강종표에서 판두께를 반영합니다. BH·RH 모두 플랜지와 웨브 중 큰 두께의 Fy를 일괄 적용합니다. E = 210,000 MPa. RH의 J는 보유 KS D 3502 규격표값을 사용합니다.</p><p>단면성능은 기존 계산기와 동일하게 필릿을 제외한 판 합산값입니다. 개산 중량은 밀도 7,850 kg/m³에 RH 필릿 면적을 포함하며 BH 용접금속은 제외합니다. 중량 감소가 공사비 절감을 의미하지 않으며 규격의 생산·재고·발주 중량은 확인해야 합니다.</p><p>Ix 비교는 같은 경간·하중·지지조건에서 강축 휨강성을 비교하는 보조 지표입니다. 실제 처짐, 진동, 자중 변화에 따른 하중 재산정, 약축 휨, 축력·비틀림, 접합부, 지점부 국부강도, 스티프너 상세, 내진 및 합성효과는 별도 검토 대상입니다.</p><p>반 초과 절단 후보는 50 mm 배수 높이로 검색하며 모든 내력·강성·치수 조건을 다시 검토합니다. 반 초과 절단 시 원본 1개에서 같은 역T 2개를 얻을 수 없으며, 잔재·절단 손실과 구매비는 별도입니다.</p><p>하중 기준은 입력된 Mu·Vu만 판정하며 기존 BH 이상의 내력을 보장하지 않습니다. ‘조건 충족’은 이 화면의 검토 범위에 한정됩니다.</p></details></div>
 </div></div></section>
+<section class="tab" id="t9">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
+<div class="beam-workspace"><aside class="beam-sidebar" aria-label="합성 기둥 입력"><div class="card"><h2>1. 단면 형식 · 재료 강도</h2><div class="grid beam-inputs"><label><b>합성 기둥 형식</b><select id="cc_type"><option value="src" selected>SRC · H형강 매입</option><option value="rect">CFT · 각형강관</option><option value="circle">CFT · 원형강관</option></select></label><label id="cc_fck_field"><b>콘크리트 강도 fck (MPa)</b><input id="cc_fck" type="number" min="21" step="any" value="30"><span>일반중량 콘크리트 · 21–70 MPa</span></label><label><b>강재 항복강도 Fy (MPa)</b><select id="cc_Fy"><option value="235">235 MPa</option><option value="275">275 MPa</option><option value="315">315 MPa</option><option value="355" selected>355 MPa</option><option value="420">420 MPa</option><option value="450">450 MPa</option><option value="460">460 MPa</option><option value="550">550 MPa</option><option value="650">650 MPa</option></select></label><label id="cc_Ec_field"><b>콘크리트 탄성계수 Ec (MPa)</b><input id="cc_Ec" type="number" min="1" step="1000" value="30000"><span>설계에 적용할 탄성계수 직접 입력</span></label></div></div><div class="card"><h2>2. 전체 단면 정보</h2><div class="grid beam-inputs"><label id="cc_B_field"><b>폭 B / 원형 지름 D (mm)</b><input id="cc_B" type="number" min="1" step="50" value="700"></label><label id="cc_H_field"><b>높이 H (mm)</b><input id="cc_H" type="number" min="1" step="50" value="700"></label><label id="cc_t_field"><b>강관 설계두께 t (mm)</b><input id="cc_t" type="number" min="1" step="1" value="16"><span>CFT 강관은 설계에 사용할 실제 두께 입력</span></label></div></div><div id="cc_src_fields"><div class="card"><h2>3. 매입 H형강</h2><div class="grid beam-inputs"><label id="cc_sh_field"><b>철골 높이 Hs (mm)</b><input id="cc_sh" type="number" min="1" step="50" value="400"></label><label id="cc_sb_field"><b>철골 폭 Bs (mm)</b><input id="cc_sb" type="number" min="1" step="50" value="300"></label><label id="cc_tw_field"><b>웨브 두께 tw (mm)</b><input id="cc_tw" type="number" min="1" step="1" value="13"></label><label id="cc_tf_field"><b>플랜지 두께 tf (mm)</b><input id="cc_tf" type="number" min="1" step="1" value="21"></label></div></div><div class="card"><h2>4. SRC 철근 · 상세</h2><div class="grid beam-inputs"><label><b>주철근 강도 fy (MPa)</b><select id="cc_fy"><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label><label><b>주철근 규격</b><select id="cc_bar"><option value="D19">D19</option><option value="D22">D22</option><option value="D25" selected>D25</option><option value="D29">D29</option><option value="D32">D32</option><option value="D35">D35</option></select></label><label id="cc_nb_field"><b>가로 변 철근 수 (개)</b><input id="cc_nb" type="number" min="2" step="1" value="4"><span>모서리 포함 · 마주 보는 두 변 동일</span></label><label id="cc_nh_field"><b>세로 변 철근 수 (개)</b><input id="cc_nh" type="number" min="2" step="1" value="4"><span>모서리 포함 · 중복 모서리 제외 합산</span></label><label id="cc_cover_field"><b>피복두께 (mm)</b><input id="cc_cover" type="number" min="1" step="5" value="40"><span>콘크리트 표면부터 띠철근 바깥면</span></label><label><b>띠철근 규격</b><select id="cc_tie"><option value="D10">D10</option><option value="D13" selected>D13</option><option value="D16">D16</option></select></label><label id="cc_tieSpacing_field"><b>띠철근 간격 (mm)</b><input id="cc_tieSpacing" type="number" min="1" step="25" value="200"></label></div></div></div><div class="card"><h2>지지조건 · 설계하중</h2><div class="grid beam-inputs"><label id="cc_klx_field"><b>X축 유효좌굴길이 KLx (mm)</b><input id="cc_klx" type="number" min="1" step="100" value="4000"></label><label id="cc_kly_field"><b>Y축 유효좌굴길이 KLy (mm)</b><input id="cc_kly" type="number" min="1" step="100" value="4000"></label><label id="cc_Pu_field"><b>소요압축력 Pu (kN)</b><input id="cc_Pu" type="number" min="0" step="any" value="4000"></label><label id="cc_Mux_field"><b>X축 모멘트 Mux (kN·m)</b><input id="cc_Mux" type="number" min="-1000000000" step="any" value="300"></label><label id="cc_Muy_field"><b>Y축 모멘트 Muy (kN·m)</b><input id="cc_Muy" type="number" min="-1000000000" step="any" value="200"></label></div></div><p class="beam-muted">동일 하중조합의 설계력을 입력하세요. Mux·Muy는 2차 효과를 반영한 값이며, 원형 CFT는 B를 외경으로 사용합니다.</p></aside><div class="beam-output" aria-label="합성 기둥 결과"><div class="card"><h2>결과 검토</h2><p id="cc_error" role="alert" hidden></p><div id="cc_summary"></div><div id="cc_diagram"></div></div><div id="cc_results"><div class="card"><h2>축압축 · 양축 좌굴</h2><div id="cc_axial"></div></div><div class="card"><h2>양축 휨 · 축력–휨 조합</h2><div id="cc_moments"></div><div id="cc_interaction"></div></div><div class="card"><h2>단면 · 배근 조건</h2><div id="cc_checks"></div></div><div class="card"><h2>단면 특성 · 1 m당 물량</h2><div id="cc_properties"></div></div></div><div class="card"><h2>검토 범위 · 계산 근거</h2><p class="beam-muted">KDS 14 31 80:2024, 4.4(축압축), 4.5.3·4(휨), 4.7.1(조합력). SRC는 중심에 배치한 H형강과 대칭 주철근을 가진 직사각형 단면, CFT는 각형·원형 무근 충전 단면입니다.</p><details class="beam-settings"><summary>적용 가정과 검토 범위</summary><p>압축강도는 유효강성 EI와 축별 KL을 사용한 휨좌굴을 반영하고 φc=0.75를 적용합니다. 순강재 하한은 확인 가능한 범위에서 반영합니다. SRC는 Fy≤450 MPa 범위이며, 고강도 강재의 심부 콘크리트 효과는 별도입니다.</p><p>휨은 소성응력분포의 축력 평형으로 양축 Mn을 구하며 φb=0.90입니다. CFT 비조밀·세장 단면은 축압축만 산정하며, 모멘트가 있으면 조합 판정을 보류합니다. 원형 CFT는 축압축 구속효과와 순휨의 콘크리트 응력계수를 구분합니다.</p><p>강재와 콘크리트의 완전한 하중전달 및 일체 거동을 전제로 합니다. 전단연결재·다이어프램·접합부·내진 상세·내화·시공 중 강도 및 2차 효과 해석은 별도입니다. SRC 휨강도에는 강재 전단연결재가 필요합니다.</p><p>철골 필릿과 각형강관 모서리 라운드는 제외한 이상화 단면입니다. 각형강관 폭두께비는 외측 치수에서 2t를 뺀 내부 폭으로 보수적으로 계산합니다. 물량은 단면 기준으로 띠철근·접합부·용접·이음·할증을 제외합니다.</p></details></div></div></div></section>
 </main>
 
 <footer>
@@ -856,6 +877,8 @@ var SectionPicker=(function(){
 <script src="steel-rh-tee.js?v=20260911-23"></script>
 <script src="steel-replacement.js?v=20260911-26"></script>
 <script src="steel-replacement-ui.js?v=20260911-29"></script>
+<script src="composite-column.js?v=20260911-30"></script>
+<script src="composite-column-ui.js?v=20260911-30"></script>
 <script src="report-print.js?v=20260911-15"></script>
 <script src="number-input-step.js?v=20260911-28"></script>
 </body>
