@@ -99,17 +99,15 @@ test('RH plus tee clears stale results after missing cut height and recovers',()
 });
 
 
-test('replacement uses one material dropdown and separates model from physical assembly drawings',()=>{
+test('replacement uses one material dropdown and colors RH and tee in a single model drawing',()=>{
  const {nodes}=load();assert.ok(!nodes.br_rhGrade&&!nodes.br_teeGrade);
  assert.match(nodes.br_compare.innerHTML,/SM355/);assert.doesNotMatch(nodes.br_compare.innerHTML,/SHN355/);
- nodes.br_view_actual.events.click();assert.match(nodes.br_diagram.innerHTML,/실제 조립 단면: 가운데 플랜지 포함/);
- nodes.br_view_model.events.click();assert.match(nodes.br_diagram.innerHTML,/검토 단면: 가운데 플랜지 제외/);
+ assert.ok(!nodes.br_view_actual&&!nodes.br_view_model);assert.match(nodes.br_diagram.innerHTML,/검토 단면: 가운데 플랜지 제외/);assert.match(nodes.br_diagram.innerHTML,/fill="#248466"/);assert.match(nodes.br_diagram.innerHTML,/fill="#1764b5"/);
  nodes.br_bhGrade.value='SM275';nodes.t8.events.input();assert.match(nodes.br_material.textContent,/모두 SM275/);
 });
 
 
 test('replacement model shows a faint excluded flange and expanded-cut proposal',()=>{
  const {nodes}=load();assert.match(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);assert.match(nodes.br_summary.innerHTML,/반 초과 절단 대안/);assert.match(nodes.br_rows.innerHTML,/data-br-section="[^"|]+[|][0-9.]+"/);
- nodes.br_view_actual.events.click();assert.doesNotMatch(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);
  nodes.br_cutMode.value='half';nodes.t8.events.input();assert.doesNotMatch(nodes.br_summary.innerHTML,/반 초과 절단 대안/);
 });
