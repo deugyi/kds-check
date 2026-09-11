@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const S=require('../steel-section.js'),B=require('../steel-beam.js'),I=require('../steel-builtup-i.js'),T=require('../steel-rh-tee.js'),R=require('../steel-replacement.js');
 const near=(a,b,tol=1e-7)=>assert.ok(Math.abs(a-b)<=tol*Math.max(1,Math.abs(b)),`${a} != ${b}`);
-const p={scheme:'tee',mode:'capacity',bhGrade:'SM355',rhGrade:'SHN355',teeGrade:'SHN355',H:600,B:250,tw:12,tf:20,Lb:3000,Cb:1,Mu:700,Vu:300,maxH:null,maxB:null,keepStiffness:true,topSection:'H-350×350×12×19',cutMode:'half',cutHeight:300,bending:'positive'};
+const p={scheme:'tee',mode:'capacity',bhGrade:'SM355',rhGrade:'SHN355',teeGrade:'SHN355',H:600,B:250,tw:12,tf:20,Lb:3000,Cb:1,Mu:700,Vu:300,maxH:null,maxB:null,keepStiffness:true,topSection:'auto',cutMode:'half',cutHeight:300,bending:'positive'};
 test('asymmetric I properties agree with independent through-depth numerical integration',()=>{
   const q={H:730,bt:300,tt:20,bb:250,tb:30,tw:12},o=I.properties(q),dy=.01;
   let A=0,Q=0,I0=0,Z=0;
@@ -36,7 +36,7 @@ test('slender web uses F5 reduction, and extreme sections are not approved',()=>
   assert.throws(()=>I.calculate({...q,tw:0}));
 });
 test('intermediate flange is excluded from properties, included in actual weight',()=>{
-  const top=S.findSection(p.topSection),tee=S.findSection('H-600×200×11×17'),a=T.assembly(top,tee,300,p),e=a.effective;
+  const top=S.findSection('H-350×350×12×19'),tee=S.findSection('H-600×200×11×17'),a=T.assembly(top,tee,300,p),e=a.effective;
   assert.equal(e.tw,11);assert.equal(e.H,650);
   near(a.out.props.A,top.B*top.tf+tee.B*tee.tf+(650-top.tf-tee.tf)*11);
   assert.ok(a.mass/.00785>a.out.props.A);
@@ -44,7 +44,7 @@ test('intermediate flange is excluded from properties, included in actual weight
   const half=T.assembly(top,tee,tee.H/2,p);near(half.teeMass,(tee.A+4*tee.r**2*(1-Math.PI/4))*.00785/2);
 });
 test('one common grade applies to both parts and unsupported cuts are rejected',()=>{
-  const top=S.findSection(p.topSection),tee=S.findSection('H-600×200×11×17');
+  const top=S.findSection('H-350×350×12×19'),tee=S.findSection('H-600×200×11×17');
   const a=T.assembly(top,tee,300,{...p,bhGrade:'SS235',rhGrade:'SHN355',teeGrade:'SHN460'});assert.equal(a.effective.Fy,225);assert.equal(a.topFy,225);assert.equal(a.teeFy,225);
   assert.throws(()=>T.assembly(top,tee,20,p));assert.throws(()=>T.assembly(top,tee,599,p));assert.throws(()=>R.calculate({...p,cutMode:'custom',cutHeight:NaN}));
 });
@@ -58,4 +58,12 @@ test('candidate screening includes both moment signs, combined height, real mass
   assert.equal(R.calculate({...p,maxH:300}).recommended,null);
   const low=R.calculate({...p,mode:'load',Mu:200,Vu:50,keepStiffness:false});assert.deepEqual(low.target,{M:200,V:50});assert.ok(low.recommended);
   assert.equal(R.calculate({...p,cutMode:'custom',cutHeight:9999}).rows.length,0);
+});
+
+
+test('RH plus tee candidates always pair the same source section and manual choice is respected',()=>{
+ const o=R.calculate(p);assert.equal(o.rows.length,78);assert.ok(o.recommended);
+ for(const r of o.rows){const a=r.assembly;assert.equal(a.top.name,a.tee.name);near(a.effective.H,1.5*a.top.H);near(a.mass,1.5*a.topMass);near(a.out.props.y,a.effective.H/2);}
+ const name=o.recommended.section.name,one=R.calculate({...p,topSection:name});assert.equal(one.rows.length,1);assert.equal(one.rows[0].assembly.top.name,name);assert.equal(one.rows[0].assembly.tee.name,name);
+ assert.throws(()=>R.calculate({...p,topSection:'not-a-section'}));
 });
