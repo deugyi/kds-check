@@ -82,3 +82,18 @@ test('slab plain concrete height converts mm to load with fixed unit weights',()
   nodes.s_plain_height.value='0';refresh();assert.equal(nodes.s_error.hidden,true);assert.match(nodes.s_load.innerHTML,/13\.44/);
   for(const bad of ['-1','']){nodes.s_plain_height.value=bad;refresh();assert.equal(nodes.s_results.hidden,true);assert.match(nodes.s_error.textContent,/무근 콘크리트 높이/);assert.equal(nodes.s_load.innerHTML,'');}
 });
+
+
+test('RH plus tee initializes and restores the existing single-RH search',()=>{
+  const {nodes}=load();
+  assert.match(nodes.br_summary.innerHTML,/역T 원본/);assert.match(nodes.br_diagram.innerHTML,/주황색/);
+  assert.match(nodes.br_assembly_results.innerHTML,/정모멘트/);assert.match(nodes.br_assembly_results.innerHTML,/부모멘트/);
+  nodes.br_scheme.value='single';nodes.t8.events.input();
+  assert.equal(nodes.br_tee_fields.hidden,true);assert.equal(nodes.br_assembly_details.hidden,true);
+  assert.match(nodes.br_summary.innerHTML,/H-588×300×12×20/);
+});
+test('RH plus tee clears stale results after missing cut height and recovers',()=>{
+  const {nodes}=load();nodes.br_cutMode.value='custom';nodes.br_cutHeight.value='';nodes.t8.events.input();
+  assert.match(nodes.br_summary.textContent,/절단 높이/);assert.equal(nodes.br_rows.innerHTML,'');assert.equal(nodes.br_assembly_details.hidden,true);
+  nodes.br_cutHeight.value='300';nodes.t8.events.input();assert.match(nodes.br_summary.innerHTML,/역T 원본/);assert.match(nodes.br_rows.innerHTML,/전체 H/);
+});
