@@ -11,7 +11,7 @@ function diagram(a,b){
     const x=c-p.B*scale/2,y=285-p.H*scale,tf=p.tf*scale,tw=p.tw*scale;
     return `<g fill="${color}" fill-opacity=".2" stroke="${color}"><rect x="${x}" y="${y}" width="${p.B*scale}" height="${tf}"/><rect x="${x}" y="${285-tf}" width="${p.B*scale}" height="${tf}"/><rect x="${c-tw/2}" y="${y+tf}" width="${tw}" height="${(p.H-2*p.tf)*scale}"/></g><g fill="var(--ink)" text-anchor="middle" font-size="14"><text x="${c}" y="22">${label}</text><text x="${c}" y="311">${p.H} × ${p.B} × ${p.tw} × ${p.tf} mm</text></g>`;
   };
-  return `<svg viewBox="0 0 660 330" style="width:100%;max-height:380px" role="img" aria-label="기존 BH와 선택 RH의 동일 축척 비교">${shape(a,165,'기존 BH','#64748b')}${b?shape(b,495,'선택 RH','#1764b5'):'<text x="495" y="165" text-anchor="middle" fill="var(--muted)">RH 후보 없음</text>'}</svg>`;
+  return `<svg viewBox="0 0 660 330" style="width:100%;max-height:380px" role="img" aria-label="기존 BH와 선택 RH의 동일 축척 비교">${shape(a,165,'기존 BH','#64748b')}${b?shape(b,495,'선택 RH','#1764b5'):`<text x="495" y="165" text-anchor="middle" fill="var(--muted)">${current&&!current.target?'BH 내력 산정 불가 · 후보 판정 보류':'조건 충족 후보 없음'}</text>`}</svg>`;
 }
 function teeDiagram(a,row){
   const t=row.assembly,top=t.top,tee=t.tee,e=t.effective,H=e.H,actual=diagramView==='actual';
@@ -46,11 +46,12 @@ function comparison(row){
   const ratio=(a,c)=>c>0?`${f(a/c,3)}`:'—';
   get('compare').innerHTML=`<table><thead><tr><th>비교 항목</th><th>기존 BH</th><th>${row?.assembly?'선택 RH + 역T':'선택 RH'}</th></tr></thead><tbody>${cells.map(c=>`<tr>${c.map((v,i)=>`<${i?'td':'th'}>${v}</${i?'td':'th'}>`).join('')}</tr>`).join('')}</tbody></table>`+
     (row?`<p><b>${row.section.name}</b> · ${row.eligible?'선정 조건 충족':row.reasons.join(' · ')}</p><p class="beam-muted">BH 대비 중량 ${f(Math.abs(row.mass/o.bhMass-1)*100)}% ${row.mass<=o.bhMass?'감소':'증가'} · Ix ${ratio(row.out.props.Ix,b.props.Ix)}배. ${row.out.shear?.needsStiffener?'전단 스티프너 상세를 별도로 확인하세요.':''}</p>`:'')+
+    (b.supported&&b.cls.web.grade==='비조밀'?`<p class="beam-muted">기존 BH 웨브: 비조밀 · h/tw ${f(b.cls.web.ratio,2)} > 조밀 한계 ${f(b.cls.web.lp,2)}. KDS 14 31 10, 4.3.2.1.1.4로 휨강도를 산정했습니다.</p>`:'')+
     (!b.supported?`<p class="beam-muted">기존 BH: ${b.message} 하중 기준으로 RH 후보 검색은 가능합니다.</p>`:'');
 }
 function table(){
   const o=current,rows=get('filter').value==='all'?o.rows:o.rows.filter(r=>r.eligible);get('section_heading').textContent=o.scheme==='tee'?'상부 RH · 역T 공통 규격':'RH 규격';
-  get('rows').innerHTML=rows.map(r=>`<tr class="${r===o.recommended?'economical ':''}${rowKey(r)===selected?'selected':''}"><td>${r===o.recommended?'✓ ':''}${r.section.name}${r.assembly?`<br><span class="beam-muted">hT ${f(r.assembly.cut)} (${f(r.assembly.cut/r.section.H*100)}%${r.half?' · 기본':''}) · 전체 H ${f(r.p.H)} mm</span>`:''}</td><td>${f(r.p.Fy)}</td><td>${f(r.mass)}</td><td>${f(r.out.flexure?.phiMn)}</td><td>${f(r.out.shear?.phiVn)}</td><td>${f(r.out.props.Ix/o.base.props.Ix,2)}</td><td>${r.eligible?(r.assembly?'모델 내력 충족':'조건 충족'):r.reasons.join(' · ')}</td><td><button type="button" class="beam-view" data-br-section="${rowKey(r)}" aria-label="${r.section.name}${r.assembly?' hT '+f(r.assembly.cut)+' mm':''} 비교">보기</button></td></tr>`).join('')||`<tr><td colspan="8">${o.scheme==='tee'&&o.rows.length===0?'입력 높이로 절단 가능한 원본 RH가 없습니다. 절단 높이를 변경하거나 1/2 절단을 선택하세요.':'조건을 만족하는 후보가 없습니다. 전체 규격에서 제외 사유를 확인하세요.'}</td></tr>`;
+  get('rows').innerHTML=rows.map(r=>`<tr class="${r===o.recommended?'economical ':''}${rowKey(r)===selected?'selected':''}"><td>${r===o.recommended?'✓ ':''}${r.section.name}${r.assembly?`<br><span class="beam-muted">hT ${f(r.assembly.cut)} (${f(r.assembly.cut/r.section.H*100)}%${r.half?' · 기본':''}) · 전체 H ${f(r.p.H)} mm</span>`:''}</td><td>${f(r.p.Fy)}</td><td>${f(r.mass)}</td><td>${f(r.out.flexure?.phiMn)}</td><td>${f(r.out.shear?.phiVn)}</td><td>${f(r.out.props.Ix/o.base.props.Ix,2)}</td><td>${r.eligible?(r.assembly?'모델 내력 충족':'조건 충족'):r.reasons.join(' · ')}</td><td><button type="button" class="beam-view" data-br-section="${rowKey(r)}" aria-label="${r.section.name}${r.assembly?' hT '+f(r.assembly.cut)+' mm':''} 비교">보기</button></td></tr>`).join('')||`<tr><td colspan="8">${!o.target?'BH 비교 내력을 산정할 수 없어 후보 판정을 보류합니다. 아래 검토 범위를 확인하세요.':o.scheme==='tee'&&o.rows.length===0?'입력 높이로 절단 가능한 원본 RH가 없습니다. 절단 높이를 변경하거나 1/2 절단을 선택하세요.':'조건을 만족하는 후보가 없습니다. 전체 규격에서 제외 사유를 확인하세요.'}</td></tr>`;
   comparison(rows.find(r=>rowKey(r)===selected)||rows[0]||null);
 }
 function update(){
@@ -63,13 +64,13 @@ function update(){
     for(const k of ['maxH','maxB'])p[k]=get(k).value.trim()===''?null:num(k);
     const o=SteelReplacement.calculate(p);current=o;selected=o.recommended?rowKey(o.recommended):null;
     get('material').textContent=`BH·RH·역T 모두 ${p.bhGrade} 적용. BH Fy = ${f(o.bh.Fy)} MPa. 같은 강종이라도 판두께에 따라 Fy가 달라질 수 있습니다.`;
-    get('summary').innerHTML=`<p class="beam-economy-title">${o.recommended?((tee&&p.cutMode==='expanded')?'기본 우선 충족 후보 · ':'최경량 충족 후보 · ')+(tee?'공통 RH ':'')+o.recommended.section.name:'조건 충족 후보 없음'}</p><p>${o.rows.filter(r=>r.eligible).length} / ${o.rows.length}개 ${tee?'동일 규격 RH + 역T 조합':'RH 규격'} · ${load?'입력 설계하중 기준':'기존 BH 내력 기준'}</p>`+
+    get('summary').innerHTML=`<p class="beam-economy-title">${o.recommended?((tee&&p.cutMode==='expanded')?'기본 우선 충족 후보 · ':'최경량 충족 후보 · ')+(tee?'공통 RH ':'')+o.recommended.section.name:(!o.target?'BH 내력 산정 불가 · 후보 판정 보류':'조건 충족 후보 없음')}</p><p>${o.rows.filter(r=>r.eligible).length} / ${o.rows.length}개 ${tee?'동일 규격 RH + 역T 조합':'RH 규격'} · ${load?'입력 설계하중 기준':'기존 BH 내력 기준'}</p>`+
       (o.target?`<p>휨 비교 기준 <b>${f(o.target.M)} kN·m</b> · 전단 비교 기준 <b>${f(o.target.V)} kN</b></p>`:`<p>${o.base.message} BH 내력 기준의 후보 선정을 보류합니다.</p>`)+
       (o.recommended?`<p>BH ${f(o.bhMass)} → ${tee?'RH + 역T':'RH'} <b>${f(o.recommended.mass)} kg/m</b></p>`:'')+
       (load&&o.base.supported?`<p class="beam-muted">기존 BH의 입력 하중 검토: ${o.base.ok?'휨·전단 충족':'휨 또는 전단 부족'}</p>`:'');
     if(tee&&p.cutMode==='expanded'){
       const h=o.halfRecommended,x=o.extendedRecommended;
-      get('summary').innerHTML+=`<div class="beam-settings"><p><b>1/2 절단 기본안</b>: ${h?h.section.name+' · hT '+f(h.assembly.cut)+' mm · '+f(h.mass)+' kg/m':'조건 충족 후보 없음'}</p><p><b>반 초과 절단 대안</b>: ${x?x.section.name+' · hT '+f(x.assembly.cut)+' mm ('+f(x.assembly.cut/x.section.H*100)+'%) · '+f(x.mass)+' kg/m':'검색 범위 내 조건 충족 후보 없음'}</p>${x?`<button type="button" class="beam-view" data-br-proposal="${rowKey(x)}">반 초과 대안 보기</button>`:''}<p class="beam-muted">1/2 절단 충족안을 기본으로 우선 표시합니다. 반 초과 대안은 50 mm 배수 후보 중 충족하는 최경량 조합입니다. 높이를 늘리면 휨강도가 증가하더라도 전단좌굴 조건이 불리해질 수 있어 모든 조건을 다시 계산합니다. 반 초과 절단은 원본 1개에서 같은 역T 2개를 얻을 수 없으며, 잔재·절단 손실과 구매비는 별도입니다.</p></div>`;
+      get('summary').innerHTML+=`<div class="beam-settings"><p><b>1/2 절단 기본안</b>: ${h?h.section.name+' · hT '+f(h.assembly.cut)+' mm · '+f(h.mass)+' kg/m':(!o.target?'BH 내력 산정 불가 · 후보 판정 보류':'조건 충족 후보 없음')}</p><p><b>반 초과 절단 대안</b>: ${x?x.section.name+' · hT '+f(x.assembly.cut)+' mm ('+f(x.assembly.cut/x.section.H*100)+'%) · '+f(x.mass)+' kg/m':(!o.target?'BH 내력 산정 불가 · 후보 판정 보류':'검색 범위 내 조건 충족 후보 없음')}</p>${x?`<button type="button" class="beam-view" data-br-proposal="${rowKey(x)}">반 초과 대안 보기</button>`:''}<p class="beam-muted">1/2 절단 충족안을 기본으로 우선 표시합니다. 반 초과 대안은 50 mm 배수 후보 중 충족하는 최경량 조합입니다. 높이를 늘리면 휨강도가 증가하더라도 전단좌굴 조건이 불리해질 수 있어 모든 조건을 다시 계산합니다. 반 초과 절단은 원본 1개에서 같은 역T 2개를 얻을 수 없으며, 잔재·절단 손실과 구매비는 별도입니다.</p></div>`;
     }
     if(tee)get('summary').innerHTML+='<p><b>'+({positive:'정모멘트 · 상부 압축 기준',negative:'부모멘트 · 하부 압축 기준',both:'정·부모멘트 각각 충족 기준'}[p.bending])+'</b></p>';
     if(tee)get('summary').innerHTML+='<p class="beam-muted">중간 플랜지를 제외한 모델의 부재 내력 비교입니다. 전체 길이에 걸친 일체 접합 및 별도 접합부 검증이 필요합니다.</p>';
