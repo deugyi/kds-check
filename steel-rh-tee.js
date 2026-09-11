@@ -18,13 +18,14 @@ function assembly(top,tee,cut,p){
   return {effective,out,top,tee,cut,topFy,teeFy,mass:topMass+teeMass,topMass,teeMass,Q};
 }
 function calculate(p,base){
-  const top=S.findSection(p.topSection);
-  if(!top?.listed)throw Error('규격표에 있는 상부 RH를 선택하세요.');
+  const chosen=p.topSection==='auto'?null:S.findSection(p.topSection);
+  if(p.topSection!=='auto'&&!chosen?.listed)throw Error('공통 RH 규격을 선택하세요.');
   if(!['positive','negative','both'].includes(p.bending))throw Error('휨 방향을 선택하세요.');
   if(!['half','custom'].includes(p.cutMode))throw Error('역T 절단 방식을 선택하세요.');
   if(p.cutMode==='custom'&&(!Number.isFinite(p.cutHeight)||p.cutHeight<=0))throw Error('역T 절단 높이를 양수로 입력하세요.');
   const rows=[];
-  for(const sec of S.SECTIONS.filter(s=>s.listed)){
+  for(const sec of S.SECTIONS.filter(s=>s.listed&&(!chosen||s.name===chosen.name))){
+    const top=sec;
     const cut=p.cutMode==='half'?sec.H/2:p.cutHeight;
     if(cut<=sec.tf+sec.r||cut>=sec.H-sec.tf-sec.r)continue;
     const a=assembly(top,sec,cut,p),all=a.out;
@@ -44,7 +45,7 @@ function calculate(p,base){
       out:{...all,supported,flexure:supported?{phiMn}:null},mass:a.mass,reasons,eligible:reasons.length===0,flow,force});
   }
   rows.sort((a,b)=>Number(b.eligible)-Number(a.eligible)||a.mass-b.mass||a.p.H-b.p.H);
-  return {...base,scheme:'tee',top,rows,recommended:rows.find(r=>r.eligible)||null};
+  return {...base,scheme:'tee',rows,recommended:rows.find(r=>r.eligible)||null};
 }
 root.SteelRhTee={assembly,calculate};if(node)module.exports=root.SteelRhTee;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -31,7 +31,7 @@ function assemblyDetails(row){
   if(!a){get('assembly_results').innerHTML='';return;}
   const o=a.out,p=a.effective;
   const line=(label,fn)=>`<tr><th>${label}</th>${[o.positive,o.negative].map(d=>`<td>${fn(d)}</td>`).join('')}</tr>`;
-  get('assembly_results').innerHTML=`<p><b>상부 ${a.top.name}</b> + <b>${a.tee.name}</b>에서 절단한 역T (높이 ${f(a.cut)} mm)</p><p class="beam-muted">검토 I형: H ${f(p.H)} · 상부 ${f(p.bt)}×${f(p.tt)} · 하부 ${f(p.bb)}×${f(p.tb)} · tw ${f(p.tw)} mm. 적용 Fy ${f(p.Fy)} MPa (RH ${f(a.topFy)}, 역T ${f(a.teeFy)}). 중간 플랜지는 제외합니다.</p>
+  get('assembly_results').innerHTML=`<p><b>상부 RH와 역T 원본: ${a.top.name}</b> · 동일 규격에서 절단한 역T (높이 ${f(a.cut)} mm)</p><p class="beam-muted">검토 I형: H ${f(p.H)} · 상부 ${f(p.bt)}×${f(p.tt)} · 하부 ${f(p.bb)}×${f(p.tb)} · tw ${f(p.tw)} mm. 적용 Fy ${f(p.Fy)} MPa (RH ${f(a.topFy)}, 역T ${f(a.teeFy)}). 중간 플랜지는 제외합니다.</p>
   <table><thead><tr><th>휨 검토 항목</th><th>정모멘트 · 상부 압축</th><th>부모멘트 · 하부 압축</th></tr></thead><tbody>${line('φMn (kN·m)',d=>d.supported?f(d.phiMn):'범위 초과')}${line('지배 한계상태',d=>d.governing||d.message)}${line('적용 조항',d=>d.clause||'—')}${line('압축 플랜지 / 웨브',d=>d.flange+' / '+d.web)}${line('Lp / Lr (mm)',d=>f(d.Lp)+' / '+f(d.Lr))}${line('hc/tw · λp / λr',d=>f(d.lambda)+' · '+f(d.lpw)+' / '+f(d.lrw))}</tbody></table>
   <p>검토 단면적 ${f(o.props.A)} mm² · 상면 기준 중립축 ${f(o.props.y)} mm · S상 ${f(o.props.St/1e3)} / S하 ${f(o.props.Sb/1e3)} (×10³ mm³)</p>
   <p>실제 개산 중량: RH ${f(a.topMass)} + 역T ${f(a.teeMass)} = <b>${f(a.mass)} kg/m</b>. 가운데 플랜지와 필릿 포함, 용접금속·절단 손실·미사용 잔재 제외.</p>
@@ -47,7 +47,7 @@ function comparison(row){
     (!b.supported?`<p class="beam-muted">기존 BH: ${b.message} 하중 기준으로 RH 후보 검색은 가능합니다.</p>`:'');
 }
 function table(){
-  const o=current,rows=get('filter').value==='all'?o.rows:o.rows.filter(r=>r.eligible);get('section_heading').textContent=o.scheme==='tee'?'역T 원본 RH 규격':'RH 규격';
+  const o=current,rows=get('filter').value==='all'?o.rows:o.rows.filter(r=>r.eligible);get('section_heading').textContent=o.scheme==='tee'?'상부 RH · 역T 공통 규격':'RH 규격';
   get('rows').innerHTML=rows.map(r=>`<tr class="${r===o.recommended?'economical ':''}${r.section.name===selected?'selected':''}"><td>${r===o.recommended?'✓ ':''}${r.section.name}${r.assembly?`<br><span class="beam-muted">hT ${f(r.assembly.cut)} · 전체 H ${f(r.p.H)} mm</span>`:''}</td><td>${f(r.p.Fy)}</td><td>${f(r.mass)}</td><td>${f(r.out.flexure?.phiMn)}</td><td>${f(r.out.shear?.phiVn)}</td><td>${f(r.out.props.Ix/o.base.props.Ix,2)}</td><td>${r.eligible?(r.assembly?'모델 내력 충족':'조건 충족'):r.reasons.join(' · ')}</td><td><button type="button" class="beam-view" data-br-section="${r.section.name}" aria-label="${r.section.name} 비교">보기</button></td></tr>`).join('')||`<tr><td colspan="8">${o.scheme==='tee'&&o.rows.length===0?'입력 높이로 절단 가능한 원본 RH가 없습니다. 절단 높이를 변경하거나 1/2 절단을 선택하세요.':'조건을 만족하는 후보가 없습니다. 전체 규격에서 제외 사유를 확인하세요.'}</td></tr>`;
   comparison(rows.find(r=>r.section.name===selected)||rows[0]||null);
 }
@@ -61,7 +61,7 @@ function update(){
     for(const k of ['maxH','maxB'])p[k]=get(k).value.trim()===''?null:num(k);
     const o=SteelReplacement.calculate(p);current=o;selected=o.recommended?.section.name||null;
     get('material').textContent=`BH·RH·역T 모두 ${p.bhGrade} 적용. BH Fy = ${f(o.bh.Fy)} MPa. 같은 강종이라도 판두께에 따라 Fy가 달라질 수 있습니다.`;
-    get('summary').innerHTML=`<p class="beam-economy-title">${o.recommended?'최경량 충족 후보 · '+(tee?'역T 원본 ':'')+o.recommended.section.name:'조건 충족 후보 없음'}</p><p>${o.rows.filter(r=>r.eligible).length} / ${o.rows.length}개 ${tee?'절단 가능한 역T 원본':'RH'} 규격 · ${load?'입력 설계하중 기준':'기존 BH 내력 기준'}</p>`+
+    get('summary').innerHTML=`<p class="beam-economy-title">${o.recommended?'최경량 충족 후보 · '+(tee?'공통 RH ':'')+o.recommended.section.name:'조건 충족 후보 없음'}</p><p>${o.rows.filter(r=>r.eligible).length} / ${o.rows.length}개 ${tee?'동일 규격 RH + 역T':'RH'} 규격 · ${load?'입력 설계하중 기준':'기존 BH 내력 기준'}</p>`+
       (o.target?`<p>휨 비교 기준 <b>${f(o.target.M)} kN·m</b> · 전단 비교 기준 <b>${f(o.target.V)} kN</b></p>`:`<p>${o.base.message} BH 내력 기준의 후보 선정을 보류합니다.</p>`)+
       (o.recommended?`<p>BH ${f(o.bhMass)} → ${tee?'RH + 역T':'RH'} <b>${f(o.recommended.mass)} kg/m</b></p>`:'')+
       (load&&o.base.supported?`<p class="beam-muted">기존 BH의 입력 하중 검토: ${o.base.ok?'휨·전단 충족':'휨 또는 전단 부족'}</p>`:'');
@@ -74,8 +74,8 @@ for(const id of ['bhGrade']){
   get(id).innerHTML=Object.keys(SteelSection.STEEL).map(g=>`<option>${g}</option>`).join('');
   get(id).value='SM355';
 }
-get('topSection').innerHTML=SteelSection.SECTIONS.filter(s=>s.listed).map(s=>`<option>${s.name}</option>`).join('');
-get('topSection').value='H-350×350×12×19';
+get('topSection').innerHTML='<option value="auto">자동 검색 · 동일 규격 78종</option>'+SteelSection.SECTIONS.filter(s=>s.listed).map(s=>`<option>${s.name}</option>`).join('');
+get('topSection').value='auto';
 for(const [id,view] of [['view_model','model'],['view_actual','actual']])get(id).addEventListener('click',()=>{diagramView=view;if(current)table();});
 document.getElementById('t8').addEventListener('input',update);
 get('rows').addEventListener('click',e=>{const b=e.target.closest('[data-br-section]');if(!b||!current)return;selected=b.dataset.brSection;table();});

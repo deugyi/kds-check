@@ -700,12 +700,12 @@ main:has(section.tab.on){max-width:1440px}
 </div><p class="beam-muted" id="br_material"></p></div>
 <div class="card"><h2>2. 기존 BH 단면</h2><div class="grid beam-inputs"><label><b>보 높이 H (mm)</b><input id="br_H" type="number" min="1" step="50" value="600"></label><label><b>플랜지 폭 B (mm)</b><input id="br_B" type="number" min="1" step="50" value="250"></label><label><b>웨브 두께 tw (mm)</b><input id="br_tw" type="number" min="1" step="1" value="12"></label><label><b>플랜지 두께 tf (mm)</b><input id="br_tf" type="number" min="1" step="1" value="20"></label></div><p class="beam-muted">상·하부 플랜지가 같은 용접 조립 H형강입니다.</p></div>
 <div class="card" id="br_tee_fields"><h2>3. RH + 역T 구성</h2><div class="grid beam-inputs">
-<label class="beam-wide"><b>상부 RH 규격</b><select id="br_topSection"></select></label>
+<label class="beam-wide"><b>공통 RH 규격 · 상부 / 역T 원본</b><select id="br_topSection"></select></label>
 
 <label class="beam-wide"><b>역T 절단 높이</b><select id="br_cutMode"><option value="half">각 원본 RH 높이의 1/2</option><option value="custom">절단 높이 직접 입력</option></select></label>
 <label class="beam-wide" id="br_cut_field" hidden><b>역T 높이 hT (mm)</b><input id="br_cutHeight" type="number" min="1" step="50" value="300"><span>하부 플랜지 바깥면부터 절단선까지</span></label>
 <label class="beam-wide"><b>휨 검토 방향</b><select id="br_bending"><option value="positive">정모멘트 · 상부 압축</option><option value="negative">부모멘트 · 하부 압축</option><option value="both">정·부모멘트 모두</option></select></label>
-</div><p class="beam-muted">상부 RH는 고정하고 역T를 만들 원본 RH 78종을 검색합니다. 역T 웨브를 RH 하부 플랜지 중앙에 전 길이 연속 접합하여 일체 거동하는 조건입니다.</p><p class="beam-muted">중간 플랜지는 내력·강성에서 제외하고 중량에 포함합니다. 웨브 두께와 Fy는 두 부재의 작은 값으로 통일합니다. 두 웨브를 잇는 중앙 폭 부분은 연속 웨브 경로로 유지합니다.</p></div>
+</div><p class="beam-muted">상부 RH와 역T 원본은 반드시 같은 규격을 사용합니다. 자동 검색은 동일 규격 조합 78종을 비교하고, 특정 규격을 선택하면 그 조합만 검토합니다. 역T 웨브를 RH 하부 플랜지 중앙에 전 길이 연속 접합하여 일체 거동하는 조건입니다.</p><p class="beam-muted">중간 플랜지는 내력·강성에서 제외하고 중량에 포함합니다. 상·하부는 같은 규격·강종이므로 플랜지 폭·두께와 웨브 두께가 같습니다. 두 웨브를 잇는 중앙 폭 부분은 연속 웨브 경로로 유지합니다.</p></div>
 <div class="card"><h2 id="br_support_heading">4. 지지조건 · 설계하중</h2><div class="grid beam-inputs"><label><b>비지지길이 Lb (mm)</b><input id="br_Lb" type="number" min="1" step="100" value="3000"></label><label><b>모멘트 수정계수 Cb</b><input id="br_Cb" type="number" min="0.1" step="0.1" value="1"></label></div>
 <div class="grid beam-inputs" id="br_loads"><label><b>소요휨모멘트 Mu (kN·m)</b><input id="br_Mu" type="number" min="0" step="any" value="700"></label><label><b>소요전단력 Vu (kN)</b><input id="br_Vu" type="number" min="0" step="any" value="300"></label></div><p class="beam-muted" id="br_mode_note"></p><p class="beam-muted">Lb와 Cb는 BH·RH에 동일하게 적용합니다. 대체 후에도 횡지지 조건이 유지되는지 확인하세요.</p></div>
 <div class="card"><h2 id="br_conditions_heading">5. 후보 조건</h2><div class="grid beam-inputs"><label><b>RH 높이 상한 (mm)</b><input id="br_maxH" type="number" min="1" step="50" value=""></label><label><b>RH 폭 상한 (mm)</b><input id="br_maxB" type="number" min="1" step="50" value=""></label>
@@ -853,10 +853,10 @@ var SectionPicker=(function(){
 <script src="transfer-beam.js?v=20260911-15"></script>
 <script src="transfer-beam-diagram.js?v=20260911-15"></script>
 <script src="transfer-beam-ui.js?v=20260911-15"></script>
-<script src="steel-builtup-i.js?v=20260911-21"></script>
-<script src="steel-rh-tee.js?v=20260911-21"></script>
-<script src="steel-replacement.js?v=20260911-21"></script>
-<script src="steel-replacement-ui.js?v=20260911-21"></script>
+<script src="steel-builtup-i.js?v=20260911-22"></script>
+<script src="steel-rh-tee.js?v=20260911-22"></script>
+<script src="steel-replacement.js?v=20260911-22"></script>
+<script src="steel-replacement-ui.js?v=20260911-22"></script>
 <script src="report-print.js?v=20260911-15"></script>
 </body>
 </html>
