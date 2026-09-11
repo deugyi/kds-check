@@ -40,3 +40,21 @@ test('alternative materials cannot differ from the BH common grade',()=>{
  const S=require('../steel-section.js');
  for(const r of o.rows)assert.equal(r.p.Fy,S.yieldStrength('SM275',Math.max(r.section.tf,r.section.tw)));
 });
+
+
+test('BH 1200x250x12x20 noncompact web produces valid replacement candidates',()=>{
+ const q={...p,scheme:'tee',H:1200,topSection:'auto',cutMode:'expanded',cutHeight:300,bending:'both'};
+ const o=R.calculate(q);
+ assert.equal(o.base.cls.web.grade,'비조밀');assert.equal(o.base.supported,true);
+ assert.equal(o.base.flexure.clause,'4.3.2.1.1.4');
+ assert.ok(Math.abs(o.target.M-2647.9877749618677)<1e-6);
+ assert.ok(Math.abs(o.target.V-1319.377312722949)<1e-6);
+ assert.ok(o.recommended);assert.equal(o.recommended.key,'H-792×300×14×22|396');
+ for(const r of o.rows.filter(r=>r.eligible)){
+  assert.ok(r.out.positive.phiMn>=o.target.M);assert.ok(r.out.negative.phiMn>=o.target.M);
+  assert.ok(r.out.shear.phiVn>=o.target.V);assert.ok(r.out.props.Ix>=o.base.props.Ix);
+ }
+ const load=R.calculate({...q,mode:'load',Mu:o.target.M*1.1,Vu:o.target.V*.5});
+ assert.equal(load.base.flexure.ok,false);assert.equal(load.base.shear.ok,true);assert.equal(load.base.ok,false);
+ assert.ok(Math.abs(load.base.flexure.ratio-1.1)<1e-9);
+});
