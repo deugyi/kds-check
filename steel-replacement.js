@@ -4,6 +4,7 @@
 const node=typeof module!=='undefined'&&module.exports;
 const S=node?require('./steel-section.js'):root.SteelSection;
 const B=node?require('./steel-beam.js'):root.SteelBeam;
+const T=node?require('./steel-rh-tee.js'):root.SteelRhTee;
 function mass(p){return (2*p.B*p.tf+(p.H-2*p.tf)*p.tw+(p.rolled?4*(p.r||0)**2*(1-Math.PI/4):0))*.00785;}
 function calculate(p){
   if(!['capacity','load'].includes(p.mode))throw Error('비교 방식을 선택하세요.');
@@ -20,6 +21,7 @@ function calculate(p){
   }
   if(p.mode==='load'&&p.Mu===0&&p.Vu===0)throw Error('하중 기준에서는 Mu 또는 Vu에 0보다 큰 설계하중을 입력하세요.');
   const target=p.mode==='capacity'?(base.supported?{M:base.flexure.phiMn,V:base.shear.phiVn}:null):{M:p.Mu,V:p.Vu};
+  if(p.scheme==='tee')return T.calculate(p,{bh,base,bhMass:mass(bh),target});
   const rows=[];
   const catalog=S.SECTIONS.filter(s=>s.listed);
   for(const sec of catalog){
