@@ -111,3 +111,11 @@ test('replacement model shows a faint excluded flange and expanded-cut proposal'
  const {nodes}=load();assert.match(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);assert.ok(!nodes.br_summary);assert.match(nodes.br_rows.innerHTML,/[+]20\.6%/);assert.match(nodes.br_rows.innerHTML,/data-br-section="[^"|]+[|][0-9.]+"/);
  nodes.br_cutMode.value='half';nodes.t8.events.input();assert.ok([...nodes.br_rows.innerHTML.matchAll(/<span class="beam-muted">hT [^<]+/g)].every(m=>m[0].includes('(50% · 기본)')));assert.match(nodes.br_compare.innerHTML,/원안 대비 중량 증감률/);
 });
+
+
+test('SRC and both CFT screens render, toggle controls and clear stale results',()=>{
+ const {nodes}=load();assert.equal(nodes.cc_error.hidden,true);assert.match(nodes.cc_summary.innerHTML,/SRC/);assert.match(nodes.cc_diagram.innerHTML,/svg/);
+ for(const type of ['rect','circle','src']){nodes.cc_type.value=type;nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,true);assert.match(nodes.cc_interaction.innerHTML,/상호작용식/);assert.equal(nodes.cc_src_fields.hidden,type!=='src');assert.equal(nodes.cc_H_field.hidden,type==='circle');}
+ nodes.cc_Pu.value='';nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,false);assert.equal(nodes.cc_results.hidden,true);assert.equal(nodes.cc_diagram.innerHTML,'');
+ nodes.cc_Pu.value='4000';nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,true);assert.equal(nodes.cc_results.hidden,false);
+});

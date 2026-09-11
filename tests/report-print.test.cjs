@@ -14,6 +14,6 @@ test('shared printing expands only current-page details and restores after cance
 test('each implemented calculator has exactly one shared print header',()=>{
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const sections=[...html.matchAll(/<section class="tab(?: on)?" id="(t\d)">([\s\S]*?)<\/section>/g)];
-  assert.equal(sections.length,8);
-  for(const [,id,body] of sections){assert.equal((body.match(/data-report-print/g)||[]).length,1,id);assert.equal((body.match(/class="report-notice"/g)||[]).length,1,id);}
+  assert.equal(sections.length,9);
+  for(const [,id,body] of sections){assert.match(body,/<button[^>]*class="go"[^>]*data-report-print/,id);assert.equal((body.match(/data-report-print/g)||[]).length,1,id);assert.equal((body.match(/class="report-notice"/g)||[]).length,1,id);}
 });
