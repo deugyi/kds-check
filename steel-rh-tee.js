@@ -21,12 +21,14 @@ function calculate(p,base){
   const chosen=p.topSection==='auto'?null:S.findSection(p.topSection);
   if(p.topSection!=='auto'&&!chosen?.listed)throw Error('공통 RH 규격을 선택하세요.');
   if(!['positive','negative','both'].includes(p.bending))throw Error('휨 방향을 선택하세요.');
-  if(!['half','custom'].includes(p.cutMode))throw Error('역T 절단 방식을 선택하세요.');
+  if(!['half','expanded','custom'].includes(p.cutMode))throw Error('역T 절단 방식을 선택하세요.');
   if(p.cutMode==='custom'&&(!Number.isFinite(p.cutHeight)||p.cutHeight<=0))throw Error('역T 절단 높이를 양수로 입력하세요.');
   const rows=[];
   for(const sec of S.SECTIONS.filter(s=>s.listed&&(!chosen||s.name===chosen.name))){
     const top=sec;
-    const cut=p.cutMode==='half'?sec.H/2:p.cutHeight;
+    const cuts=p.cutMode==='custom'?[p.cutHeight]:[sec.H/2];
+    if(p.cutMode==='expanded')for(let h=(Math.floor(sec.H/2/50)+1)*50;h<sec.H-sec.tf-sec.r;h+=50)cuts.push(h);
+    for(const cut of cuts){
     if(cut<=sec.tf+sec.r||cut>=sec.H-sec.tf-sec.r)continue;
     const a=assembly(top,sec,cut,p),all=a.out;
     const dirs=p.bending==='both'?[all.positive,all.negative]:[p.bending==='negative'?all.negative:all.positive];
@@ -41,11 +43,14 @@ function calculate(p,base){
     if(p.keepStiffness&&all.props.Ix<base.base.props.Ix-1e-6)reasons.push('강축 강성 부족');
     const flow=base.target?base.target.V*1000*a.Q/all.props.Ix:null;
     const force=base.target?base.target.M*1000*a.Q/all.props.Ix:null;
-    rows.push({section:sec,p:{H:a.effective.H,B:Math.max(top.B,sec.B),Fy:a.effective.Fy},assembly:a,
+    rows.push({key:sec.name+'|'+cut,half:Math.abs(cut-sec.H/2)<1e-8,section:sec,p:{H:a.effective.H,B:Math.max(top.B,sec.B),Fy:a.effective.Fy},assembly:a,
       out:{...all,supported,flexure:supported?{phiMn}:null},mass:a.mass,reasons,eligible:reasons.length===0,flow,force});
   }
+  }
   rows.sort((a,b)=>Number(b.eligible)-Number(a.eligible)||a.mass-b.mass||a.p.H-b.p.H);
-  return {...base,scheme:'tee',rows,recommended:rows.find(r=>r.eligible)||null};
+  const halfRecommended=rows.find(r=>r.eligible&&r.half)||null;
+  const extendedRecommended=rows.find(r=>r.eligible&&!r.half&&r.assembly.cut>r.section.H/2)||null;
+  return {...base,scheme:'tee',rows,halfRecommended,extendedRecommended,recommended:p.cutMode==='expanded'?(halfRecommended||extendedRecommended):(rows.find(r=>r.eligible)||null)};
 }
 root.SteelRhTee={assembly,calculate};if(node)module.exports=root.SteelRhTee;
 })(typeof globalThis!=='undefined'?globalThis:this);

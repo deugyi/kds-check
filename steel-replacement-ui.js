@@ -4,6 +4,7 @@ const get=id=>document.getElementById('br_'+id);
 const f=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{maximumFractionDigits:d}):'—';
 const num=id=>get(id).value.trim()===''?NaN:Number(get(id).value);
 let current=null,selected=null,diagramView='model';
+const rowKey=r=>r.key||r.section.name;
 function diagram(a,b){
   const scale=Math.min(240/Math.max(a.H,b?.H||0),250/Math.max(a.B,b?.B||0));
   const shape=(p,c,label,color)=>{
@@ -22,9 +23,10 @@ function teeDiagram(a,row){
     plate(465,0,top.B,top.tf,'#1764b5')+plate(465,top.tf,top.tw,top.H-2*top.tf,'#1764b5')+plate(465,top.H-top.tf,top.B,top.tf,'#1764b5')+plate(465,top.H,tee.tw,t.cut-tee.tf,'#248466')+plate(465,H-tee.tf,tee.B,tee.tf,'#248466'):
     plate(465,0,e.bt,e.tt,'#1764b5')+plate(465,e.tt,e.tw,H-e.tt-e.tb,'#1764b5')+plate(465,H-e.tb,e.bb,e.tb,'#1764b5');
   const dimension=(x,y1,y2,label)=>`<g stroke="var(--dim)" stroke-width=".8"><line x1="${x}" x2="${x}" y1="${y1}" y2="${y2}"/><line x1="${x-4}" x2="${x+4}" y1="${y1}" y2="${y1}"/><line x1="${x-4}" x2="${x+4}" y1="${y2}" y2="${y2}"/></g><text fill="var(--dim)" font-size="12" text-anchor="middle" transform="translate(${x+14} ${(y1+y2)/2}) rotate(-90)">${label}</text>`;
+  const ghost=actual?'':`<rect data-middle-flange="excluded" x="${465-top.B*scale/2}" y="${yTop+(top.H-top.tf)*scale}" width="${top.B*scale}" height="${top.tf*scale}" fill="#94a3b8" fill-opacity=".12" stroke="#94a3b8" stroke-opacity=".65" stroke-dasharray="4 3"/>`;
   const NA=actual?'':`<line x1="${465-Math.max(top.B,tee.B)*scale/2-7}" x2="${465+Math.max(top.B,tee.B)*scale/2+7}" y1="${yTop+t.out.props.y*scale}" y2="${yTop+t.out.props.y*scale}" stroke="#67539b" stroke-dasharray="5 4"/>`;
   get('view_model').setAttribute?.('aria-pressed',String(!actual));get('view_actual').setAttribute?.('aria-pressed',String(actual));
-  return `<svg viewBox="0 0 660 352" style="width:100%;max-height:430px;display:block" role="img" aria-label="${actual?'실제 조립 단면: 가운데 플랜지 포함':'검토 단면: 가운데 플랜지 제외, 외곽 두 플랜지와 연속 웨브'}">${bh}${alternative}${NA}${dimension(290,cy,bottom,`H ${a.H} mm`)}${dimension(600,yTop,bottom,`H ${f(H)} mm`)}<g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="155" y="23">기존 BH</text><text x="465" y="23">${actual?'대안 · 실제 조립 단면':'대안 · 검토 I형 단면'}</text><text x="155" y="337" font-size="12">${a.H} × ${a.B} × ${a.tw} × ${a.tf} mm</text><text x="465" y="337" font-size="12">상부 폭 ${top.B} / 하부 폭 ${tee.B} mm</text></g></svg><p class="br-diagram-caption">${actual?'청색은 RH 전체, 녹색은 절단 역T입니다. 가운데 RH 하부 플랜지는 실제로 남아 있어 중량에 포함됩니다.':'검토 단면은 가운데 플랜지 돌출부를 제외하고, 외곽 두 플랜지와 일정 두께의 웨브로 표시합니다. 보라색 점선은 검토 중립축입니다.'}<br>상부 RH: ${top.name} · 역T 원본: ${tee.name} · 역T 높이 ${f(t.cut)} mm · 검토 웨브 두께 ${f(e.tw)} mm</p>`;
+  return `<svg viewBox="0 0 660 352" style="width:100%;max-height:430px;display:block" role="img" aria-label="${actual?'실제 조립 단면: 가운데 플랜지 포함':'검토 단면: 가운데 플랜지 제외, 외곽 두 플랜지와 연속 웨브'}">${bh}${ghost}${alternative}${NA}${dimension(290,cy,bottom,`H ${a.H} mm`)}${dimension(600,yTop,bottom,`H ${f(H)} mm`)}<g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="155" y="23">기존 BH</text><text x="465" y="23">${actual?'대안 · 실제 조립 단면':'대안 · 검토 I형 단면'}</text><text x="155" y="337" font-size="12">${a.H} × ${a.B} × ${a.tw} × ${a.tf} mm</text><text x="465" y="337" font-size="12">상부 폭 ${top.B} / 하부 폭 ${tee.B} mm</text></g></svg><p class="br-diagram-caption">${actual?'청색은 RH 전체, 녹색은 절단 역T입니다. 가운데 RH 하부 플랜지는 실제로 남아 있어 중량에 포함됩니다.':'옅은 회색 점선은 실제로 남아 있는 가운데 플랜지입니다. 내력·강성에서는 제외하고 중량에는 포함합니다. 보라색 점선은 검토 중립축입니다.'}<br>상부 RH: ${top.name} · 역T 원본: ${tee.name} · 역T 높이 ${f(t.cut)} mm · 검토 웨브 두께 ${f(e.tw)} mm</p>`;
 }
 function assemblyDetails(row){
   const a=row?.assembly;get('assembly_details').hidden=!a;
@@ -48,8 +50,8 @@ function comparison(row){
 }
 function table(){
   const o=current,rows=get('filter').value==='all'?o.rows:o.rows.filter(r=>r.eligible);get('section_heading').textContent=o.scheme==='tee'?'상부 RH · 역T 공통 규격':'RH 규격';
-  get('rows').innerHTML=rows.map(r=>`<tr class="${r===o.recommended?'economical ':''}${r.section.name===selected?'selected':''}"><td>${r===o.recommended?'✓ ':''}${r.section.name}${r.assembly?`<br><span class="beam-muted">hT ${f(r.assembly.cut)} · 전체 H ${f(r.p.H)} mm</span>`:''}</td><td>${f(r.p.Fy)}</td><td>${f(r.mass)}</td><td>${f(r.out.flexure?.phiMn)}</td><td>${f(r.out.shear?.phiVn)}</td><td>${f(r.out.props.Ix/o.base.props.Ix,2)}</td><td>${r.eligible?(r.assembly?'모델 내력 충족':'조건 충족'):r.reasons.join(' · ')}</td><td><button type="button" class="beam-view" data-br-section="${r.section.name}" aria-label="${r.section.name} 비교">보기</button></td></tr>`).join('')||`<tr><td colspan="8">${o.scheme==='tee'&&o.rows.length===0?'입력 높이로 절단 가능한 원본 RH가 없습니다. 절단 높이를 변경하거나 1/2 절단을 선택하세요.':'조건을 만족하는 후보가 없습니다. 전체 규격에서 제외 사유를 확인하세요.'}</td></tr>`;
-  comparison(rows.find(r=>r.section.name===selected)||rows[0]||null);
+  get('rows').innerHTML=rows.map(r=>`<tr class="${r===o.recommended?'economical ':''}${rowKey(r)===selected?'selected':''}"><td>${r===o.recommended?'✓ ':''}${r.section.name}${r.assembly?`<br><span class="beam-muted">hT ${f(r.assembly.cut)} (${f(r.assembly.cut/r.section.H*100)}%${r.half?' · 기본':''}) · 전체 H ${f(r.p.H)} mm</span>`:''}</td><td>${f(r.p.Fy)}</td><td>${f(r.mass)}</td><td>${f(r.out.flexure?.phiMn)}</td><td>${f(r.out.shear?.phiVn)}</td><td>${f(r.out.props.Ix/o.base.props.Ix,2)}</td><td>${r.eligible?(r.assembly?'모델 내력 충족':'조건 충족'):r.reasons.join(' · ')}</td><td><button type="button" class="beam-view" data-br-section="${rowKey(r)}" aria-label="${r.section.name}${r.assembly?' hT '+f(r.assembly.cut)+' mm':''} 비교">보기</button></td></tr>`).join('')||`<tr><td colspan="8">${o.scheme==='tee'&&o.rows.length===0?'입력 높이로 절단 가능한 원본 RH가 없습니다. 절단 높이를 변경하거나 1/2 절단을 선택하세요.':'조건을 만족하는 후보가 없습니다. 전체 규격에서 제외 사유를 확인하세요.'}</td></tr>`;
+  comparison(rows.find(r=>rowKey(r)===selected)||rows[0]||null);
 }
 function update(){
   const load=get('mode').value==='load',tee=get('scheme').value==='tee';get('loads').hidden=!load;get('tee_fields').hidden=!tee;get('cut_field').hidden=get('cutMode').value!=='custom';
@@ -59,12 +61,16 @@ function update(){
     const p={scheme:get('scheme').value,teeGrade:get('bhGrade').value,topSection:get('topSection').value,cutMode:get('cutMode').value,cutHeight:num('cutHeight'),bending:get('bending').value,mode:get('mode').value,bhGrade:get('bhGrade').value,rhGrade:get('bhGrade').value,keepStiffness:get('stiffness').value==='keep'};
     for(const k of ['H','B','tw','tf','Lb','Cb','Mu','Vu'])p[k]=num(k);
     for(const k of ['maxH','maxB'])p[k]=get(k).value.trim()===''?null:num(k);
-    const o=SteelReplacement.calculate(p);current=o;selected=o.recommended?.section.name||null;
+    const o=SteelReplacement.calculate(p);current=o;selected=o.recommended?rowKey(o.recommended):null;
     get('material').textContent=`BH·RH·역T 모두 ${p.bhGrade} 적용. BH Fy = ${f(o.bh.Fy)} MPa. 같은 강종이라도 판두께에 따라 Fy가 달라질 수 있습니다.`;
-    get('summary').innerHTML=`<p class="beam-economy-title">${o.recommended?'최경량 충족 후보 · '+(tee?'공통 RH ':'')+o.recommended.section.name:'조건 충족 후보 없음'}</p><p>${o.rows.filter(r=>r.eligible).length} / ${o.rows.length}개 ${tee?'동일 규격 RH + 역T':'RH'} 규격 · ${load?'입력 설계하중 기준':'기존 BH 내력 기준'}</p>`+
+    get('summary').innerHTML=`<p class="beam-economy-title">${o.recommended?((tee&&p.cutMode==='expanded')?'기본 우선 충족 후보 · ':'최경량 충족 후보 · ')+(tee?'공통 RH ':'')+o.recommended.section.name:'조건 충족 후보 없음'}</p><p>${o.rows.filter(r=>r.eligible).length} / ${o.rows.length}개 ${tee?'동일 규격 RH + 역T 조합':'RH 규격'} · ${load?'입력 설계하중 기준':'기존 BH 내력 기준'}</p>`+
       (o.target?`<p>휨 비교 기준 <b>${f(o.target.M)} kN·m</b> · 전단 비교 기준 <b>${f(o.target.V)} kN</b></p>`:`<p>${o.base.message} BH 내력 기준의 후보 선정을 보류합니다.</p>`)+
       (o.recommended?`<p>BH ${f(o.bhMass)} → ${tee?'RH + 역T':'RH'} <b>${f(o.recommended.mass)} kg/m</b></p>`:'')+
       (load&&o.base.supported?`<p class="beam-muted">기존 BH의 입력 하중 검토: ${o.base.ok?'휨·전단 충족':'휨 또는 전단 부족'}</p>`:'');
+    if(tee&&p.cutMode==='expanded'){
+      const h=o.halfRecommended,x=o.extendedRecommended;
+      get('summary').innerHTML+=`<div class="beam-settings"><p><b>1/2 절단 기본안</b>: ${h?h.section.name+' · hT '+f(h.assembly.cut)+' mm · '+f(h.mass)+' kg/m':'조건 충족 후보 없음'}</p><p><b>반 초과 절단 대안</b>: ${x?x.section.name+' · hT '+f(x.assembly.cut)+' mm ('+f(x.assembly.cut/x.section.H*100)+'%) · '+f(x.mass)+' kg/m':'검색 범위 내 조건 충족 후보 없음'}</p>${x?`<button type="button" class="beam-view" data-br-proposal="${rowKey(x)}">반 초과 대안 보기</button>`:''}<p class="beam-muted">1/2 절단 충족안을 기본으로 우선 표시합니다. 반 초과 대안은 50 mm 배수 후보 중 충족하는 최경량 조합입니다. 높이를 늘리면 휨강도가 증가하더라도 전단좌굴 조건이 불리해질 수 있어 모든 조건을 다시 계산합니다. 반 초과 절단은 원본 1개에서 같은 역T 2개를 얻을 수 없으며, 잔재·절단 손실과 구매비는 별도입니다.</p></div>`;
+    }
     if(tee)get('summary').innerHTML+='<p><b>'+({positive:'정모멘트 · 상부 압축 기준',negative:'부모멘트 · 하부 압축 기준',both:'정·부모멘트 각각 충족 기준'}[p.bending])+'</b></p>';
     if(tee)get('summary').innerHTML+='<p class="beam-muted">중간 플랜지를 제외한 모델의 부재 내력 비교입니다. 전체 길이에 걸친 일체 접합 및 별도 접합부 검증이 필요합니다.</p>';
     table();
@@ -78,6 +84,7 @@ get('topSection').innerHTML='<option value="auto">자동 검색 · 동일 규격
 get('topSection').value='auto';
 for(const [id,view] of [['view_model','model'],['view_actual','actual']])get(id).addEventListener('click',()=>{diagramView=view;if(current)table();});
 document.getElementById('t8').addEventListener('input',update);
+get('summary').addEventListener('click',e=>{const b=e.target.closest('[data-br-proposal]');if(!b||!current)return;selected=b.dataset.brProposal;table();});
 get('rows').addEventListener('click',e=>{const b=e.target.closest('[data-br-section]');if(!b||!current)return;selected=b.dataset.brSection;table();});
 update();
 })();
