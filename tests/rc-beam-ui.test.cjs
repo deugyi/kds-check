@@ -86,16 +86,16 @@ test('slab plain concrete height converts mm to load with fixed unit weights',()
 
 test('RH plus tee initializes and restores the existing single-RH search',()=>{
   const {nodes}=load();
-  assert.match(nodes.br_summary.innerHTML,/공통 RH/);assert.match(nodes.br_diagram.innerHTML,/가운데 플랜지 제외/);
+  assert.match(nodes.br_assembly_results.innerHTML,/동일 규격/);assert.match(nodes.br_diagram.innerHTML,/가운데 플랜지 제외/);
   assert.match(nodes.br_assembly_results.innerHTML,/정모멘트/);assert.match(nodes.br_assembly_results.innerHTML,/부모멘트/);
   nodes.br_scheme.value='single';nodes.t8.events.input();
   assert.equal(nodes.br_tee_fields.hidden,true);assert.equal(nodes.br_assembly_details.hidden,true);
-  assert.match(nodes.br_summary.innerHTML,/H-588×300×12×20/);
+  assert.match(nodes.br_compare.innerHTML,/H-588×300×12×20/);
 });
 test('RH plus tee clears stale results after missing cut height and recovers',()=>{
   const {nodes}=load();nodes.br_cutMode.value='custom';nodes.br_cutHeight.value='';nodes.t8.events.input();
-  assert.match(nodes.br_summary.textContent,/절단 높이/);assert.equal(nodes.br_rows.innerHTML,'');assert.equal(nodes.br_assembly_details.hidden,true);
-  nodes.br_cutHeight.value='300';nodes.t8.events.input();assert.match(nodes.br_summary.innerHTML,/공통 RH/);assert.match(nodes.br_rows.innerHTML,/전체 H/);
+  assert.match(nodes.br_error.textContent,/절단 높이/);assert.equal(nodes.br_rows.innerHTML,'');assert.equal(nodes.br_assembly_details.hidden,true);
+  nodes.br_cutHeight.value='300';nodes.t8.events.input();assert.match(nodes.br_assembly_results.innerHTML,/동일 규격/);assert.match(nodes.br_rows.innerHTML,/전체 H/);
 });
 
 
@@ -108,6 +108,6 @@ test('replacement uses one material dropdown and colors RH and tee in a single m
 
 
 test('replacement model shows a faint excluded flange and expanded-cut proposal',()=>{
- const {nodes}=load();assert.match(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);assert.match(nodes.br_summary.innerHTML,/반 초과 절단 대안/);assert.match(nodes.br_rows.innerHTML,/data-br-section="[^"|]+[|][0-9.]+"/);
- nodes.br_cutMode.value='half';nodes.t8.events.input();assert.doesNotMatch(nodes.br_summary.innerHTML,/반 초과 절단 대안/);
+ const {nodes}=load();assert.match(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);assert.ok(!nodes.br_summary);assert.match(nodes.br_rows.innerHTML,/[+]20\.6%/);assert.match(nodes.br_rows.innerHTML,/data-br-section="[^"|]+[|][0-9.]+"/);
+ nodes.br_cutMode.value='half';nodes.t8.events.input();assert.ok([...nodes.br_rows.innerHTML.matchAll(/<span class="beam-muted">hT [^<]+/g)].every(m=>m[0].includes('(50% · 기본)')));assert.match(nodes.br_compare.innerHTML,/원안 대비 중량 증감률/);
 });
