@@ -43,9 +43,9 @@ test('intermediate flange is excluded from properties, included in actual weight
   near(a.teeMass,(tee.B*tee.tf+(300-tee.tf)*tee.tw+2*tee.r**2*(1-Math.PI/4))*.00785);
   const half=T.assembly(top,tee,tee.H/2,p);near(half.teeMass,(tee.A+4*tee.r**2*(1-Math.PI/4))*.00785/2);
 });
-test('two grades reduce to the lower Fy and unsupported cut heights are rejected',()=>{
+test('one common grade applies to both parts and unsupported cuts are rejected',()=>{
   const top=S.findSection(p.topSection),tee=S.findSection('H-600×200×11×17');
-  const a=T.assembly(top,tee,300,{...p,teeGrade:'SS235'});assert.equal(a.effective.Fy,225);
+  const a=T.assembly(top,tee,300,{...p,bhGrade:'SS235',rhGrade:'SHN355',teeGrade:'SHN460'});assert.equal(a.effective.Fy,225);assert.equal(a.topFy,225);assert.equal(a.teeFy,225);
   assert.throws(()=>T.assembly(top,tee,20,p));assert.throws(()=>T.assembly(top,tee,599,p));assert.throws(()=>R.calculate({...p,cutMode:'custom',cutHeight:NaN}));
 });
 test('candidate screening includes both moment signs, combined height, real mass and weld line demand',()=>{

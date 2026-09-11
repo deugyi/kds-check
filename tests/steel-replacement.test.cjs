@@ -33,3 +33,10 @@ test('changing transverse support and material changes calculated strengths',()=
   const a=R.calculate(p),b=R.calculate({...p,Lb:9000});assert.ok(b.target.M<a.target.M);
   const c=R.calculate({...p,bhGrade:'SM275'});assert.ok(c.target.M<a.target.M);
 });
+
+
+test('alternative materials cannot differ from the BH common grade',()=>{
+ const o=R.calculate({...p,bhGrade:'SM275',rhGrade:'SHN460'});
+ const S=require('../steel-section.js');
+ for(const r of o.rows)assert.equal(r.p.Fy,S.yieldStrength('SM275',Math.max(r.section.tf,r.section.tw)));
+});

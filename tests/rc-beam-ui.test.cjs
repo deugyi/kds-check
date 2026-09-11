@@ -86,7 +86,7 @@ test('slab plain concrete height converts mm to load with fixed unit weights',()
 
 test('RH plus tee initializes and restores the existing single-RH search',()=>{
   const {nodes}=load();
-  assert.match(nodes.br_summary.innerHTML,/역T 원본/);assert.match(nodes.br_diagram.innerHTML,/주황색/);
+  assert.match(nodes.br_summary.innerHTML,/역T 원본/);assert.match(nodes.br_diagram.innerHTML,/가운데 플랜지 제외/);
   assert.match(nodes.br_assembly_results.innerHTML,/정모멘트/);assert.match(nodes.br_assembly_results.innerHTML,/부모멘트/);
   nodes.br_scheme.value='single';nodes.t8.events.input();
   assert.equal(nodes.br_tee_fields.hidden,true);assert.equal(nodes.br_assembly_details.hidden,true);
@@ -96,4 +96,13 @@ test('RH plus tee clears stale results after missing cut height and recovers',()
   const {nodes}=load();nodes.br_cutMode.value='custom';nodes.br_cutHeight.value='';nodes.t8.events.input();
   assert.match(nodes.br_summary.textContent,/절단 높이/);assert.equal(nodes.br_rows.innerHTML,'');assert.equal(nodes.br_assembly_details.hidden,true);
   nodes.br_cutHeight.value='300';nodes.t8.events.input();assert.match(nodes.br_summary.innerHTML,/역T 원본/);assert.match(nodes.br_rows.innerHTML,/전체 H/);
+});
+
+
+test('replacement uses one material dropdown and separates model from physical assembly drawings',()=>{
+ const {nodes}=load();assert.ok(!nodes.br_rhGrade&&!nodes.br_teeGrade);
+ assert.match(nodes.br_compare.innerHTML,/SM355/);assert.doesNotMatch(nodes.br_compare.innerHTML,/SHN355/);
+ nodes.br_view_actual.events.click();assert.match(nodes.br_diagram.innerHTML,/실제 조립 단면: 가운데 플랜지 포함/);
+ nodes.br_view_model.events.click();assert.match(nodes.br_diagram.innerHTML,/검토 단면: 가운데 플랜지 제외/);
+ nodes.br_bhGrade.value='SM275';nodes.t8.events.input();assert.match(nodes.br_material.textContent,/모두 SM275/);
 });
