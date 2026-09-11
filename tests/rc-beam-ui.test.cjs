@@ -128,3 +128,15 @@ test('composite column defaults to 800 mm, automatic Ec, RH selection and stud d
  nodes.cc_shapeMode.value='bh';nodes.t9.events.input();assert.equal(nodes.cc_sh.readOnly,false);
  nodes.cc_studS.value='0';nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,false);assert.equal(nodes.cc_stud_graph.innerHTML,'');
 });
+
+
+test('RC wall menu, default inputs, view switching and error recovery are wired',()=>{
+ const {nodes}=load();
+ assert.equal(nodes.w_error.hidden,true);assert.match(nodes.w_inplane.innerHTML,/4.9-1/);assert.match(nodes.w_outplane.innerHTML,/수직방향/);assert.match(nodes.w_diagram.innerHTML,/<svg/);
+ nodes.w_view_v.events.click();assert.match(nodes.w_diagram.innerHTML,/축력–휨/);
+ const first=nodes.w_inplane.innerHTML;nodes.w_M.value='3000';nodes.w_M.events.input();assert.notEqual(nodes.w_inplane.innerHTML,first);
+ nodes.w_fck.value='custom';nodes.w_fck_custom.value='32.5';nodes.w_fck.events.input();assert.equal(nodes.w_custom_field.hidden,false);assert.equal(nodes.w_error.hidden,true);
+ nodes.w_Nv.value='100000';nodes.w_Nv.events.input();assert.match(nodes.w_outplane.innerHTML,/축력 범위 밖/);
+ nodes.w_t.value='';nodes.w_t.events.input();assert.equal(nodes.w_results.hidden,true);assert.equal(nodes.w_diagram.innerHTML,'');assert.equal(nodes.w_outplane.innerHTML,'');
+ nodes.w_t.value='300';nodes.w_Nv.value='';nodes.w_t.events.input();assert.equal(nodes.w_results.hidden,false);
+});
