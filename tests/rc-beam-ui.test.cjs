@@ -140,3 +140,15 @@ test('RC wall menu, default inputs, view switching and error recovery are wired'
  nodes.w_t.value='';nodes.w_t.events.input();assert.equal(nodes.w_results.hidden,true);assert.equal(nodes.w_diagram.innerHTML,'');assert.equal(nodes.w_outplane.innerHTML,'');
  nodes.w_t.value='300';nodes.w_Nv.value='';nodes.w_t.events.input();assert.equal(nodes.w_results.hidden,false);
 });
+
+
+test('RC frame editor solves, changes support and load forms, and clears unstable results',()=>{
+ const {nodes}=load();assert.equal(nodes.fr_error.hidden,true);assert.match(nodes.fr_summary.innerHTML,/3경간/);assert.match(nodes.fr_plot.innerHTML,/<svg/);
+ nodes.fr_model.events.click({type:'click',target:{closest:()=>({getAttribute:k=>k==='data-node'?'3':null})},preventDefault(){}});assert.equal(nodes.fr_node.value,'3');
+ nodes.fr_support.value='pin';nodes.fr_support.events.change();nodes.fr_copy_support.events.click();assert.match(nodes.fr_column_results.innerHTML,/기둥 없는/);
+ nodes.fr_loadType.value='trapezoid';nodes.fr_loadType.events.change();assert.equal(nodes.fr_rise_field.hidden,false);assert.match(nodes.fr_load_diagram.innerHTML,/<polygon/);
+ nodes.fr_add_load.events.click();nodes.fr_loadType.value='point';nodes.fr_loadType.events.change();nodes.fr_loadValue.value='100';nodes.fr_loadValue.events.input();assert.equal(nodes.fr_extent_field.hidden,true);assert.equal(nodes.fr_error.hidden,true);
+ nodes.fr_count.value='1';nodes.fr_count.events.change();nodes.fr_node.value='1';nodes.fr_node.events.change();nodes.fr_support.value='free';nodes.fr_support.events.change();assert.equal(nodes.fr_results.hidden,true);assert.equal(nodes.fr_plot.innerHTML,'');
+ nodes.fr_node.value='0';nodes.fr_node.events.change();nodes.fr_support.value='fixed';nodes.fr_support.events.change();assert.equal(nodes.fr_error.hidden,true);assert.equal(nodes.fr_results.hidden,false);
+ nodes.fr_L.value='';nodes.fr_L.events.input();assert.equal(nodes.fr_results.hidden,true);nodes.fr_L.value='6';nodes.fr_L.events.input();assert.equal(nodes.fr_results.hidden,false);
+});
