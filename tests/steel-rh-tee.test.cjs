@@ -67,3 +67,23 @@ test('RH plus tee candidates always pair the same source section and manual choi
  const name=o.recommended.section.name,one=R.calculate({...p,topSection:name});assert.equal(one.rows.length,1);assert.equal(one.rows[0].assembly.top.name,name);assert.equal(one.rows[0].assembly.tee.name,name);
  assert.throws(()=>R.calculate({...p,topSection:'not-a-section'}));
 });
+
+
+test('expanded cuts keep half as default and compare only valid higher straight-web cuts',()=>{
+ const o=R.calculate({...p,cutMode:'expanded'});assert.ok(o.halfRecommended&&o.extendedRecommended);
+ assert.equal(o.recommended,o.halfRecommended);assert.ok(o.rows.length>78);
+ assert.equal(new Set(o.rows.map(r=>r.key)).size,o.rows.length);
+ for(const r of o.rows){const a=r.assembly;assert.ok(a.cut>=r.section.H/2);assert.ok(a.cut<r.section.H-r.section.tf-r.section.r);if(!r.half)assert.equal(a.cut%50,0);assert.equal(a.top.name,a.tee.name);}
+ const x=o.extendedRecommended;assert.ok(x.assembly.cut>x.section.H/2);assert.ok(x.out.flexure.phiMn>=o.target.M);assert.ok(x.out.shear.phiVn>=o.target.V);
+ for(const r of o.rows.filter(r=>r.eligible&&!r.half))assert.ok(r.mass>=x.mass);
+ const one=R.calculate({...p,topSection:x.section.name,cutMode:'custom',cutHeight:x.assembly.cut});near(one.rows[0].out.flexure.phiMn,x.out.flexure.phiMn);near(one.rows[0].mass,x.mass);
+ const none=R.calculate({...p,cutMode:'expanded',maxH:10});assert.equal(none.recommended,null);assert.equal(none.extendedRecommended,null);
+});
+
+
+test('extended candidate is recommended when half-height cannot meet demand',()=>{
+ const q={...p,cutMode:'expanded',topSection:'H-400×400×13×21',mode:'load',Mu:1,Vu:1,Lb:100,keepStiffness:false};
+ const o=R.calculate(q),half=o.rows.find(r=>r.half),larger=o.rows.find(r=>!r.half&&r.out.flexure?.phiMn>half.out.flexure.phiMn);
+ assert.ok(larger);const result=R.calculate({...q,Mu:(larger.out.flexure.phiMn+half.out.flexure.phiMn)/2});
+ assert.equal(result.halfRecommended,null);assert.ok(result.extendedRecommended);assert.equal(result.recommended,result.extendedRecommended);
+});

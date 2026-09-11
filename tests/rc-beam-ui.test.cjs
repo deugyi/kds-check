@@ -106,3 +106,10 @@ test('replacement uses one material dropdown and separates model from physical a
  nodes.br_view_model.events.click();assert.match(nodes.br_diagram.innerHTML,/검토 단면: 가운데 플랜지 제외/);
  nodes.br_bhGrade.value='SM275';nodes.t8.events.input();assert.match(nodes.br_material.textContent,/모두 SM275/);
 });
+
+
+test('replacement model shows a faint excluded flange and expanded-cut proposal',()=>{
+ const {nodes}=load();assert.match(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);assert.match(nodes.br_summary.innerHTML,/반 초과 절단 대안/);assert.match(nodes.br_rows.innerHTML,/data-br-section="[^"|]+[|][0-9.]+"/);
+ nodes.br_view_actual.events.click();assert.doesNotMatch(nodes.br_diagram.innerHTML,/data-middle-flange="excluded"/);
+ nodes.br_cutMode.value='half';nodes.t8.events.input();assert.doesNotMatch(nodes.br_summary.innerHTML,/반 초과 절단 대안/);
+});
