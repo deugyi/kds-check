@@ -11,7 +11,7 @@ test('SRC subtracts steel and rebar once and reproduces axial formula',()=>{
 test('rectangular CFT independent hand evaluation of Pno, EI and flexural buckling',()=>{
  const o=C.calculate({...p,type:'rect',B:400,H:600,t:20});
  near(o.props.steel.A,38400);near(o.props.concrete.A,201600);near(o.Pno,18772.8);near(o.C,.9);
- const Is=(400*600**3-360*560**3)/12,Ic=360*560**3/12,EI=210000*Is+.9*30000*Ic,Pe=Math.PI**2*EI/4000**2;
+ const Is=(400*600**3-360*560**3)/12,Ic=360*560**3/12,EI=210000*Is+.9*(8500*Math.cbrt(34))*Ic,Pe=Math.PI**2*EI/4000**2;
  near(o.axes[0].EI,EI);near(o.axes[0].Pe,Pe/1000);near(o.axes[0].phiPn,.75*18772.8*.658**(18772800/Pe));
  assert.equal(o.axialClass,'조밀');assert.equal(o.flexureClass,'조밀');
 });
@@ -43,4 +43,16 @@ test('thin CFT does not receive a compact flexural pass',()=>{
 test('SRC detailing violations and unsupported materials cannot pass',()=>{
  assert.equal(C.calculate({...p,tieSpacing:1000}).ok,false);assert.equal(C.calculate({...p,bar:'D19',nb:2,nh:2}).ok,false);
  for(const q of [{B:NaN},{sh:0},{t:400,type:'rect'},{Fy:500},{Pu:-1},{fck:80},{nb:2.5},{Mux:NaN},{cover:500}])assert.throws(()=>C.calculate({...p,...q}));
+});
+
+
+test('Ec is automatic across strength interpolation boundaries and ignores former Ec input',()=>{
+ for(const [fck,delta] of [[30,4],[40,4],[50,5],[60,6],[70,6]])near(C.concreteModulus(fck),8500*Math.cbrt(fck+delta));
+ near(C.calculate({...p,Ec:1}).p.Ec,8500*Math.cbrt(34));assert.throws(()=>C.concreteModulus(NaN));
+});
+test('RH selection resolves catalog dimensions and BH remains directly editable',()=>{
+ const a=C.calculate({...p,B:800,H:800,shapeMode:'rh',section:'H-400×400×13×21',sh:1,sb:1});
+ assert.equal(a.p.sh,400);assert.equal(a.p.sb,400);assert.equal(a.p.tf,21);
+ const b=C.calculate({...p,shapeMode:'bh',sh:450});assert.equal(b.p.sh,450);
+ assert.throws(()=>C.calculate({...p,shapeMode:'rh',section:'not-a-section'}));
 });

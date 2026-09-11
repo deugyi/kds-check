@@ -119,3 +119,12 @@ test('SRC and both CFT screens render, toggle controls and clear stale results',
  nodes.cc_Pu.value='';nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,false);assert.equal(nodes.cc_results.hidden,true);assert.equal(nodes.cc_diagram.innerHTML,'');
  nodes.cc_Pu.value='4000';nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,true);assert.equal(nodes.cc_results.hidden,false);
 });
+
+
+test('composite column defaults to 800 mm, automatic Ec, RH selection and stud diagrams',()=>{
+ const {nodes}=load();assert.ok(!nodes.cc_Ec);assert.equal(nodes.cc_B.value,'800');assert.equal(nodes.cc_H.value,'800');
+ assert.equal(nodes.cc_shapeMode.value,'rh');assert.equal(nodes.cc_sh.readOnly,true);assert.equal(Number(nodes.cc_sb.value),400);
+ assert.match(nodes.cc_axial.innerHTML,/자동 산정 Ec/);assert.match(nodes.cc_stud_graph.innerHTML,/data-stud=/);assert.match(nodes.cc_stud_results.innerHTML,/하중도입부|도입부/);
+ nodes.cc_shapeMode.value='bh';nodes.t9.events.input();assert.equal(nodes.cc_sh.readOnly,false);
+ nodes.cc_studS.value='0';nodes.t9.events.input();assert.equal(nodes.cc_error.hidden,false);assert.equal(nodes.cc_stud_graph.innerHTML,'');
+});
