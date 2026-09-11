@@ -6,6 +6,8 @@
 'use strict';
 const node=typeof module!=='undefined'&&module.exports;
 const R=node?require('./rc-beam.js'):root.RCBeam;
+const S=node?require('./steel-section.js'):root.SteelSection;
+function concreteModulus(fck){if(!Number.isFinite(fck)||fck<21||fck>70)throw Error('콘크리트 강도는 21–70 MPa로 입력하세요.');const delta=fck<=40?4:fck>=60?6:4+(fck-40)/10;return 8500*Math.cbrt(fck+delta);}
 const E=210000,Er=200000;
 function rect(b,h,x=0,y=0,w=1){return {type:'rect',b,h,x,y,w};}
 function circle(r,x=0,y=0,w=1){return {type:'circle',r,x,y,w};}
@@ -38,6 +40,9 @@ function plastic(steel,bars,concrete,Fy,fy,fc,depth,axis){
  return {neutral,Mn:Math.abs(out.M)/1e6,phiMn:.9*Math.abs(out.M)/1e6,residual:out.N};
 }
 function calculate(p){
+ p={...p,Ec:concreteModulus(p.fck)};
+ if(p.type==='src'&&p.shapeMode==='rh'){const sec=S.findSection(p.section);if(!sec?.listed)throw Error('RH 규격을 선택하세요.');p={...p,sh:sec.H,sb:sec.B,tw:sec.tw,tf:sec.tf};}
+
  if(!['src','rect','circle'].includes(p.type))throw Error('합성 기둥 형식을 선택하세요.');
  for(const k of ['B','H','fck','Fy','Ec','klx','kly'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error('단면·재료·유효좌굴길이는 양수로 입력하세요.');
  if(p.fck<21||p.fck>70||p.Fy>650)throw Error('일반중량 콘크리트 fck 21–70 MPa, 강재 Fy 650 MPa 이하를 입력하세요.');
@@ -113,5 +118,5 @@ function calculate(p){
  return {p:{...p,B,H},steel,bars,concrete,gross,props:{steel:s,bars:r,concrete:c,gross:g},checks,C,C2,Pno:Pno/1000,axes,compositePr,steelPr,Pr,mx,my,combined,axialClass,flexureClass,lambda,lp,lr,max,
   supported:axialSupported&&(!hasMoments||flexureSupported),ok:axialSupported&&p.Pu<=Pr&&(!hasMoments||!!(combined&&combined.ok)),mass:(s.A+r.A)*.00785,concreteVolume:c.A/1e6};
 }
-root.CompositeColumn={calculate,properties,above,plastic};if(node)module.exports=root.CompositeColumn;
+root.CompositeColumn={calculate,properties,above,plastic,concreteModulus};if(node)module.exports=root.CompositeColumn;
 })(typeof globalThis!=='undefined'?globalThis:this);
