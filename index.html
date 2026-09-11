@@ -713,7 +713,7 @@ main:has(section.tab.on){max-width:1440px}
 <label class="beam-wide"><b>후보 표 표시</b><select id="br_filter"><option value="eligible">조건 충족 후보</option><option value="all">전체 규격 · 제외 사유 포함</option></select></label></div>
 <p class="beam-muted">높이·폭 상한은 비우면 제한하지 않습니다. 높이 상한은 역T를 포함한 전체 높이, 폭 상한은 두 부재 중 큰 폭에 적용합니다. 규격표에서 확인된 보용·기둥용 RH를 검색합니다.</p></div>
 </aside><div class="beam-output" aria-label="BH→RH 결과">
-<div class="card"><h2>결과 검토</h2><div id="br_diagram_controls" class="br-view-controls"><button type="button" class="beam-view" id="br_view_model" aria-pressed="true">검토 단면</button><button type="button" class="beam-view" id="br_view_actual" aria-pressed="false">실제 조립 단면</button></div><div id="br_diagram"></div><div id="br_compare"></div></div>
+<div class="card"><h2>결과 검토</h2><div id="br_diagram"></div><div id="br_compare"></div></div>
 <div class="card"><h2>BH → RH / RH + 역T 대체 검토</h2><div id="br_summary" aria-live="polite"></div></div>
 <div class="card"><h2>대체 후보 · 단위길이 중량 순</h2><p class="beam-muted">파란색은 우선 제안 후보입니다. 반 초과 대안을 함께 검색할 때는 1/2 절단 충족안을 기본으로 우선 표시합니다. ‘보기’로 다른 후보의 단면과 성능을 비교할 수 있습니다.</p><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th id="br_section_heading">원본 RH 규격</th><th>Fy<br>(MPa)</th><th>중량<br>(kg/m)</th><th>φMn<br>(kN·m)</th><th>φVn<br>(kN)</th><th>Ix / BH</th><th>판정</th><th>보기</th></tr></thead><tbody id="br_rows"></tbody></table></div></div>
 <div class="card" id="br_assembly_details" hidden><h2>조립 단면 · 정/부모멘트 · 접합 전달력</h2><div id="br_assembly_results"></div></div>
@@ -856,7 +856,7 @@ var SectionPicker=(function(){
 <script src="steel-builtup-i.js?v=20260911-23"></script>
 <script src="steel-rh-tee.js?v=20260911-23"></script>
 <script src="steel-replacement.js?v=20260911-26"></script>
-<script src="steel-replacement-ui.js?v=20260911-26"></script>
+<script src="steel-replacement-ui.js?v=20260911-27"></script>
 <script src="report-print.js?v=20260911-15"></script>
 </body>
 </html>

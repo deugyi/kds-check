@@ -3,7 +3,7 @@
 const get=id=>document.getElementById('br_'+id);
 const f=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{maximumFractionDigits:d}):'—';
 const num=id=>get(id).value.trim()===''?NaN:Number(get(id).value);
-let current=null,selected=null,diagramView='model';
+let current=null,selected=null;
 const rowKey=r=>r.key||r.section.name;
 function diagram(a,b){
   const scale=Math.min(240/Math.max(a.H,b?.H||0),250/Math.max(a.B,b?.B||0));
@@ -14,19 +14,19 @@ function diagram(a,b){
   return `<svg viewBox="0 0 660 330" style="width:100%;max-height:380px" role="img" aria-label="기존 BH와 선택 RH의 동일 축척 비교">${shape(a,165,'기존 BH','#64748b')}${b?shape(b,495,'선택 RH','#1764b5'):`<text x="495" y="165" text-anchor="middle" fill="var(--muted)">${current&&!current.target?'BH 내력 산정 불가 · 후보 판정 보류':'조건 충족 후보 없음'}</text>`}</svg>`;
 }
 function teeDiagram(a,row){
-  const t=row.assembly,top=t.top,tee=t.tee,e=t.effective,H=e.H,actual=diagramView==='actual';
+  const t=row.assembly,top=t.top,tee=t.tee,e=t.effective,H=e.H;
   const scale=Math.min(260/Math.max(a.H,H),210/Math.max(a.B,top.B,tee.B)),bottom=310,yTop=bottom-H*scale;
   const plate=(cx,y,b,h,color)=>`<rect x="${cx-b*scale/2}" y="${yTop+y*scale}" width="${b*scale}" height="${h*scale}" fill="${color}" fill-opacity=".3" stroke="${color}"/>`;
   const cy=bottom-a.H*scale;
   const bh=`<g fill="#64748b" fill-opacity=".25" stroke="#64748b"><rect x="${155-a.B*scale/2}" y="${cy}" width="${a.B*scale}" height="${a.tf*scale}"/><rect x="${155-a.tw*scale/2}" y="${cy+a.tf*scale}" width="${a.tw*scale}" height="${(a.H-2*a.tf)*scale}"/><rect x="${155-a.B*scale/2}" y="${bottom-a.tf*scale}" width="${a.B*scale}" height="${a.tf*scale}"/></g>`;
-  const alternative=actual?
-    plate(465,0,top.B,top.tf,'#1764b5')+plate(465,top.tf,top.tw,top.H-2*top.tf,'#1764b5')+plate(465,top.H-top.tf,top.B,top.tf,'#1764b5')+plate(465,top.H,tee.tw,t.cut-tee.tf,'#248466')+plate(465,H-tee.tf,tee.B,tee.tf,'#248466'):
-    plate(465,0,e.bt,e.tt,'#1764b5')+plate(465,e.tt,e.tw,H-e.tt-e.tb,'#1764b5')+plate(465,H-e.tb,e.bb,e.tb,'#1764b5');
+  const alternative=plate(465,0,e.bt,e.tt,'#1764b5')+
+    plate(465,e.tt,e.tw,top.H-e.tt,'#1764b5')+
+    plate(465,top.H,e.tw,t.cut-e.tb,'#248466')+
+    plate(465,H-e.tb,e.bb,e.tb,'#248466');
   const dimension=(x,y1,y2,label)=>`<g stroke="var(--dim)" stroke-width=".8"><line x1="${x}" x2="${x}" y1="${y1}" y2="${y2}"/><line x1="${x-4}" x2="${x+4}" y1="${y1}" y2="${y1}"/><line x1="${x-4}" x2="${x+4}" y1="${y2}" y2="${y2}"/></g><text fill="var(--dim)" font-size="12" text-anchor="middle" transform="translate(${x+14} ${(y1+y2)/2}) rotate(-90)">${label}</text>`;
-  const ghost=actual?'':`<rect data-middle-flange="excluded" x="${465-top.B*scale/2}" y="${yTop+(top.H-top.tf)*scale}" width="${top.B*scale}" height="${top.tf*scale}" fill="#94a3b8" fill-opacity=".12" stroke="#94a3b8" stroke-opacity=".65" stroke-dasharray="4 3"/>`;
-  const NA=actual?'':`<line x1="${465-Math.max(top.B,tee.B)*scale/2-7}" x2="${465+Math.max(top.B,tee.B)*scale/2+7}" y1="${yTop+t.out.props.y*scale}" y2="${yTop+t.out.props.y*scale}" stroke="#67539b" stroke-dasharray="5 4"/>`;
-  get('view_model').setAttribute?.('aria-pressed',String(!actual));get('view_actual').setAttribute?.('aria-pressed',String(actual));
-  return `<svg viewBox="0 0 660 352" style="width:100%;max-height:430px;display:block" role="img" aria-label="${actual?'실제 조립 단면: 가운데 플랜지 포함':'검토 단면: 가운데 플랜지 제외, 외곽 두 플랜지와 연속 웨브'}">${bh}${ghost}${alternative}${NA}${dimension(290,cy,bottom,`H ${a.H} mm`)}${dimension(600,yTop,bottom,`H ${f(H)} mm`)}<g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="155" y="23">기존 BH</text><text x="465" y="23">${actual?'대안 · 실제 조립 단면':'대안 · 검토 I형 단면'}</text><text x="155" y="337" font-size="12">${a.H} × ${a.B} × ${a.tw} × ${a.tf} mm</text><text x="465" y="337" font-size="12">상부 폭 ${top.B} / 하부 폭 ${tee.B} mm</text></g></svg><p class="br-diagram-caption">${actual?'청색은 RH 전체, 녹색은 절단 역T입니다. 가운데 RH 하부 플랜지는 실제로 남아 있어 중량에 포함됩니다.':'옅은 회색 점선은 실제로 남아 있는 가운데 플랜지입니다. 내력·강성에서는 제외하고 중량에는 포함합니다. 보라색 점선은 검토 중립축입니다.'}<br>상부 RH: ${top.name} · 역T 원본: ${tee.name} · 역T 높이 ${f(t.cut)} mm · 검토 웨브 두께 ${f(e.tw)} mm</p>`;
+  const ghost=`<rect data-middle-flange="excluded" x="${465-top.B*scale/2}" y="${yTop+(top.H-top.tf)*scale}" width="${top.B*scale}" height="${top.tf*scale}" fill="#94a3b8" fill-opacity=".12" stroke="#94a3b8" stroke-opacity=".65" stroke-dasharray="4 3"/>`;
+  const NA=`<line x1="${465-Math.max(top.B,tee.B)*scale/2-7}" x2="${465+Math.max(top.B,tee.B)*scale/2+7}" y1="${yTop+t.out.props.y*scale}" y2="${yTop+t.out.props.y*scale}" stroke="#67539b" stroke-dasharray="5 4"/>`;
+  return `<svg viewBox="0 0 660 352" style="width:100%;max-height:430px;display:block" role="img" aria-label="검토 단면: 가운데 플랜지 제외, 파란색 상부 RH와 초록색 하부 역T">${bh}${ghost}${alternative}${NA}${dimension(290,cy,bottom,`H ${a.H} mm`)}${dimension(600,yTop,bottom,`H ${f(H)} mm`)}<g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="155" y="23">기존 BH</text><text x="465" y="23">대안 · 검토 I형 단면</text><text x="155" y="337" font-size="12">${a.H} × ${a.B} × ${a.tw} × ${a.tf} mm</text><text x="465" y="337" font-size="12">상부 폭 ${top.B} / 하부 폭 ${tee.B} mm</text></g></svg><p class="br-diagram-caption">파란색은 상부 RH, 초록색은 하부 역T입니다. 옅은 회색 점선은 실제로 남아 있는 가운데 플랜지이며, 내력·강성에서는 제외하고 중량에는 포함합니다. 보라색 점선은 검토 중립축입니다.<br>상부 RH: ${top.name} · 역T 원본: ${tee.name} · 역T 높이 ${f(t.cut)} mm · 검토 웨브 두께 ${f(e.tw)} mm</p>`;
 }
 function assemblyDetails(row){
   const a=row?.assembly;get('assembly_details').hidden=!a;
@@ -41,7 +41,7 @@ function assemblyDetails(row){
 }
 function comparison(row){
   const o=current,b=o.base;
-  get('diagram_controls').hidden=!row?.assembly;get('diagram').innerHTML=row?.assembly?teeDiagram(o.bh,row):diagram(o.bh,row?.p);assemblyDetails(row);
+  get('diagram').innerHTML=row?.assembly?teeDiagram(o.bh,row):diagram(o.bh,row?.p);assemblyDetails(row);
   const cells=[['강종',get('bhGrade').value,get('bhGrade').value],['Fy (MPa)',f(o.bh.Fy),f(row?.p.Fy)],['중량 (kg/m)',f(o.bhMass),f(row?.mass)],['φMn (kN·m)',f(b.supported?b.flexure.phiMn:null),f(row?.out.flexure?.phiMn)],['φVn (kN)',f(b.supported?b.shear.phiVn:null),f(row?.out.shear?.phiVn)],['Ix (×10⁶ mm⁴)',f(b.props.Ix/1e6),f(row?.out.props.Ix/1e6)],['높이 H (mm)',f(o.bh.H),f(row?.p.H)]];
   const ratio=(a,c)=>c>0?`${f(a/c,3)}`:'—';
   get('compare').innerHTML=`<table><thead><tr><th>비교 항목</th><th>기존 BH</th><th>${row?.assembly?'선택 RH + 역T':'선택 RH'}</th></tr></thead><tbody>${cells.map(c=>`<tr>${c.map((v,i)=>`<${i?'td':'th'}>${v}</${i?'td':'th'}>`).join('')}</tr>`).join('')}</tbody></table>`+
@@ -83,7 +83,6 @@ for(const id of ['bhGrade']){
 }
 get('topSection').innerHTML='<option value="auto">자동 검색 · 동일 규격 78종</option>'+SteelSection.SECTIONS.filter(s=>s.listed).map(s=>`<option>${s.name}</option>`).join('');
 get('topSection').value='auto';
-for(const [id,view] of [['view_model','model'],['view_actual','actual']])get(id).addEventListener('click',()=>{diagramView=view;if(current)table();});
 document.getElementById('t8').addEventListener('input',update);
 get('summary').addEventListener('click',e=>{const b=e.target.closest('[data-br-proposal]');if(!b||!current)return;selected=b.dataset.brProposal;table();});
 get('rows').addEventListener('click',e=>{const b=e.target.closest('[data-br-section]');if(!b||!current)return;selected=b.dataset.brSection;table();});
