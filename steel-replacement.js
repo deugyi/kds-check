@@ -7,6 +7,7 @@ const B=node?require('./steel-beam.js'):root.SteelBeam;
 const T=node?require('./steel-rh-tee.js'):root.SteelRhTee;
 function mass(p){return (2*p.B*p.tf+(p.H-2*p.tf)*p.tw+(p.rolled?4*(p.r||0)**2*(1-Math.PI/4):0))*.00785;}
 function calculate(p){
+  p={...p,rhGrade:p.bhGrade,teeGrade:p.bhGrade};
   if(!['capacity','load'].includes(p.mode))throw Error('비교 방식을 선택하세요.');
   for(const k of ['maxH','maxB'])if(p[k]!==null&&(!Number.isFinite(p[k])||p[k]<=0))throw Error('후보 치수 상한은 비우거나 양수로 입력하세요.');
   const fy=S.yieldStrength(p.bhGrade,Math.max(p.tf,p.tw));

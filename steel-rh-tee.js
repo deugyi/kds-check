@@ -6,7 +6,7 @@ const S=node?require('./steel-section.js'):root.SteelSection;
 const I=node?require('./steel-builtup-i.js'):root.SteelBuiltupI;
 function assembly(top,tee,cut,p){
   if(!Number.isFinite(cut)||cut<=tee.tf+tee.r||cut>=tee.H-tee.tf-tee.r)throw Error('절단선이 원본 RH의 직선 웨브 구간에 있어야 합니다.');
-  const topFy=S.yieldStrength(p.rhGrade,Math.max(top.tf,top.tw)),teeFy=S.yieldStrength(p.teeGrade,Math.max(tee.tf,tee.tw));
+  const topFy=S.yieldStrength(p.bhGrade,Math.max(top.tf,top.tw)),teeFy=S.yieldStrength(p.bhGrade,Math.max(tee.tf,tee.tw));
   if(!topFy||!teeFy)throw Error('상부 RH와 역T 강종을 확인하세요.');
   const effective={H:top.H+cut,bt:top.B,tt:top.tf,bb:tee.B,tb:tee.tf,tw:Math.min(top.tw,tee.tw),Fy:Math.min(topFy,teeFy),E:S.E,Lb:p.Lb,Cb:p.Cb};
   const out=I.calculate(effective);
