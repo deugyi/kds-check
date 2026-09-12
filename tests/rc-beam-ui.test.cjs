@@ -159,7 +159,7 @@ test('one-way slab initializes, switches load mode, selects steel and clears inv
  assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_diagram.innerHTML,/<svg/);assert.match(nodes.ow_load.innerHTML,/12.15/);
  nodes.ow_mode.value='direct';nodes.ow_Mp.value='1000';vm.runInContext('runRCSlabOneWay()',context);
  assert.equal(nodes.ow_direct.hidden,false);assert.equal(nodes.ow_auto.hidden,true);assert.match(nodes.ow_summary.innerHTML,/미달/);
- nodes.ow_view_top.events.click();assert.match(nodes.ow_selected.innerHTML,/상부/);
+ nodes.ow_diagram.events.click({target:{closest:()=>({dataset:{face:'top'}})}});assert.match(nodes.ow_selected.innerHTML,/상부/);
  nodes.ow_h.value='';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_results.hidden,true);assert.equal(nodes.ow_diagram.innerHTML,'');
  nodes.ow_h.value='200';nodes.ow_mode.value='auto';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.equal(nodes.ow_results.hidden,false);
 });
@@ -171,7 +171,7 @@ test('slab load combinations, propped end and prominent distribution/shear resul
  assert.match(nodes.ow_temp.innerHTML,/최대 중심간격/);assert.match(nodes.ow_temp.innerHTML,/순간격/);
  nodes.ow_support.value='propped';nodes.ow_point.value='10';vm.runInContext('runRCSlabOneWay()',context);
  assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_load.innerHTML,/21.15/);assert.match(nodes.ow_load.innerHTML,/1.4D/);
- nodes.ow_view_temp.events.click();assert.match(nodes.ow_selected.innerHTML,/배력근/);
+ nodes.ow_diagram.events.click({target:{closest:()=>({dataset:{face:'temp'}})}});assert.match(nodes.ow_selected.innerHTML,/배력근/);
  nodes.ow_pointX.value='4';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_results.hidden,true);assert.equal(nodes.ow_summary.innerHTML,'');
  nodes.ow_pointX.value='1.5';nodes.ow_tempSpacing.value='500';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_temp.innerHTML,/미달/);
 });
