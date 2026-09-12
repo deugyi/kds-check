@@ -177,3 +177,13 @@ test('slab load combinations, propped end and prominent distribution/shear resul
 });
 
 test('seismic UI initializes, responds to changed inputs and clears invalid results',()=>{const {nodes}=load();assert.equal(nodes.eq_error.hidden,true);assert.match(nodes.eq_plot.innerHTML,/설계응답스펙트럼/);assert.match(nodes.eq_axes.innerHTML,/보정 후 동적/);nodes.eq_x_Vt.value='0';nodes.eq_x_Vt.events.input();assert.equal(nodes.eq_results.hidden,true);assert.equal(nodes.eq_summary.innerHTML,'');nodes.eq_correction.value='no';nodes.eq_correction.events.change();assert.equal(nodes.eq_error.hidden,true);assert.match(nodes.eq_summary.innerHTML,/검토 안 함/);nodes.eq_soil.value='S6';nodes.eq_soil.events.change();assert.equal(nodes.eq_results.hidden,true);});
+
+test('wind screens initialize, update, and remove stale results',()=>{
+ const {nodes}=load();assert.equal(nodes.wm_error.hidden,true);assert.match(nodes.wm_plot.innerHTML,/<svg/);assert.equal(nodes.wc_error.hidden,true);assert.match(nodes.wc_table.innerHTML,/부압/);
+ nodes.wm_xFrequency.value='0.4';nodes.wm_xFrequency.events.input();assert.equal(nodes.wm_flexible.hidden,false);assert.match(nodes.wm_coefficients.innerHTML,/유연/);
+ nodes.wm_H.value='';nodes.wm_H.events.input();assert.equal(nodes.wm_results.hidden,true);assert.equal(nodes.wm_summary.innerHTML,'');assert.equal(nodes.wm_plot.innerHTML,'');
+ nodes.wm_H.value='30';nodes.wm_H.events.input();assert.equal(nodes.wm_results.hidden,false);
+ nodes.wc_H.value='19';nodes.wc_H.events.input();assert.match(nodes.wc_coefficients.innerHTML,/20m 미만 외부마감 보정/);
+ nodes.wc_area.value='0';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,true);assert.equal(nodes.wc_table.innerHTML,'');
+ nodes.wc_area.value='2';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,false);
+});
