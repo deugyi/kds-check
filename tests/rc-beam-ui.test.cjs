@@ -187,3 +187,4 @@ test('wind screens initialize, update, and remove stale results',()=>{
  nodes.wc_area.value='0';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,true);assert.equal(nodes.wc_table.innerHTML,'');
  nodes.wc_area.value='2';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,false);
 });
+test('foundation screens initialize, update and clear unsupported contact cases',()=>{const {nodes:n}=load();for(const pre of ['fs','fp']){assert.equal(n[pre+'_error'].hidden,true);assert.match(n[pre+'_checks'].innerHTML,/기둥 뚫림/);assert.match(n[pre+'_plot'].innerHTML,/<svg/);}n.fs_Mys.value='2000';n.fs_Mys.events.input();assert.equal(n.fs_results.hidden,true);assert.equal(n.fs_plot.innerHTML,'');n.fs_Mys.value='0';n.fs_Mys.events.input();assert.equal(n.fs_results.hidden,false);});
