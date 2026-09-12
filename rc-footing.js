@@ -4,7 +4,8 @@
 'use strict';
 const R=typeof module!=='undefined'&&module.exports?require('./rc-beam.js'):root.RCBeam;
 const S=typeof module!=='undefined'&&module.exports?require('./rc-slab-uplift.js'):root.RCSlabUplift;
-const defaults={mode:'soil',fck:30,fy:400,bx:3000,by:3000,h:700,cx:600,cy:600,cover:80,barX:'D22',barY:'D22',spacingX:150,spacingY:150,Ns:1500,Mxs:0,Mys:0,Nu:2100,Mxu:0,Myu:0,weightFactor:1.2,qa:200,nx:2,ny:2,sx:1800,sy:1800,diameter:500,pileAllow:800};
+const T=typeof module!=='undefined'&&module.exports?require('./rc-footing-shear.js'):root.RCFootingShear;
+const defaults={shearBar:'D13',fyt:400,mode:'soil',fck:30,fy:400,bx:3000,by:3000,h:700,cx:600,cy:600,cover:80,barX:'D22',barY:'D22',spacingX:150,spacingY:150,Ns:1500,Mxs:0,Mys:0,Nu:2100,Mxu:0,Myu:0,weightFactor:1.2,qa:200,nx:2,ny:2,sx:1800,sy:1800,diameter:500,pileAllow:800};
 const clamp=x=>Math.max(0,Math.min(1,x));
 function fraction(distance,diameter){return clamp(.5+distance/diameter);}
 function punch(fck,d,bx,by,rho){
@@ -21,7 +22,9 @@ function calculate(input){
  if(!['soil','pile'].includes(p.mode)||!R.BARS[p.barX]||!R.BARS[p.barY]||!R.FY.includes(p.fy)||p.fck<21||p.fck>90)throw Error('재료 또는 기초 형식 입력을 확인하세요.');
  if(p.cx>=p.bx||p.cy>=p.by)throw Error('기둥은 기초보다 작아야 합니다.');
  if(p.bx>30000||p.by>30000||p.h>5000)throw Error('독립기초 지원 범위는 평면 30m, 두께 5m 이하입니다.');
- const dx=p.h-p.cover-R.BARS[p.barX].diameter/2,dy=p.h-p.cover-R.BARS[p.barX].diameter-R.BARS[p.barY].diameter/2,d=Math.min(dx,dy);
+ if(!['D10','D13','D16'].includes(p.shearBar)||![400,500].includes(p.fyt))throw Error('전단철근 규격·강도를 확인하세요.');
+ const reserve=R.BARS[p.shearBar].diameter;
+ const dx=p.h-p.cover-reserve-R.BARS[p.barX].diameter/2,dy=p.h-p.cover-reserve-R.BARS[p.barX].diameter-R.BARS[p.barY].diameter/2,d=Math.min(dx,dy);
  if(d<=0||p.cover*2+R.BARS[p.barX].diameter+R.BARS[p.barY].diameter>=p.h)throw Error('피복과 철근층을 배치할 두께가 부족합니다.');
  const B=p.bx/1000,L=p.by/1000,A=B*L,W=A*p.h/1000*24,wu=W*p.weightFactor/A;
  const totalS=p.Ns+W,totalU=p.Nu+p.weightFactor*W,notes=[];
@@ -85,10 +88,12 @@ function calculate(input){
  const vu=Vu*1000/(pc.b0*d)+Math.abs(p.Mxu)*1e6*py/2/jx+Math.abs(p.Myu)*1e6*px/2/jy;
  const phiV=.75*Math.min(pc.vc,.63*Math.sqrt(p.fck),.25*p.fck);
  const punching={...pc,px,py,d,Vu,vu,phiV,ratio:vu/phiV,ok:vu<=phiV,hasMoment:!!(p.Mxu||p.Myu)};
- notes.push('중앙 기둥·일정 두께·보통중량 콘크리트·전단보강 없는 기초입니다. 철근은 하부 X층, 그 위 Y층으로 전체 폭에 균등 배치합니다.');
+ notes.push('중앙 기둥·일정 두께·보통중량 콘크리트·기초입니다. 전단철근 외면까지 피복을 적용하고, 보강이 불필요해도 선택 전단철근 직경만큼 유효깊이를 보수적으로 확보합니다. 철근은 하부 X층, 그 위 Y층으로 전체 폭에 균등 배치합니다.');
  notes.push('정착길이·기둥 지압 및 다월·침하·활동·전체 안정은 별도 검토입니다. 여러 하중조합은 각각 입력하여 검토하세요.');
  if(punching.hasMoment)notes.push('편심 뚫림은 모멘트 전량을 선형 둘레 전단응력으로 부담하는 보수적 예비 검토입니다. KDS 4.11.7의 휨·전단·비틀림 분담 상세 검토를 대체하지 않습니다.');
- return {p,dx,dy,d,W,totalS,totalU,piles,bearing,rows,punching,notes,depthOK:d>=(p.mode==='soil'?150:300),pressure};
+ const result={p,dx,dy,d,W,totalS,totalU,piles,bearing,rows,punching,notes,depthOK:d>=(p.mode==='soil'?150:300),pressure};
+ result.reinforcement=T.design(result,punch);
+ return result;
 }
 root.RCFooting={defaults,fraction,punch,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCFooting;
