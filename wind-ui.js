@@ -1,0 +1,55 @@
+(function(){'use strict';
+const E=Wind,fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const names={wall:'④ 외벽 일반부',corner:'⑤ 외벽 모서리',roof:'① 지붕 일반부',edge:'② 지붕 가장자리',roofCorner:'③ 지붕 모서리'};
+const metric=(name,n,unit)=>`<div class="wind-metric">${name}<strong>${fmt(n)}</strong><span>${unit}</span></div>`;
+const dl=rows=>'<dl class="beam-values">'+rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')+'</dl>';
+let mainResult=null,cladResult=null,selectedZone='wall';
+function el(pre,k){return document.getElementById(pre+'_'+k);}
+function input(pre){const p={};for(const k of ['H','B','D','V0','Kzt','stories'])p[k]=Number(el(pre,k).value||NaN);for(const k of ['importance','terrain','design'])p[k]=el(pre,k).value;if(pre==='wm'){for(const k of ['Kd','xFrequency','yFrequency','xDamping','yDamping','beta','massRatio'])p[k]=Number(el(pre,k).value||NaN);for(const k of ['massMode'])p[k]=el(pre,k).value;}else{p.area=Number(el(pre,'area').value||NaN);p.z=el(pre,'z').value===''?NaN:Number(el(pre,'z').value);p.internal=el(pre,'internal').value;}return p;}
+function state(pre,r){el(pre,'error').hidden=r.valid;el(pre,'results').hidden=!r.valid;el(pre,'error').textContent=r.valid?'':r.errors.join(' ');if(!r.valid)for(const k of ['summary','plot','selection','table','coefficients','basis'])el(pre,k).innerHTML='';return r.valid;}
+function commonRows(r){return [['건물 B / D / H',`${fmt(r.p.B)} / ${fmt(r.p.D)} / ${fmt(r.p.H)} m`],['지상 층수',r.p.stories],['입력 기본풍속 V₀',fmt(r.p.V0)+' m/s'],['설계풍속 VH',fmt(r.VH)+' m/s'],['속도압 qH',fmt(r.qH,4)+' kPa'],['풍속고도분포계수 Kr',fmt(r.Kr,4)],['Iw / Kd / Kzt',`${fmt(r.Iw)} / ${fmt(r.Kd)} / ${fmt(r.p.Kzt)}`],['적용 지표면조도',r.effectiveTerrain+(r.effectiveTerrain!==r.p.terrain?' · 20m 미만 외부마감 보정':'')],['zb / Zg / α',`${r.t.zb} m / ${r.t.zg} m / ${r.t.alpha}`],['풍하중계수',r.factor+' · '+(r.factor===1?'강도설계':'허용응력설계')]];}
+const source='<p><a href="https://www.kcsc.re.kr/standardCode/viewer/KDS%2041%2012%2000" target="_blank" rel="noopener">KDS 41 12 00:2022 공식 기준</a> · 현행 등록판 확인 2026-09-12</p>';
+const commonBasis='<p>VH = V₀ × Kd × Kr × Kzt × Iw, qH = ½ρVH². ρ = 1.225 kg/m³. 결과는 kPa·kN·kN·m로 환산합니다. V₀는 재현기간 500년 풍속이며 강도설계는 1.0W, 허용응력설계는 0.65W를 적용합니다.</p>';
+function mainPlot(){
+ const r=mainResult;if(!r)return;const axis=el('wm','axis').value==='y'?'y':'x',a=r.axes[axis];let floor=Math.round(Number(el('wm','floor').value)||1);floor=Math.max(1,Math.min(r.p.stories,floor));el('wm','floor').value=String(floor);el('wm','floor').max=String(r.p.stories);el('wm','floor').min='1';
+ const row=a.rows.find(x=>x.floor===floor),max=Math.max(...a.rows.map(x=>x.p))*1.12,y=z=>325-z/r.p.H*275,x=v=>210+v/max*470;
+ let svg='<svg viewBox="0 0 800 390" role="img" aria-label="층별 풍압 분포 · 층을 클릭하여 선택"><text x="24" y="24">높이 (m)</text><text x="690" y="365" text-anchor="end">순풍압 (kPa)</text><path d="M210 45V325H690" fill="none" stroke="var(--dim)"/>';
+ for(let i=0;i<=4;i++){const z=r.p.H*i/4;svg+=`<path d="M65 ${y(z)}H690" stroke="var(--line)"/><text x="55" y="${y(z)+4}" text-anchor="end">${fmt(z,1)}</text><text x="${x(max*i/4)}" y="348" text-anchor="middle">${fmt(max*i/4)}</text>`;}
+ for(const v of a.rows){const h=(v.hi-v.lo)/r.p.H*275;svg+=`<g data-floor="${v.floor}" role="button" tabindex="0" aria-label="${v.floor}층 선택"><rect x="85" y="${y(v.hi)}" width="82" height="${h}" fill="${v.floor===floor?'#27679b':'#e4edf4'}" stroke="#93abc0"/><rect x="210" y="${y(v.hi)}" width="${x(v.p)-210}" height="${Math.max(.8,h-1)}" fill="${v.floor===floor?'#27679b':'#b8cfe1'}"/><title>${v.floor}층 · ${fmt(v.p)} kPa · ${fmt(v.F)} kN</title></g>`;}
+ svg+=`<text x="85" y="370">${axis.toUpperCase()}풍 · 수압면 폭 ${fmt(a.B,1)} m</text></svg>`;el('wm','plot').innerHTML=svg;
+ el('wm','selection').innerHTML=dl([['선택 구간',`${floor}층 · ${fmt(row.lo)}~${fmt(row.hi)} m`],['중간높이 순풍압',fmt(row.p)+' kPa'],['구간 풍하중',fmt(row.F)+' kN'],['구간 하단 누적 전단력',fmt(row.shear)+' kN'],['구간 하단 전도모멘트',fmt(row.overturning)+' kN·m']]);
+ el('wm','table').innerHTML='<table class="beam-table"><thead><tr><th>층</th><th>높이 구간 (m)</th><th>중간 풍압<br>(kPa)</th><th>구간 하중<br>(kN)</th><th>누적 전단력<br>(kN)</th><th>하단 모멘트<br>(kN·m)</th></tr></thead><tbody>'+a.rows.map(v=>`<tr class="${v.floor===floor?'wind-selected':''}"><td><button type="button" class="wind-row" data-floor="${v.floor}">${v.floor}층</button></td><td>${fmt(v.lo,1)}~${fmt(v.hi,1)}</td><td>${fmt(v.p,3)}</td><td>${fmt(v.F)}</td><td>${fmt(v.shear)}</td><td>${fmt(v.overturning)}</td></tr>`).join('')+'</tbody></table>';
+}
+function renderMain(){
+ const p=input('wm');el('wm','flexible').hidden=p.xFrequency>1&&p.yFrequency>1;el('wm','mass_wrap').hidden=p.massMode!=='direct';const r=E.main(p);mainResult=r.valid?r:null;if(!state('wm',r))return;
+ el('wm','summary').innerHTML='<div class="wind-metrics">'+metric('X 밑면전단력',r.axes.x.V,'kN')+metric('Y 밑면전단력',r.axes.y.V,'kN')+metric('X 전도모멘트',r.axes.x.M,'kN·m')+metric('Y 전도모멘트',r.axes.y.M,'kN·m')+'</div><p class="beam-muted">X·Y는 서로 다른 풍향의 독립 하중 사례입니다. 풍방향 수평하중 결과이며, 전체 풍하중 조합의 완료 판정은 아닙니다.</p>';
+ el('wm','coefficients').innerHTML=dl(commonRows(r))+['x','y'].map(a=>{const v=r.axes[a];return '<h3>'+a.toUpperCase()+' 방향 · '+v.mode+'</h3>'+dl([['고유진동수 / 감쇠비',`${fmt(p[a+'Frequency'],3)} Hz / ${fmt(p[a+'Damping'],4)}`],['β / 질량 분포',`${p.beta} / ${p.massMode==='uniform'?'균일':('M*/M = '+fmt(p.massRatio,4))}`],['가스트영향계수 GD',fmt(v.GD,4)],['IH / BD / RD',`${fmt(v.IH,4)} / ${fmt(v.BD,4)} / ${fmt(v.RD,4)}`],['φD / 피크팩터 gD',`${fmt(v.phi,4)} / ${fmt(v.g,4)}`],['풍하벽 Cpe2',fmt(v.leeward)],['층별 수압면 폭',fmt(v.B)+' m']]);}).join('');
+ el('wm','basis').innerHTML=source+commonBasis+'<p>p(z) = qH·GD·(Cpe1(z) − Cpe2). 풍상벽 Cpe1 = 0.8kz (D/B ≤ 1), D/B &gt; 1이면 0.05를 더합니다. 풍하벽 Cpe2 = −0.50 또는 −0.35. 밀폐형 전체 수평합력에서는 동일한 내압이 상쇄됩니다(식 5.2-2).</p><p>각 층 구간의 p(z)·B를 적분하여 F를, p(z)·B·z를 적분하여 밑면 전도모멘트를 계산합니다. 표의 풍압은 구간 중간높이 값으로, 구간 평균값과 다를 수 있습니다.</p><p>GD: n &gt; 1Hz이면 식 5.6-2, 그 이하는 식 5.6-1. 유연식은 β에 따른 모드보정과 일반화질량을 고려합니다.</p><p>적용 범위: 높이 방향으로 일정한 사각형·밀폐형 건물, H/√(BD) ≤ 8, H ≤ Zg. 인접 건물의 후류·골바람, 공기력 불안정 등의 영향이 없는 경우에 적용합니다.</p><p>이 페이지는 풍방향 하중 산정입니다. 풍직각·비틀림·와류진동, 지붕 주골조 하중, 사용성, 부분개방형 및 풍하중 조합(5.13)은 별도 검토해야 합니다. 초고층·특수 형상은 풍동시험 적용 여부를 확인하세요.</p>';
+ mainPlot();
+}
+function cladPlot(){
+ const r=cladResult;if(!r)return;const row=r.rows.find(x=>x.zone===selectedZone),fill=(z,c)=>selectedZone===z?c:c+'55';
+ const rect=(z,x,y,w,h,c)=>`<rect data-zone="${z}" role="button" tabindex="0" aria-label="${names[z]} 선택" x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill(z,c)}" stroke="${c}" stroke-width="${selectedZone===z?3:1}"><title>${names[z]}</title></rect>`;
+ // 20m+ roof corners extend 2a along an edge and a inward (table 5.8-1).
+ let svg='<svg viewBox="0 0 800 340" role="img" aria-label="외벽 및 평지붕 검토 구역"><text x="190" y="28" text-anchor="middle">외벽 입면</text><text x="585" y="28" text-anchor="middle">평지붕 평면</text>';
+ svg+=rect('wall',100,60,180,235,'#27679b')+rect('corner',65,60,35,235,'#168777')+rect('corner',280,60,35,235,'#168777');
+ svg+=rect('roof',500,100,170,155,'#27679b')+rect('edge',460,60,250,40,'#168777')+rect('edge',460,255,250,40,'#168777')+rect('edge',460,100,40,155,'#168777')+rect('edge',670,100,40,155,'#168777');
+ for(const [x,y] of [[460,60],[670,60],[460,255],[670,255]]){svg+=rect('roofCorner',x,y,40,40,'#c7792b');if(r.p.H>=20)svg+=rect('roofCorner',x===460?500:630,y,40,40,'#c7792b');}
+ svg+='<text x="190" y="182" text-anchor="middle">④</text><text x="82" y="182" text-anchor="middle">⑤</text><text x="585" y="182" text-anchor="middle">①</text><text x="480" y="182" text-anchor="middle">②</text><text x="480" y="87" text-anchor="middle">③</text>'+`<text x="400" y="327" text-anchor="middle">가장자리 폭 a = ${fmt(r.a)} m · ${r.p.H>=20?'지붕 모서리 길이 2a':'지붕 모서리 길이 a'}</text></svg>`;
+ el('wc','plot').innerHTML=svg;el('wc','selection').innerHTML='<h3>'+names[selectedZone]+'</h3>'+dl([['정압',row.positive===null?'평지붕 정압계수 없음':fmt(row.positive,3)+' kPa · '+fmt(row.Fpos)+' kN'],['부압 · 흡입',fmt(row.negative,3)+' kPa · '+fmt(row.Fneg)+' kN'],['피크외압계수 Ĉpe',`${fmt(row.pos,3)} / ${fmt(row.neg,3)}`],['피크내압계수 Ĉpi',`${fmt(r.internal[2])} / ${fmt(r.internal[3])}`]]);
+ el('wc','table').innerHTML='<table class="beam-table"><thead><tr><th>구역</th><th>정압 (kPa)</th><th>부압 (kPa)</th><th>정압 하중 (kN)</th><th>부압 하중 (kN)</th></tr></thead><tbody>'+r.rows.map(v=>`<tr class="${v.zone===selectedZone?'wind-selected':''}"><td><button type="button" class="wind-row" data-zone="${v.zone}">${names[v.zone]}</button></td><td>${fmt(v.positive,3)}${v.minPos?' *':''}</td><td>${fmt(v.negative,3)}${v.minNeg?' *':''}</td><td>${fmt(v.Fpos)}</td><td>${fmt(v.Fneg)}</td></tr>`).join('')+'</tbody></table><p class="beam-muted">+는 면 안쪽으로 누르는 압력, −는 바깥쪽 흡입입니다. *는 강도설계 기준 최소풍압 0.675 kPa 적용. 평지붕은 해당 표에 제시된 부압을 검토합니다.</p>';
+}
+function renderClad(){
+ const r=E.cladding(input('wc'));cladResult=r.valid?r:null;if(!state('wc',r))return;const walls=r.rows.filter(x=>x.pos!==null);
+ el('wc','summary').innerHTML='<div class="wind-metrics">'+metric('최대 외벽 정압',Math.max(...walls.map(x=>x.positive)),'kPa')+metric('최대 외벽 흡입',Math.max(...walls.map(x=>-x.negative)),'kPa')+metric('최대 지붕 흡입',Math.max(...r.rows.slice(2).map(x=>-x.negative)),'kPa')+metric('유효수압면적',r.p.area,'m²')+'</div>';
+ el('wc','coefficients').innerHTML=dl(commonRows(r).concat([['피크계수 적용표',r.p.H>=20?'표 5.8-1 · H ≥ 20m':'표 5.8-2 · H < 20m'],['외벽 검토 높이 z',fmt(r.p.z)+' m'],['외벽 정압 kz',fmt(r.rows[0].k,4)],['개구부 조건',r.internal[1]],['피크내압계수',`${fmt(r.internal[2])} / ${fmt(r.internal[3])}`]]));
+ el('wc','basis').innerHTML=source+commonBasis+'<p>H ≥ 20m의 외벽 정압: p = qH(kzĈpe − Ĉpi). 외벽 부압 및 지붕: p = qH(Ĉpe − Ĉpi). H &lt; 20m는 모든 부위에 qH(Ĉpe − Ĉpi)를 적용하며, 조도 A·B·C는 C의 속도압을 사용합니다.</p><p>유효수압면적별 피크외압계수는 표 5.8-1 및 표 5.8-2 그래프의 꺾임점을 로그 면적축에서 보간합니다. 저층 평지붕 벽면에 허용되는 10% 감소는 적용하지 않았습니다. 내압계수는 표 5.8-9의 정·부 값을 적용하여 불리한 경우를 취합니다.</p><p>강도설계 풍압의 절댓값은 최소 0.675 kPa. 허용응력설계는 최소풍압 적용 후 0.65를 곱합니다. 부재 하중 W = p·Ac.</p><p>사각형·평지붕(경사 0°) 건물을 대상으로 합니다. 경사지붕, 독립지붕, 원형, 파라펫·필로티 등 부속물, 개방형, 한 표면의 개구부가 30%를 초과하는 경우와 풍동시험 하중은 포함하지 않습니다. 구역 경계의 부재는 인접 구역 중 불리한 값을 사용하세요.</p>';cladPlot();
+}
+for(const [pre,render] of [['wm',renderMain],['wc',renderClad]]){
+ const ids=pre==='wm'?['H','B','D','V0','Kzt','stories','importance','terrain','design','Kd','xFrequency','yFrequency','xDamping','yDamping','beta','massRatio','massMode']:['H','B','D','V0','Kzt','stories','importance','terrain','design','area','z','internal'];
+ for(const k of ids)for(const event of ['input','change'])el(pre,k).addEventListener(event,render);
+ for(const k of ['plot','table']){const handler=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;const t=event.target.closest(pre==='wm'?'[data-floor]':'[data-zone]');if(!t)return;event.preventDefault();if(pre==='wm'){el('wm','floor').value=t.dataset.floor;mainPlot();}else{selectedZone=t.dataset.zone;cladPlot();}};el(pre,k).addEventListener('click',handler);el(pre,k).addEventListener('keydown',handler);}
+ render();
+}
+for(const k of ['axis','floor'])for(const event of ['input','change'])el('wm',k).addEventListener(event,mainPlot);
+})();

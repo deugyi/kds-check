@@ -1,0 +1,12 @@
+main:has(#t14.on),main:has(#t15.on){max-width:1440px}
+#t14 .card,#t15 .card{padding:20px}#t14 .card h2,#t15 .card h2{font-size:18px}#t14 h3,#t15 h3{font-size:15px;color:var(--accent)}
+#t14 .beam-inputs,#t15 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#t14 label,#t14 input,#t14 select,#t15 label,#t15 input,#t15 select{font-size:14px}#t14 input,#t14 select,#t15 input,#t15 select{min-height:42px}
+#t14 .beam-muted,#t15 .beam-muted{font-size:12px;line-height:1.7}#t14 [hidden],#t15 [hidden]{display:none!important}
+#wm_error,#wc_error{padding:14px;border:1px solid var(--ng);color:var(--ng);border-radius:6px}
+.wind-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.wind-metric{background:var(--code);border-radius:6px;padding:16px;font-size:14px}.wind-metric strong{display:block;font-size:26px;color:var(--accent);margin:6px 0;font-variant-numeric:tabular-nums}.wind-metric span{font-size:12px;color:var(--dim)}
+.wind-plot svg{width:100%;display:block}.wind-plot text{pointer-events:none;font-family:inherit;font-size:13px;fill:var(--ink)}.wind-plot [role=button]{cursor:pointer}.wind-plot [role=button]:hover,.wind-plot [role=button]:focus{stroke:var(--accent);stroke-width:3;outline:none}
+.wind-scroll{overflow:auto}.wind-scroll table{min-width:650px}.wind-row{background:none;border:0;color:var(--accent);font:inherit;cursor:pointer;padding:8px 4px;white-space:nowrap}.wind-selected{background:#e4eff8}
+#wm_basis,#wc_basis{font-size:14px;line-height:1.8}#wm_coefficients .beam-values div,#wc_coefficients .beam-values div{flex-wrap:wrap}#wm_selection,#wc_selection{font-size:14px}
+@media(max-width:650px){#t14 .card,#t15 .card{padding:16px}.wind-metric strong{font-size:22px}.wind-plot{overflow:auto}.wind-plot svg{min-width:520px}}
+@media print{.wind-metrics{grid-template-columns:1fr 1fr}.wind-plot{overflow:visible}.wind-plot svg{min-width:0;max-height:95mm}.wind-scroll{overflow:visible}.wind-scroll table{min-width:0;font-size:8pt}.wind-row{padding:0;color:inherit}#wm_axis,#wm_floor{display:none}.wind-metric strong{font-size:18px}#t14 .beam-workspace,#t15 .beam-workspace{display:block}#t14 .beam-sidebar,#t15 .beam-sidebar{display:none}}
