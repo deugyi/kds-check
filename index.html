@@ -263,6 +263,7 @@ main:has(#t11.on){max-width:1440px}#t11{font-size:16px}#t11 .card{padding:20px}#
 main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px} #t12 .card h2{font-size:18px} #t12 [hidden]{display:none!important} #t12 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px} #t12 input,#t12 select{min-height:42px} #ow_error{color:var(--ng);padding:14px;border:1px solid var(--ng)} #t12 .beam-values div{flex-wrap:wrap} #t12 svg text{fill:var(--ink);font-size:14px} #t12 .beam-table{width:100%} #ow_flexure{overflow-x:auto} #ow_direct label{display:block;margin-bottom:10px}
 .ow-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.ow-metric{display:flex;flex-direction:column;gap:8px;padding:16px;background:var(--code);border:1px solid var(--line);border-radius:7px}.ow-metric strong{font-size:20px}.ow-metric span{font-size:14px}.ow-scroll{overflow:auto}#ow_auto label{display:block;margin-bottom:12px}@media(max-width:650px){.ow-metrics{grid-template-columns:1fr}}
 </style>
+<link rel="stylesheet" href="home.css?v=20260912-37">
 </head>
 <body>
 
@@ -271,6 +272,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 </header>
 
 <nav id="nav" aria-label="검토 항목">
+<button type="button" id="home-button" class="menu-top home-nav on" aria-current="page">홈</button>
   <div class="menu">
     <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">설계하중</button>
     <ul class="menu-list" hidden>
@@ -280,11 +282,11 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
     </ul>
   </div>
   <div class="menu">
-    <button type="button" class="menu-top on" aria-haspopup="true" aria-expanded="false">철근콘크리트</button>
+    <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">철근콘크리트</button>
     <ul class="menu-list" hidden>
       <li><button type="button" data-t="t12">1방향 슬래브</button></li>
       <li><button type="button" disabled>2방향 슬래브</button></li>
-      <li><button type="button" data-t="t1" aria-current="page">보</button></li>
+      <li><button type="button" data-t="t1">보</button></li>
       <li><button type="button" data-t="t7">보 : 전이보 타설</button></li>
       <li><button type="button" data-t="t2">기둥</button></li>
       <li><button type="button" data-t="t10">벽체</button></li>
@@ -318,9 +320,35 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 </nav>
 
 <main>
+<section class="tab on" id="home" aria-labelledby="home-title">
+<div class="home-hero"><div><p class="home-eyebrow">KDS 14 / 41 · STRUCTURAL DESIGN</p><h2 id="home-title" tabindex="-1">현장 대안 검토의<br>시작을 한 곳에서.</h2><p class="home-intro">부재 내력부터 대안 단면 비교, 시공 단계와 프레임 해석까지.<br>검토할 프로그램을 선택하세요.</p><div class="home-stats"><span><b>12</b> 검토 프로그램</span><span><b>4</b> 전문 분야</span></div></div><svg class="home-hero-art" viewBox="0 0 400 220" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="2"><path d="M40 180V80L145 25L350 70V175M40 80L240 128L350 70M240 128V212M145 25V133L350 175M40 180L240 212L350 175M145 133L40 180" opacity=".3"/><path d="M93 194V95L195 39M190 203V116L295 59M93 95L295 144M295 59V190" opacity=".18"/><path d="M40 80L240 128L350 70" stroke-width="9"/><path d="M40 80V180M240 128V212M350 70V175" stroke-width="5"/></g><g fill="currentColor"><circle cx="40" cy="80" r="6"/><circle cx="240" cy="128" r="6"/><circle cx="350" cy="70" r="6"/></g></svg></div>
+<div class="home-recent" id="home-recent" hidden><div class="home-section-heading"><h3>최근 사용한 프로그램</h3><span>이 브라우저 기준</span></div><div id="home-recent-list"></div></div>
+<div class="home-catalog">
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">01</span><h3>철근콘크리트</h3><p>콘크리트 부재의 내력과 배근 검토</p></div><span>6개 프로그램</span></div><div class="home-cards">
+<button type="button" class="home-program" data-open="t1"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="27" y="8" width="46" height="64" rx="2"/><rect x="33" y="14" width="34" height="52" rx="5"/><g fill="currentColor"><circle cx="39" cy="58" r="3"/><circle cx="50" cy="58" r="3"/><circle cx="61" cy="58" r="3"/></g></svg><span class="home-program-copy"><strong>보</strong><span>휨·전단 내력과 배근·물량 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t2"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="22" y="12" width="56" height="56"/><rect x="29" y="19" width="42" height="42" rx="5"/><g fill="currentColor"><circle cx="34" cy="24" r="3"/><circle cx="66" cy="24" r="3"/><circle cx="34" cy="56" r="3"/><circle cx="66" cy="56" r="3"/></g></svg><span class="home-program-copy"><strong>기둥</strong><span>축력과 각 축의 휨 내력 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t10"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="10" y="24" width="80" height="30"/><path d="M17 32H83M17 46H83M22 29V49M36 29V49M50 29V49M64 29V49M78 29V49"/></svg><span class="home-program-copy"><strong>벽체</strong><span>면내·면외 전단과 면외 휨 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t12"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="26" width="84" height="25"/><path d="M14 44H86"/><g fill="currentColor"><circle cx="22" cy="34" r="2"/><circle cx="40" cy="34" r="2"/><circle cx="58" cy="34" r="2"/><circle cx="76" cy="34" r="2"/></g></svg><span class="home-program-copy"><strong>1방향 슬래브</strong><span>상·하부 주철근과 배력근 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t5"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 26H90V46H10ZM25 70V53M19 59L25 53L31 59M50 70V53M44 59L50 53L56 59M75 70V53M69 59L75 53L81 59"/></svg><span class="home-program-copy"><strong>기초 : 내수압슬래브</strong><span>양압력·중력하중에 대한 슬래브 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t7"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="27" y="7" width="46" height="66"/><path d="M27 29H73M27 51H73" stroke-dasharray="4 3"/><path d="M37 44V59M50 44V59M63 44V59"/><path d="M33 65H67" stroke-width="4"/></svg><span class="home-program-copy"><strong>보 : 전이보 타설</strong><span>단계별 내력과 이어치기면 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+</div></div>
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">02</span><h3>철골</h3><p>강재 부재 검토와 대안 단면 비교</p></div><span>3개 프로그램</span></div><div class="home-cards">
+<button type="button" class="home-program" data-open="t3"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M24 12H76V19H54V61H76V68H24V61H46V19H24Z"/></svg><span class="home-program-copy"><strong>보</strong><span>H형강의 휨·전단 내력 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t4"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M24 12H76V19H54V61H76V68H24V61H46V19H24Z"/><path d="M7 40H93M50 2V78" stroke-dasharray="3 4" opacity=".4"/></svg><span class="home-program-copy"><strong>기둥</strong><span>압축과 강축·약축 모멘트 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t8"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M26 7H74V13H53V43H74V49H26V43H47V13H26Z"/><path d="M47 49V67H26V73H74V67H53V49" stroke="#398577"/></svg><span class="home-program-copy"><strong>보 : BH→RH</strong><span>RH·RH + 역T 대체 후보 비교</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+</div></div>
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">03</span><h3>합성구조</h3><p>콘크리트와 강재가 함께 저항하는 단면</p></div><span>2개 프로그램</span></div><div class="home-cards">
+<button type="button" class="home-program" data-open="t6"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="9" width="82" height="17"/><path d="M28 33H72M28 68H72M50 33V68M35 33V18M31 18H39M65 33V18M61 18H69" stroke-width="3"/></svg><span class="home-program-copy"><strong>합성보</strong><span>슬래브 합성 효과와 스터드 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t9"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="20" y="10" width="60" height="60" rx="2"/><path d="M32 25H68M32 55H68M50 25V55" stroke-width="5"/><g fill="currentColor"><circle cx="28" cy="18" r="2"/><circle cx="72" cy="18" r="2"/><circle cx="28" cy="62" r="2"/><circle cx="72" cy="62" r="2"/></g></svg><span class="home-program-copy"><strong>합성 기둥</strong><span>SRC·CFT 단면과 스터드 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+</div></div>
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">04</span><h3>구조해석</h3><p>보의 부재력과 지점반력 확인</p></div><span>1개 프로그램</span></div><div class="home-cards">
+<button type="button" class="home-program" data-open="t11"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 66V20H90V66M50 20V66" stroke-width="3"/><path d="M6 70H14M46 70H54M86 70H94M20 7V16M16 12L20 16L24 12M40 7V16M36 12L40 16L44 12M60 7V16M56 12L60 16L64 12M80 7V16M76 12L80 16L84 12"/></svg><span class="home-program-copy"><strong>프레임 해석</strong><span>최대 10경간 · 기둥 강성을 고려한 보 해석</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+</div></div>
+</div><div class="home-guidance"><strong>검토 결과 사용 안내</strong><p>KDS 14/41 기반의 현장 대안 검토 도구입니다. 적용 기준과 검토 범위는 각 프로그램에서 확인하세요.<br>계산 결과는 구조기술사의 재검증 후 사용하시기 바랍니다.</p></div></section>
+
 
 <!-- ================= RC 보 ================= -->
-<section class="tab on" id="t1">
+<section class="tab" id="t1">
 <div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" id="b_print" data-report-print>PDF 인쇄</button></div>
   <div class="beam-workspace">
   <aside class="beam-sidebar" aria-label="RC 보 입력">
@@ -794,12 +822,7 @@ document.querySelectorAll('#nav .menu').forEach(menu=>{
   };
   list.querySelectorAll('button[data-t]').forEach(item=>{
     item.onclick = ()=>{
-      document.querySelectorAll('#nav .menu-top').forEach(b=>b.classList.remove('on'));
-      document.querySelectorAll('#nav .menu-list button').forEach(b=>b.removeAttribute('aria-current'));
-      document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('on'));
-      top.classList.add('on'); item.setAttribute('aria-current','page');
-      $(item.dataset.t).classList.add('on');
-      closeMenus();
+      openKDSPage(item.dataset.t);
     };
   });
 });
@@ -899,5 +922,6 @@ var SectionPicker=(function(){
 <script src="rc-slab-oneway-ui.js?v=20260912-36"></script>
 <script src="report-print.js?v=20260911-15"></script>
 <script src="number-input-step.js?v=20260911-28"></script>
+<script src="home.js?v=20260912-37"></script>
 </body>
 </html>
