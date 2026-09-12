@@ -28,7 +28,7 @@ function calculate(input){
  if(d<=0||p.cover*2+R.BARS[p.barX].diameter+R.BARS[p.barY].diameter>=p.h)throw Error('피복과 철근층을 배치할 두께가 부족합니다.');
  const B=p.bx/1000,L=p.by/1000,A=B*L,W=A*p.h/1000*24,wu=W*p.weightFactor/A;
  const totalS=p.Ns+W,totalU=p.Nu+p.weightFactor*W,notes=[];
- let piles=[],bearing,pressure;
+ let piles=[],bearing,pressure,pileLayout=null;
  if(p.mode==='soil'){
   if(!(p.qa>0&&Number.isFinite(p.qa)))throw Error('허용지내력은 0보다 커야 합니다.');
   pressure=(x,y,u=false)=>(u?totalU:totalS)/A+(u?p.Myu:p.Mys)*x/(L*B**3/12)+(u?p.Mxu:p.Mxs)*y/(B*L**3/12);
@@ -43,6 +43,9 @@ function calculate(input){
   for(let j=0;j<p.ny;j++)for(let i=0;i<p.nx;i++)piles.push({id:piles.length+1,x:(i-(p.nx-1)/2)*p.sx/1000,y:(j-(p.ny-1)/2)*p.sy/1000});
   const xx=piles.reduce((s,v)=>s+v.x*v.x,0),yy=piles.reduce((s,v)=>s+v.y*v.y,0);
   piles=piles.map(v=>({...v,Rs:totalS/piles.length+p.Mys*v.x/xx+p.Mxs*v.y/yy,Ru:totalU/piles.length+p.Myu*v.x/xx+p.Mxu*v.y/yy}));
+  const edgeX=(p.bx-(p.nx-1)*p.sx)/2,edgeY=(p.by-(p.ny-1)*p.sy)/2;
+  pileLayout={spacingMin:2.5*p.diameter,edgeMin:1.25*p.diameter,edgeX,edgeY,spacingXOK:p.sx>=2.5*p.diameter,spacingYOK:p.sy>=2.5*p.diameter,edgeXOK:edgeX>=1.25*p.diameter,edgeYOK:edgeY>=1.25*p.diameter,minBx:Math.ceil(((p.nx-1)*Math.max(p.sx,2.5*p.diameter)+2.5*p.diameter)/50)*50,minBy:Math.ceil(((p.ny-1)*Math.max(p.sy,2.5*p.diameter)+2.5*p.diameter)/50)*50};
+  pileLayout.ok=pileLayout.spacingXOK&&pileLayout.spacingYOK&&pileLayout.edgeXOK&&pileLayout.edgeYOK;
   bearing={min:Math.min(...piles.map(v=>v.Rs)),max:Math.max(...piles.map(v=>v.Rs)),limit:p.pileAllow,unit:'kN/본'};
   if(piles.some(v=>Math.min(v.Rs,v.Ru)<-1e-8))throw Error('인발 파일이 발생합니다. 압축 파일 전용 모델이며 인발 지지력과 접합부 별도 해석이 필요합니다.');
   notes.push('파일캡의 스트럿-타이, 파일 주변 국부 뚫림·군파일 위험둘레, 파일 두부 정착 및 군효과는 별도 검토가 필요합니다. 파일 기초 전체 적합 판정은 제공하지 않습니다.');
@@ -91,7 +94,7 @@ function calculate(input){
  notes.push('중앙 기둥·일정 두께·보통중량 콘크리트·기초입니다. 전단철근 외면까지 피복을 적용하고, 보강이 불필요해도 선택 전단철근 직경만큼 유효깊이를 보수적으로 확보합니다. 철근은 하부 X층, 그 위 Y층으로 전체 폭에 균등 배치합니다.');
  notes.push('정착길이·기둥 지압 및 다월·침하·활동·전체 안정은 별도 검토입니다. 여러 하중조합은 각각 입력하여 검토하세요.');
  if(punching.hasMoment)notes.push('편심 뚫림은 모멘트 전량을 선형 둘레 전단응력으로 부담하는 보수적 예비 검토입니다. KDS 4.11.7의 휨·전단·비틀림 분담 상세 검토를 대체하지 않습니다.');
- const result={p,dx,dy,d,W,totalS,totalU,piles,bearing,rows,punching,notes,depthOK:d>=(p.mode==='soil'?150:300),pressure};
+ const result={p,dx,dy,d,W,totalS,totalU,piles,bearing,pileLayout,rows,punching,notes,depthOK:d>=(p.mode==='soil'?150:300),pressure};
  result.reinforcement=T.design(result,punch);
  return result;
 }
