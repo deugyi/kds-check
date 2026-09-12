@@ -152,3 +152,14 @@ test('RC frame editor solves, changes support and load forms, and clears unstabl
  nodes.fr_node.value='0';nodes.fr_node.events.change();nodes.fr_support.value='fixed';nodes.fr_support.events.change();assert.equal(nodes.fr_error.hidden,true);assert.equal(nodes.fr_results.hidden,false);
  nodes.fr_L.value='';nodes.fr_L.events.input();assert.equal(nodes.fr_results.hidden,true);nodes.fr_L.value='6';nodes.fr_L.events.input();assert.equal(nodes.fr_results.hidden,false);
 });
+
+
+test('one-way slab initializes, switches load mode, selects steel and clears invalid results',()=>{
+ const {nodes,context}=load();
+ assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_diagram.innerHTML,/<svg/);assert.match(nodes.ow_load.innerHTML,/11.25/);
+ nodes.ow_mode.value='direct';nodes.ow_Mp.value='1000';vm.runInContext('runRCSlabOneWay()',context);
+ assert.equal(nodes.ow_direct.hidden,false);assert.equal(nodes.ow_auto.hidden,true);assert.match(nodes.ow_summary.innerHTML,/미달/);
+ nodes.ow_view_top.events.click();assert.match(nodes.ow_selected.innerHTML,/상부/);
+ nodes.ow_h.value='';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_results.hidden,true);assert.equal(nodes.ow_diagram.innerHTML,'');
+ nodes.ow_h.value='200';nodes.ow_mode.value='auto';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.equal(nodes.ow_results.hidden,false);
+});
