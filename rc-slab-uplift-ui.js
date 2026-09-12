@@ -109,7 +109,7 @@ function renderPlan(p,o){
   get('s_plan_controls').innerHTML=['l1','l2'].map(dir=>
     `<button type="button" data-plan-dir="${dir}" aria-pressed="${planDir===dir}">${DIR[dir]} 방향 설계대</button>`).join('')+
     `<span>주열대 ${fmt(d.columnWidth,0)} · 중간대 ${fmt(d.middleWidth,0)} mm</span>`;
-  get('s_diagram').innerHTML='<button type="button" class="drawing-zoom" aria-pressed="false">도면 확대</button><div class="diagram-scroll">'+diagram(p,o)+'</div>'+
+  get('s_diagram').innerHTML='<div class="diagram-scroll">'+diagram(p,o)+'</div>'+
     `<div class="slab-legend"><span>${rule(false)} 실선 <b>상부근 (T)</b></span><span>${rule(true)} 점선 <b>하부근 (B)</b></span></div>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>${DIR[planDir]} 방향 설계대</th><th>상부근 (T · 실선)</th><th>하부근 (B · 점선)</th></tr></thead><tbody>${specs}</tbody></table></div>`+
     `<p class="beam-muted">회색 사각형이 독립기초, 파란 사각형이 기둥(표시용), 검은 점선이 기둥 그리드입니다. 파란 띠가 주열대, 녹색 띠가 중간대이며 <b>클릭하면 아래 검토표에서 해당 행이 강조</b>됩니다. 설계대는 패널이 아니라 그리드 선을 중심으로 잡힙니다.</p>`+
@@ -206,7 +206,6 @@ get('s_plan_controls').addEventListener('click',e=>{
   if(b&&current){planDir=b.dataset.planDir;planStrip=null;renderPlan(current.p,current.o);highlight();}
 });
 get('s_diagram').addEventListener('click',e=>{
-  const zoom=e.target.closest('.drawing-zoom');if(zoom){const panel=get('s_diagram').querySelector('.diagram-scroll');const on=panel.classList.toggle('zoomed');zoom.setAttribute('aria-pressed',on);zoom.textContent=on?'도면 축소':'도면 확대';return;}
   const g=e.target.closest('.slab-strip');
   if(g)select(g.dataset.dir,g.dataset.strip);
 });
