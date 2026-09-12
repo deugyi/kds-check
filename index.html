@@ -263,7 +263,7 @@ main:has(#t11.on){max-width:1440px}#t11{font-size:16px}#t11 .card{padding:20px}#
 main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px} #t12 .card h2{font-size:18px} #t12 [hidden]{display:none!important} #t12 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px} #t12 input,#t12 select{min-height:42px} #ow_error{color:var(--ng);padding:14px;border:1px solid var(--ng)} #t12 .beam-values div{flex-wrap:wrap} #t12 svg text{fill:var(--ink);font-size:14px} #t12 .beam-table{width:100%} #ow_flexure{overflow-x:auto} #ow_direct label{display:block;margin-bottom:10px}
 .ow-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.ow-metric{display:flex;flex-direction:column;gap:8px;padding:16px;background:var(--code);border:1px solid var(--line);border-radius:7px}.ow-metric strong{font-size:20px}.ow-metric span{font-size:14px}.ow-scroll{overflow:auto}#ow_auto label{display:block;margin-bottom:12px}@media(max-width:650px){.ow-metrics{grid-template-columns:1fr}}
 </style>
-<link rel="stylesheet" href="home.css?v=20260912-39">
+<link rel="stylesheet" href="home.css?v=20260912-44">
 <link rel="stylesheet" href="seismic.css?v=20260912-40">
 <link rel="stylesheet" href="wind.css?v=20260912-42">
 </head>
@@ -324,7 +324,6 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 
 <main>
 <section class="tab on" id="home" aria-label="검토 프로그램">
-<div class="home-recent" id="home-recent" hidden><div class="home-section-heading"><h3>최근 사용한 프로그램</h3><span>이 브라우저 기준</span></div><div id="home-recent-list"></div></div>
 <div class="home-catalog"><div class="home-group"><div class="home-section-heading"><div><span class="home-index">01</span><h3>설계하중</h3><p>설계에 사용하는 하중과 계수 산정</p></div><span>3개 프로그램</span></div><div class="home-cards"><button type="button" class="home-program" data-open="t14"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M45 14H78V65H45ZM45 27H78M45 40H78M45 53H78M12 24H35M27 18L35 24 27 30M12 46H35M27 40L35 46 27 52"/></svg><span class="home-program-copy"><strong>풍하중 : 주골조</strong><span>풍방향 하중·전단력·전도모멘트</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="t15"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 15H80V65H20ZM35 15V65M65 15V65M20 30H80M20 50H80"/></svg><span class="home-program-copy"><strong>풍하중 : 외부마감</strong><span>외벽·평지붕의 정압·부압 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="t13"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 10V65H90M16 48L29 22H46Q57 44 86 54"/><path d="M61 10V39M77 14V45" stroke-dasharray="3 3"/></svg><span class="home-program-copy"><strong>지진하중</strong><span>설계스펙트럼·밑면전단력·보정계수 산정</span></span><span class="home-arrow" aria-hidden="true">↗</span></button></div></div>
 <div class="home-group"><div class="home-section-heading"><div><span class="home-index">02</span><h3>철근콘크리트</h3><p>콘크리트 부재의 내력과 배근 검토</p></div><span>6개 프로그램</span></div><div class="home-cards">
 <button type="button" class="home-program" data-open="t1"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="27" y="8" width="46" height="64" rx="2"/><rect x="33" y="14" width="34" height="52" rx="5"/><g fill="currentColor"><circle cx="39" cy="58" r="3"/><circle cx="50" cy="58" r="3"/><circle cx="61" cy="58" r="3"/></g></svg><span class="home-program-copy"><strong>보</strong><span>휨·전단 내력과 배근·물량 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
@@ -931,6 +930,6 @@ var SectionPicker=(function(){
 <script src="seismic-ui.js?v=20260912-40"></script>
 <script src="wind.js?v=20260912-42"></script>
 <script src="wind-ui.js?v=20260912-42"></script>
-<script src="home.js?v=20260912-39"></script>
+<script src="home.js?v=20260912-44"></script>
 </body>
 </html>
