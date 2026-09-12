@@ -15,8 +15,16 @@ function punch(fck,d,bx,by,rho){
  const vc=Math.min(ks*kbo*fte*cot*cu/d,.58*fck*cu/d);
  return {b0,ks,kbo,rho,cu,vc,phiVc:.75*vc*b0*d/1000};
 }
+function pileSize(p){
+ const factor=p.gapFactor??2.5;
+ for(const k of ['nx','ny'])if(!Number.isInteger(p[k])||p[k]<2||p[k]>6)throw Error('파일 배치는 각 방향 2~6개로 입력하세요.');
+ if(!Number.isFinite(p.diameter)||p.diameter<=0||!Number.isFinite(factor)||factor<2.5)throw Error('파일 직경은 양수, 중심 간격 배수는 2.5 이상이어야 합니다.');
+ const sx=p.diameter*factor,sy=sx,bx=Math.ceil(((p.nx-1)*sx+2.5*p.diameter)/50)*50,by=Math.ceil(((p.ny-1)*sy+2.5*p.diameter)/50)*50;
+ return {sx,sy,bx,by,area:bx*by/1e6};
+}
 function calculate(input){
  const p={...defaults,...input};
+ if(p.mode==='pile'&&p.autoSize)Object.assign(p,pileSize(p));
  for(const k of ['fck','fy','bx','by','h','cx','cy','cover','spacingX','spacingY','Ns','Nu','weightFactor'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error(k+' 입력은 0보다 큰 유한한 수여야 합니다.');
  for(const k of ['Mxs','Mys','Mxu','Myu'])if(!Number.isFinite(p[k]))throw Error('모멘트를 숫자로 입력해 주세요.');
  if(!['soil','pile'].includes(p.mode)||!R.BARS[p.barX]||!R.BARS[p.barY]||!R.FY.includes(p.fy)||p.fck<21||p.fck>90)throw Error('재료 또는 기초 형식 입력을 확인하세요.');
@@ -98,6 +106,6 @@ function calculate(input){
  result.reinforcement=T.design(result,punch);
  return result;
 }
-root.RCFooting={defaults,fraction,punch,calculate};
+root.RCFooting={defaults,fraction,punch,pileSize,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCFooting;
 })(typeof globalThis!=='undefined'?globalThis:this);
