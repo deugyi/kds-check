@@ -188,3 +188,5 @@ test('wind screens initialize, update, and remove stale results',()=>{
  nodes.wc_area.value='2';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,false);
 });
 test('foundation screens initialize, update and clear unsupported contact cases',()=>{const {nodes:n}=load();for(const pre of ['fs','fp']){assert.equal(n[pre+'_error'].hidden,true);assert.match(n[pre+'_checks'].innerHTML,/기둥 뚫림/);assert.match(n[pre+'_plot'].innerHTML,/<svg/);}n.fs_Mys.value='2000';n.fs_Mys.events.input();assert.equal(n.fs_results.hidden,true);assert.equal(n.fs_plot.innerHTML,'');n.fs_Mys.value='0';n.fs_Mys.events.input();assert.equal(n.fs_results.hidden,false);});
+
+test('foundation auto shear layout is rendered and invalid inputs remove it',()=>{const {nodes:n}=load();for(const [k,v] of Object.entries({bx:4500,by:4500,h:450,Nu:3000}))n['fs_'+k].value=String(v);n.fs_Nu.events.input();assert.match(n.fs_reinforcement.innerHTML,/폐쇄형/);assert.match(n.fs_reinforcement.innerHTML,/보강 외곽/);assert.match(n.fs_plot.innerHTML,/뚫림 전단철근/);n.fs_Nu.value='';n.fs_Nu.events.input();assert.equal(n.fs_reinforcement.innerHTML,'');});
