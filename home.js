@@ -30,6 +30,7 @@ root.openKDSPage=function(id){
   root.scrollTo({top:0,behavior:'instant'});
   const target=byId(id);target.setAttribute('tabindex','-1');target.focus({preventScroll:true});
 };
+byId('home-title-link').addEventListener('click',event=>{event.preventDefault();root.openKDSPage('home');});
 byId('home-button').addEventListener('click',()=>root.openKDSPage('home'));
 byId('home').addEventListener('click',event=>{const button=event.target.closest('button[data-open]');if(button)root.openKDSPage(button.dataset.open);});
 renderRecent();
