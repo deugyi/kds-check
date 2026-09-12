@@ -175,3 +175,5 @@ test('slab load combinations, propped end and prominent distribution/shear resul
  nodes.ow_pointX.value='4';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_results.hidden,true);assert.equal(nodes.ow_summary.innerHTML,'');
  nodes.ow_pointX.value='1.5';nodes.ow_tempSpacing.value='500';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_temp.innerHTML,/미달/);
 });
+
+test('seismic UI initializes, responds to changed inputs and clears invalid results',()=>{const {nodes}=load();assert.equal(nodes.eq_error.hidden,true);assert.match(nodes.eq_plot.innerHTML,/설계응답스펙트럼/);assert.match(nodes.eq_axes.innerHTML,/보정 후 동적/);nodes.eq_x_Vt.value='0';nodes.eq_x_Vt.events.input();assert.equal(nodes.eq_results.hidden,true);assert.equal(nodes.eq_summary.innerHTML,'');nodes.eq_correction.value='no';nodes.eq_correction.events.change();assert.equal(nodes.eq_error.hidden,true);assert.match(nodes.eq_summary.innerHTML,/검토 안 함/);nodes.eq_soil.value='S6';nodes.eq_soil.events.change();assert.equal(nodes.eq_results.hidden,true);});
