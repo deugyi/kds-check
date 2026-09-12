@@ -53,7 +53,6 @@ function run(){
  }catch(e){last=null;$('error').hidden=false;$('error').textContent=e.message;$('results').hidden=true;$('summary').innerHTML='';$('diagram').innerHTML='';$('selected').innerHTML='';}
 }
 for(const k of keys)for(const event of ['input','change'])$(k).addEventListener(event,run);
-for(const face of ['bottom','top','temp'])$('view_'+face).addEventListener('click',()=>{selected=face;if(last)diagram(last);});
 $('diagram').addEventListener('click',e=>{const target=e.target.closest('[data-face]');if(target&&last){selected=target.dataset.face;diagram(last);}});
 $('diagram').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const target=e.target.closest('[data-face]');if(target&&last){e.preventDefault();selected=target.dataset.face;diagram(last);}}});
 $('suggestions').addEventListener('click',e=>{const target=e.target.closest('[data-apply]');if(target&&last){const k=target.dataset.apply;$(k+'Spacing').value=last.suggestions[k].spacing;run();}});
