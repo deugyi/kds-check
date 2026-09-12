@@ -15,6 +15,32 @@ function punch(fck,d,bx,by,rho){
  const vc=Math.min(ks*kbo*fte*cot*cu/d,.58*fck*cu/d);
  return {b0,ks,kbo,rho,cu,vc,phiVc:.75*vc*b0*d/1000};
 }
+function pileCountLayout(p){
+ const n=p.pileCount,k=p.gapFactor??2.5,D=p.diameter;
+ if(!Number.isInteger(n)||n<3||n>36)throw Error('파일 총개수는 3~36본의 정수로 입력하세요.');
+ if(!(D>0&&Number.isFinite(D)&&Number.isFinite(k)&&k>=2.5))throw Error('파일 직경은 양수, 중심 간격 배수는 2.5 이상이어야 합니다.');
+ const step=k*D,candidates=[];
+ function add(points,rows){
+  const ex=Math.max(...points.map(v=>Math.abs(v.x))),ey=Math.max(...points.map(v=>Math.abs(v.y)));
+  const bx=Math.ceil((2*ex+2.5*D)/50)*50,by=Math.ceil((2*ey+2.5*D)/50)*50,ratio=Math.max(bx,by)/Math.min(bx,by);
+  candidates.push({autoPoints:points,bx,by,sx:step,sy:step,nx:Math.max(...rows),ny:rows.length,rowCounts:rows,area:bx*by/1e6,score:bx*by*(1+.75*(ratio-1))});
+ }
+ if(n===3)add([{x:-step/2,y:-step/(2*Math.sqrt(3))},{x:step/2,y:-step/(2*Math.sqrt(3))},{x:0,y:step/Math.sqrt(3)}],[2,1]);
+ else if(n===5){const a=step/Math.sqrt(2);add([{x:-a,y:-a},{x:a,y:-a},{x:0,y:0},{x:-a,y:a},{x:a,y:a}],[2,1,2]);}
+ else for(let nr=2;nr<=Math.min(8,n);nr++){
+  const half=Math.floor(nr/2),base=Math.floor(n/nr);
+  function visit(a){
+   if(a.length<half){for(let c=Math.max(1,base-1);c<=Math.min(8,base+2);c++)visit([...a,c]);return;}
+   const rest=n-2*a.reduce((v,x)=>v+x,0);if(nr%2?(rest<1||rest>8||Math.abs(rest-base)>2):rest!==0)return;
+   const rows=[...a,...(nr%2?[rest]:[]),...a.slice().reverse()];
+   if(Math.max(...rows)-Math.min(...rows)>2)return;
+   const points=[];rows.forEach((count,j)=>{for(let i=0;i<count;i++)points.push({x:(i-(count-1)/2)*step,y:(j-(nr-1)/2)*step});});add(points,rows);
+  }visit([]);
+ }
+ candidates.sort((a,b)=>a.score-b.score||a.area-b.area||a.ny-b.ny);
+ if(!candidates.length)throw Error('파일 배치 후보를 찾지 못했습니다.');
+ return candidates[0];
+}
 function pileSize(p){
  const factor=p.gapFactor??2.5;
  for(const k of ['nx','ny'])if(!Number.isInteger(p[k])||p[k]<2||p[k]>6)throw Error('파일 배치는 각 방향 2~6개로 입력하세요.');
@@ -24,7 +50,7 @@ function pileSize(p){
 }
 function calculate(input){
  const p={...defaults,...input};
- if(p.mode==='pile'&&p.autoSize)Object.assign(p,pileSize(p));
+ if(p.mode==='pile'&&p.autoSize)Object.assign(p,p.pileCount!==undefined?pileCountLayout(p):pileSize(p));
  for(const k of ['fck','fy','bx','by','h','cx','cy','cover','spacingX','spacingY','Ns','Nu','weightFactor'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error(k+' 입력은 0보다 큰 유한한 수여야 합니다.');
  for(const k of ['Mxs','Mys','Mxu','Myu'])if(!Number.isFinite(p[k]))throw Error('모멘트를 숫자로 입력해 주세요.');
  if(!['soil','pile'].includes(p.mode)||!R.BARS[p.barX]||!R.BARS[p.barY]||!R.FY.includes(p.fy)||p.fck<21||p.fck>90)throw Error('재료 또는 기초 형식 입력을 확인하세요.');
@@ -44,15 +70,19 @@ function calculate(input){
   bearing={min:Math.min(...qs),max:Math.max(...qs),limit:p.qa,unit:'kPa'};
   if(Math.min(...qs,...qu)<-1e-8)throw Error('지반 접촉면에 인장이 발생합니다. 전면 접촉 가정 범위를 벗어나므로 부분 접촉 해석이 필요합니다.');
  }else{
-  for(const k of ['nx','ny'])if(!Number.isInteger(p[k])||p[k]<2||p[k]>6)throw Error('파일 배치는 각 방향 2~6개로 입력하세요.');
+  if(!p.autoPoints)for(const k of ['nx','ny'])if(!Number.isInteger(p[k])||p[k]<2||p[k]>6)throw Error('파일 배치는 각 방향 2~6개로 입력하세요.');
   for(const k of ['sx','sy','diameter','pileAllow'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error('파일 간격·직경·허용지지력을 확인하세요.');
   if(p.sx<p.diameter||p.sy<p.diameter)throw Error('파일이 서로 겹칩니다.');
-  if((p.nx-1)*p.sx+p.diameter>p.bx-2*p.cover||(p.ny-1)*p.sy+p.diameter>p.by-2*p.cover)throw Error('파일 외면과 기초 가장자리 사이에 입력 피복 이상의 여유가 필요합니다.');
-  for(let j=0;j<p.ny;j++)for(let i=0;i<p.nx;i++)piles.push({id:piles.length+1,x:(i-(p.nx-1)/2)*p.sx/1000,y:(j-(p.ny-1)/2)*p.sy/1000});
+  if(!p.autoPoints&&((p.nx-1)*p.sx+p.diameter>p.bx-2*p.cover||(p.ny-1)*p.sy+p.diameter>p.by-2*p.cover))throw Error('파일 외면과 기초 가장자리 사이에 입력 피복 이상의 여유가 필요합니다.');
+  if(p.autoPoints)piles=p.autoPoints.map((v,i)=>({id:i+1,x:v.x/1000,y:v.y/1000}));
+  else for(let j=0;j<p.ny;j++)for(let i=0;i<p.nx;i++)piles.push({id:piles.length+1,x:(i-(p.nx-1)/2)*p.sx/1000,y:(j-(p.ny-1)/2)*p.sy/1000});
+  if(piles.some(v=>Math.abs(v.x)*1000+p.diameter/2+p.cover>p.bx/2||Math.abs(v.y)*1000+p.diameter/2+p.cover>p.by/2))throw Error('파일 외면의 측면 피복 공간이 부족합니다.');
   const xx=piles.reduce((s,v)=>s+v.x*v.x,0),yy=piles.reduce((s,v)=>s+v.y*v.y,0);
   piles=piles.map(v=>({...v,Rs:totalS/piles.length+p.Mys*v.x/xx+p.Mxs*v.y/yy,Ru:totalU/piles.length+p.Myu*v.x/xx+p.Mxu*v.y/yy}));
-  const edgeX=(p.bx-(p.nx-1)*p.sx)/2,edgeY=(p.by-(p.ny-1)*p.sy)/2;
+  const edgeX=p.bx/2-Math.max(...piles.map(v=>Math.abs(v.x)*1000)),edgeY=p.by/2-Math.max(...piles.map(v=>Math.abs(v.y)*1000));
   pileLayout={spacingMin:2.5*p.diameter,edgeMin:1.25*p.diameter,edgeX,edgeY,spacingXOK:p.sx>=2.5*p.diameter,spacingYOK:p.sy>=2.5*p.diameter,edgeXOK:edgeX>=1.25*p.diameter,edgeYOK:edgeY>=1.25*p.diameter,minBx:Math.ceil(((p.nx-1)*Math.max(p.sx,2.5*p.diameter)+2.5*p.diameter)/50)*50,minBy:Math.ceil(((p.ny-1)*Math.max(p.sy,2.5*p.diameter)+2.5*p.diameter)/50)*50};
+  pileLayout.actualMin=Math.min(...piles.flatMap((a,i)=>piles.slice(i+1).map(b=>Math.hypot(a.x-b.x,a.y-b.y)*1000)));
+  if(p.autoPoints){pileLayout.spacingXOK=pileLayout.spacingYOK=pileLayout.actualMin>=pileLayout.spacingMin-1e-7;pileLayout.minBx=p.bx;pileLayout.minBy=p.by;}
   pileLayout.ok=pileLayout.spacingXOK&&pileLayout.spacingYOK&&pileLayout.edgeXOK&&pileLayout.edgeYOK;
   bearing={min:Math.min(...piles.map(v=>v.Rs)),max:Math.max(...piles.map(v=>v.Rs)),limit:p.pileAllow,unit:'kN/본'};
   if(piles.some(v=>Math.min(v.Rs,v.Ru)<-1e-8))throw Error('인발 파일이 발생합니다. 압축 파일 전용 모델이며 인발 지지력과 접합부 별도 해석이 필요합니다.');
@@ -106,6 +136,6 @@ function calculate(input){
  result.reinforcement=T.design(result,punch);
  return result;
 }
-root.RCFooting={defaults,fraction,punch,pileSize,calculate};
+root.RCFooting={defaults,fraction,punch,pileSize,pileCountLayout,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCFooting;
 })(typeof globalThis!=='undefined'?globalThis:this);
