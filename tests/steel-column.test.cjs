@@ -57,3 +57,12 @@ test('unsupported columns cannot return a combined pass and bad moments are reje
   for(const patch of [{rolled:false},{tf:5}]){const o=C.calculate({...p,...patch});assert.equal(o.combined,null);assert.equal(o.supported,false);}
   for(const patch of [{Mux:NaN},{Muy:Infinity},{Lb:0},{Cb:0}])assert.throws(()=>C.calculate({...p,...patch}));
 });
+test('a failing axial-bending combination fails the column overall',()=>{
+  const q={...p,Pu:1000,Mux:1200,Muy:0,Lb:4000,Cb:1},o=C.calculate(q);
+  assert.equal(o.axialOK,true);assert.equal(o.combined.ok,false);assert.equal(o.ok,false);
+  const light=C.calculate({...q,Mux:300});assert.equal(light.combined.ok,true);assert.equal(light.ok,true);
+  // Moments on a section outside the interaction range cannot be approved.
+  const welded=C.calculate({...q,Mux:10,rolled:false});assert.equal(welded.combined,null);assert.equal(welded.ok,false);
+  // Without moments the verdict is the axial check alone.
+  const plain=C.calculate({...p,rolled:false});assert.equal(plain.ok,plain.axialOK);
+});

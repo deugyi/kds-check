@@ -40,9 +40,12 @@ function calculate(p){
   const weak=weakFlexure(p,props),Iyc=p.tf*p.B**3/12,flangeInertiaRatio=Iyc/props.Iy;
   const supported=p.rolled&&nonslender&&!!strong&&flangeInertiaRatio>=.1&&flangeInertiaRatio<=.9;
   const combined=supported?interaction(p.Pu,governing.phiPn,p.Mux,strong.phiMn,p.Muy,weak.phiMn):null;
+  const axialOK=nonslender&&p.Pu<=governing.phiPn,hasMoments=Math.abs(p.Mux)+Math.abs(p.Muy)>0;
   const reason=!p.rolled?'용접 조립단면의 판요소 분류 별도 검토':!nonslender?'압축 세장판 단면의 강도 별도 검토':!strong?'강축 비조밀·세장 웨브의 휨강도 별도 검토':!supported?'Iyc/Iy 적용 범위(0.1–0.9) 밖':'2축대칭 압연 H형강 · 2차 효과 반영 설계력 입력 조건';
   return {props,flange,web,nonslender,axes,governing,phiPn:nonslender?governing.phiPn:null,
-    ratio:nonslender?p.Pu/governing.phiPn:null,ok:nonslender&&p.Pu<=governing.phiPn,
+    ratio:nonslender?p.Pu/governing.phiPn:null,axialOK,hasMoments,
+    // With moments the axial-bending combination governs; outside its range there is no pass.
+    ok:axialOK&&(!hasMoments||!!(combined&&combined.ok)),
     flexure:{strong,weak,cls},combined,supported,reason,flangeInertiaRatio};
 }
 root.SteelColumn={calculate,weakFlexure,interaction};

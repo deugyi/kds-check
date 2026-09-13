@@ -22,10 +22,11 @@ function calculate(o,p){
  if(levels>200)throw Error('배치 단수가 너무 많습니다. 스터드 간격과 기둥 길이를 확인하세요.');
  const z=Array.from({length:levels},(_,i)=>p.edge+i*p.spacing),count=levels*p.perLevel;
  const A=Math.PI*p.diameter**2/4;
- // §4.4.3.3(2)② refers to §4.8.2.1. No deck: Rg=1, Rp=.75.
- // Also cap by embedded-stud steel shear §4.8.3.1 (.65 Fu A).
- const concrete=.5*A*Math.sqrt(sec.fck*sec.Ec)/1000,steel=.75*A*p.Fu/1000;
- const phiQ=Math.min(concrete,steel,.65*A*p.Fu/1000);
+ // One resistance factor on both limit states, so no unfactored nominal value
+ // can govern: concrete bearing 0.5·Asa√(fck·Ec) (§4.8.2.1, referenced from
+ // §4.4.3.3(2)②) and embedded-stud steel shear Fu·Asa (§4.8.3.1), φv = 0.65.
+ const PHI_V=.65,concrete=.5*A*Math.sqrt(sec.fck*sec.Ec)/1000,steel=A*p.Fu/1000;
+ const phiQ=PHI_V*Math.min(concrete,steel);
  const capacity=count*phiQ,required=Math.ceil(demand/phiQ-1e-10),checks=[];
  const check=(label,ok,detail)=>checks.push({label,ok,detail});
  check('축력분배 적용 범위',ratio>=0&&ratio<=1,`FyAs/Pno ${ratio.toFixed(3)} / 0–1`);

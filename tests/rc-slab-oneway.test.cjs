@@ -32,7 +32,8 @@ test('thickness reference is conditional and absolute 100mm is checked',()=>{
  assert.equal(C.calculate({...base,L:10}).thickness.referenceOk,false);
 });
 test('suggestions satisfy all face checks; an impossible demand returns no suggestion',()=>{
- const r=C.calculate(base);for(const k of ['bottom','top']){assert.equal(r.suggestions[k].ok,true);assert.ok(r.suggestions[k].spacing<=r[k].sMax);}
+ const r=C.calculate({...base,support:'fixed'});for(const k of ['bottom','top']){assert.equal(r.suggestions[k].ok,true);assert.ok(r.suggestions[k].spacing<=r[k].sMax);}
+ assert.equal(C.calculate(base).suggestions.top,null);
  const fail=C.calculate({...base,mode:'direct',Mp:10000,V:10000});assert.equal(fail.suggestions.bottom,null);assert.equal(fail.shear.ok,false);assert.equal(fail.ok,false);
 });
 test('bad geometry and malformed numbers cannot produce a result',()=>{
@@ -65,4 +66,20 @@ test('distribution reinforcement has independent amount, spacing and clear-dista
  r=C.calculate({...base,tempBar:'D13',tempSpacing:460});assert.equal(r.temp.areaOK,true);assert.equal(r.temp.spacingOK,false);
  r=C.calculate({...base,tempSpacing:30});assert.equal(r.temp.clearOK,false);assert.equal(r.temp.ok,false);
  assert.equal(C.AGGREGATE,25);
+});
+test('a face with no moment of its sign is not held to tension-steel limits',()=>{
+ const r=C.calculate({...base,topSpacing:300});
+ assert.equal(r.top.required,false);assert.deepEqual(r.top.reasons,[]);assert.equal(r.top.ok,true);assert.equal(r.ok,true);
+ // The same bars are governed once a negative moment exists.
+ const fixed=C.calculate({...base,support:'fixed',topSpacing:300});
+ assert.equal(fixed.top.required,true);assert.ok(fixed.top.reasons.includes('균열제어 간격 초과'));assert.equal(fixed.ok,false);
+ // Clear spacing stays a constructability check on an idle face.
+ assert.ok(C.calculate({...base,topSpacing:30}).top.reasons.includes('철근 순간격 부족'));
+ // A cantilever has no positive moment, so the bottom face is the idle one.
+ assert.equal(C.calculate({...base,support:'cantilever'}).bottom.required,false);
+});
+test('a slab thinner than the deflection table is not approved without a deflection check',()=>{
+ const r=C.calculate({...base,L:6});
+ assert.equal(r.thickness.referenceOk,false);assert.equal(r.strengthOK,true);assert.equal(r.ok,false);
+ const deep=C.calculate({...base,L:6,h:350});assert.equal(deep.thickness.referenceOk,true);assert.equal(deep.ok,deep.strengthOK);
 });

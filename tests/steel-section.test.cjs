@@ -3,13 +3,13 @@ const assert=require('node:assert/strict');
 const S=require('../steel-section.js');
 
 /* The palette from the H tab of Calc_Sheet.xlsx, merged with the KS D 3502:2007
- * table. 78 designations carry the standard's own J; 7 are not in the table. */
+ * table. Only the 78 designations printed in the standard's table are kept. */
 test('the KS section list is complete and free of duplicates',()=>{
-  assert.equal(S.SECTIONS.length,85);
-  assert.equal(S.sectionList('beam').length,51);
-  assert.equal(S.sectionList('column').length,34);
-  assert.equal(S.sectionList().length,85);
-  assert.equal(new Set(S.SECTIONS.map(s=>s.name)).size,85);
+  assert.equal(S.SECTIONS.length,78);
+  assert.equal(S.sectionList('beam').length,46);
+  assert.equal(S.sectionList('column').length,32);
+  assert.equal(S.sectionList().length,78);
+  assert.equal(new Set(S.SECTIONS.map(s=>s.name)).size,78);
   assert.equal(S.SECTIONS.filter(s=>s.listed).length,78);
   // Every entry carries the four dimensions plus the rolled fillet radius.
   for(const s of S.SECTIONS)
@@ -68,14 +68,14 @@ test('listed sections carry the KS D 3502 tabulated J exactly',()=>{
     if(s.listed)assert.notEqual(s.J,S.torsionConstant(s.H,s.B,s.tw,s.tf,s.r));
     else assert.equal(s.J,S.torsionConstant(s.H,s.B,s.tw,s.tf,s.r));
 });
-test('the seven designations outside KS D 3502 are flagged, not guessed',()=>{
-  const outside=S.SECTIONS.filter(s=>!s.listed).map(s=>s.name);
-  assert.deepEqual(outside.sort(),['H-304×301×11×17','H-310×305×15×20',
-    'H-343×299×10×15','H-398×201×9×14','H-506×201×11×19','H-597×302×14×23',
-    'H-918×303×19×37'].sort());
-  // Each has a near neighbour that IS in the table, which is why they stay visible.
-  for(const s of S.SECTIONS.filter(x=>!x.listed))
-    assert.ok(s.J>0&&Number.isFinite(s.J),s.name);
+test('only designations printed in the KS D 3502 table remain',()=>{
+  assert.ok(S.SECTIONS.every(s=>s.listed&&s.J>0));
+  for(const name of ['H-304×301×11×17','H-310×305×15×20','H-343×299×10×15',
+    'H-398×201×9×14','H-506×201×11×19','H-597×302×14×23','H-918×303×19×37'])
+    assert.equal(S.findSection(name),null,name);
+  // Their neighbours in the table are still offered.
+  for(const name of ['H-304×301×11×15','H-310×305×15×17','H-434×299×10×15','H-594×302×14×23'])
+    assert.ok(S.findSection(name),name);
 });
 /* The tabulated r is what makes the standard's own area come out right:
  * A_table = 2 B tf + (H - 2 tf) tw + 4 r^2 (1 - pi/4). Checking it here pins

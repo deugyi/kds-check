@@ -7,7 +7,9 @@
 const node=typeof module!=='undefined'&&module.exports;
 const R=node?require('./rc-beam.js'):root.RCBeam;
 const S=node?require('./steel-section.js'):root.SteelSection;
-function concreteModulus(fck){if(!Number.isFinite(fck)||fck<21||fck>70)throw Error('콘크리트 강도는 21–70 MPa로 입력하세요.');const delta=fck<=40?4:fck>=60?6:4+(fck-40)/10;return 8500*Math.cbrt(fck+delta);}
+/* KDS 14 31 80:2024 4.4.1.2 and 4.8.2.1 define the unit mass wc used by the
+ * composite Ec, 0.043·wc^1.5·√fck — the same form as the composite beam. */
+function concreteModulus(fck,wc=2300){if(!Number.isFinite(fck)||fck<21||fck>70)throw Error('콘크리트 강도는 21–70 MPa로 입력하세요.');if(!Number.isFinite(wc)||wc<1500||wc>2500)throw Error('콘크리트 단위체적 질량은 1,500–2,500 kg/m³입니다.');return .043*wc**1.5*Math.sqrt(fck);}
 const E=210000,Er=200000;
 function rect(b,h,x=0,y=0,w=1){return {type:'rect',b,h,x,y,w};}
 function circle(r,x=0,y=0,w=1){return {type:'circle',r,x,y,w};}
@@ -40,7 +42,7 @@ function plastic(steel,bars,concrete,Fy,fy,fc,depth,axis){
  return {neutral,Mn:Math.abs(out.M)/1e6,phiMn:.9*Math.abs(out.M)/1e6,residual:out.N};
 }
 function calculate(p){
- p={...p,Ec:concreteModulus(p.fck)};
+ p={...p,wc:p.wc??2300};p.Ec=concreteModulus(p.fck,p.wc);
  if(p.type==='src'&&p.shapeMode==='rh'){const sec=S.findSection(p.section);if(!sec?.listed)throw Error('RH 규격을 선택하세요.');p={...p,sh:sec.H,sb:sec.B,tw:sec.tw,tf:sec.tf};}
 
  if(!['src','rect','circle'].includes(p.type))throw Error('합성 기둥 형식을 선택하세요.');

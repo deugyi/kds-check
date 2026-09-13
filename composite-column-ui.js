@@ -53,7 +53,7 @@ function update(){
  get('src_fields').hidden=type!=='src';get('H_field').hidden=type==='circle';get('t_field').hidden=type==='src';
  try{
   let p={type,bar:get('bar').value,tie:get('tie').value,shapeMode:get('shapeMode').value,section:get('section').value};
-  for(const id of ['B','H','t','fck','Fy','sh','sb','tw','tf','fy','nb','nh','cover','tieSpacing','klx','kly','Pu','Mux','Muy'])p[id]=num(id);
+  for(const id of ['B','H','t','fck','wc','Fy','sh','sb','tw','tf','fy','nb','nh','cover','tieSpacing','klx','kly','Pu','Mux','Muy'])p[id]=num(id);
   if(type==='circle')p.H=p.B;
   const o=CompositeColumn.calculate(p),a=o.props;p=o.p;
   const optional=id=>get(id).value.trim()===''?null:num(id);
@@ -61,7 +61,7 @@ function update(){
   get('error').hidden=true;get('results').hidden=false;
   get('summary').innerHTML=`<p class="beam-layout">${type==='src'?'SRC · H형강 매입':type==='rect'?'CFT · 각형강관':'CFT · 원형강관'}</p><p class="beam-capacity">${f(o.Pr)} <small>kN · φcPn</small></p><p class="${!o.supported?'warn':o.ok?'ok':'ng'}">${!o.supported?'검토 범위 또는 상세 조건 확인 필요':o.ok?'부재 축력·모멘트 검토 충족':'부재 축력·모멘트 검토 미달'}</p><p class="beam-muted">${o.combined?'조합 강도비 '+f(o.combined.value,3)+' / 1.000':'비조밀·세장 CFT의 휨 및 조합 판정은 보류합니다.'} · 2차 효과 반영 설계력 입력 조건</p>`;
   get('diagram').innerHTML=diagram(o);renderStuds(o,stud);
-  get('axial').innerHTML=table(['축','KL (mm)','EIeff (×10¹² N·mm²)','Pe (kN)','Pno / Pe','φcPn (kN)'],o.axes.map(v=>[v.name,f(v.KL),f(v.EI/1e12,3),f(v.Pe),f(v.ratio,3),f(v.phiPn)]))+values([['자동 산정 Ec',f(p.Ec)+' MPa · KDS 14 20 10 (4.3-2)'],['길이효과 전 Pno',f(o.Pno)+' kN'],['유효강성 계수 '+(type==='src'?'C1':'C3'),f(o.C,3)],['축압축 콘크리트 계수',f(o.C2,3)],['순강재 하한 φPn',o.steelPr===null?'총단면 항복 상한과 비교 · 상세 조건 참조':f(o.steelPr)+' kN'],['지배 설계압축강도',f(o.Pr)+' kN'],['Pu / φcPn',f(p.Pu/o.Pr,3)]])+'<p class="beam-muted">Pno/Pe ≤ 2.25: Pn=Pno×0.658^(Pno/Pe), 초과: Pn=0.877Pe. 표의 축별 값은 합성단면 휨좌굴 강도이며 최종 강도에는 확인된 순강재 하한을 반영합니다.</p>';
+  get('axial').innerHTML=table(['축','KL (mm)','EIeff (×10¹² N·mm²)','Pe (kN)','Pno / Pe','φcPn (kN)'],o.axes.map(v=>[v.name,f(v.KL),f(v.EI/1e12,3),f(v.Pe),f(v.ratio,3),f(v.phiPn)]))+values([['자동 산정 Ec',f(p.Ec)+' MPa · 0.043·wc^1.5·√fck (KDS 14 31 80, wc '+f(p.wc,0)+' kg/m³)'],['길이효과 전 Pno',f(o.Pno)+' kN'],['유효강성 계수 '+(type==='src'?'C1':'C3'),f(o.C,3)],['축압축 콘크리트 계수',f(o.C2,3)],['순강재 하한 φPn',o.steelPr===null?'총단면 항복 상한과 비교 · 상세 조건 참조':f(o.steelPr)+' kN'],['지배 설계압축강도',f(o.Pr)+' kN'],['Pu / φcPn',f(p.Pu/o.Pr,3)]])+'<p class="beam-muted">Pno/Pe ≤ 2.25: Pn=Pno×0.658^(Pno/Pe), 초과: Pn=0.877Pe. 표의 축별 값은 합성단면 휨좌굴 강도이며 최종 강도에는 확인된 순강재 하한을 반영합니다.</p>';
   get('moments').innerHTML=table(['축','|Mu| (kN·m)','φbMn (kN·m)','강도비'],[['X',f(Math.abs(p.Mux)),f(o.mx?.phiMn),f(o.mx?Math.abs(p.Mux)/o.mx.phiMn:NaN,3)],['Y',f(Math.abs(p.Muy)),f(o.my?.phiMn),f(o.my?Math.abs(p.Muy)/o.my.phiMn:NaN,3)]]);
   const c=o.combined;
   get('interaction').innerHTML=c?interaction(c)+values([['상호작용식',c.high?'Pu/Pr + (8/9)(|Mux|/Mrx + |Muy|/Mry) ≤ 1':'Pu/(2Pr) + |Mux|/Mrx + |Muy|/Mry ≤ 1'],['조합 강도비',f(c.value,3)],['적용 조항','KDS 14 31 80, 4.7.1 → KDS 14 31 10, '+(c.high?'(4.4-1)':'(4.4-2)')]])+'<p class="beam-muted">음영은 현재 축력에서의 모멘트비 허용 영역입니다. 양축 단독 충족만으로 조합 충족을 뜻하지 않습니다.</p>':'<p class="warn">CFT 휨 단면이 비조밀 또는 세장입니다. 휨강도·조합 판정은 보류하며 강관 두께를 조정하거나 별도 검토하세요.</p>';

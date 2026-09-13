@@ -39,13 +39,18 @@ function face(p,which,Mu,spacing=p[which+'Spacing']){
  const fs=2*p.fy/3,kcr=p.environment==='dry'?280:210;
  const crackMax=Math.min(375*kcr/fs-2.5*p.cover,300*kcr/fs),detailMax=Math.min(2*p.h,300),sMax=Math.min(detailMax,crackMax);
  const reasons=[];
- if(As<AsMin-1e-8)reasons.push('최소 휨철근량 부족');
- if(c.phiMn<Mu-1e-8)reasons.push('휨강도 부족');
- if(!c.ductile)reasons.push('최소허용변형률 미달');
- if(spacing>detailMax+1e-8)reasons.push('위험단면 최대간격 초과');
- if(spacing>crackMax+1e-8)reasons.push('균열제어 간격 초과');
+ // A face with no moment of its sign carries no tension: the flexural minimum,
+ // strength, ductility and principal-bar spacing limits do not apply there.
+ const required=Mu>1e-6;
+ if(required){
+  if(As<AsMin-1e-8)reasons.push('최소 휨철근량 부족');
+  if(c.phiMn<Mu-1e-8)reasons.push('휨강도 부족');
+  if(!c.ductile)reasons.push('최소허용변형률 미달');
+  if(spacing>detailMax+1e-8)reasons.push('위험단면 최대간격 초과');
+  if(spacing>crackMax+1e-8)reasons.push('균열제어 간격 초과');
+ }
  if(spacing-steel.diameter<clearMin-1e-8)reasons.push('철근 순간격 부족');
- return {...c,which,Mu,bar,spacing,As,d,AsMin,clearMin,crackMax,detailMax,sMax,reasons,ok:reasons.length===0};
+ return {...c,which,Mu,bar,spacing,As,d,AsMin,clearMin,crackMax,detailMax,sMax,required,reasons,ok:reasons.length===0};
 }
 function calculate(p){
  validate(p);const load=demand(p),bottom=face(p,'bottom',load.Mp),top=face(p,'top',load.Mn);
@@ -57,8 +62,10 @@ function calculate(p){
  const divisor={simple:20,fixed:28,propped:24,cantilever:10}[p.support],factor=p.fy===400?1:.43+p.fy/700;
  const thickness={absolute:p.h>=100,reference:Math.max(100,p.L*1000/divisor*factor),divisor,factor};
  thickness.referenceOk=p.h>=thickness.reference-1e-8;
- const suggestions={};for(const which of ['bottom','top'])suggestions[which]=SPACINGS.slice().reverse().map(s=>face(p,which,which==='bottom'?load.Mp:load.Mn,s)).find(r=>r.ok)||null;
- return {p,load,bottom,top,temp,shear,thickness,suggestions,ok:bottom.ok&&top.ok&&temp.ok&&shear.ok&&thickness.absolute};
+ const suggestions={};for(const which of ['bottom','top'])suggestions[which]=({bottom,top})[which].required?SPACINGS.slice().reverse().map(s=>face(p,which,which==='bottom'?load.Mp:load.Mn,s)).find(r=>r.ok)||null:null;
+ const strengthOK=bottom.ok&&top.ok&&temp.ok&&shear.ok&&thickness.absolute;
+ // Deflection is not computed, so a slab thinner than KDS 14 20 30 table 4.2-1 is not approved.
+ return {p,load,bottom,top,temp,shear,thickness,suggestions,strengthOK,ok:strengthOK&&thickness.referenceOk};
 }
 root.RCSlabOneWay={AGGREGATE,BARS,SPACINGS,validate,demand,face,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCSlabOneWay;

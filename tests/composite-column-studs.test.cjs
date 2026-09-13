@@ -6,7 +6,7 @@ test('load-introduction length, count and force match independent arithmetic',()
  const o=C.calculate(base),t=T.calculate(o,p);near(t.Lin,4000/3);assert.equal(t.levels,8);assert.equal(t.count,32);
  assert.deepEqual(t.z,[200,350,500,650,800,950,1100,1250]);assert.ok(t.z.every(z=>z<=t.Lin));
  near(t.demand,4000*(1-355*o.props.steel.A/(o.Pno*1000)));
- near(t.phiQ,.65*450*Math.PI*19**2/4/1000);near(t.capacity,32*t.phiQ);
+ near(t.phiQ,.65*Math.min(.5*Math.PI*19**2/4*Math.sqrt(30*.043*2300**1.5*Math.sqrt(30)),Math.PI*19**2/4*450)/1000);near(t.capacity,32*t.phiQ);
  assert.equal(t.required,Math.ceil(t.demand/t.phiQ));assert.equal(t.outside,null);
 });
 test('steel, concrete and split introduction use the correct force direction',()=>{
@@ -36,4 +36,13 @@ test('outside-region flow has its own demand and cannot pass with invalid spacin
  const o=C.calculate({...base,type:'circle'}),t=T.calculate(o,{...p,outsideFlow:10});assert.equal(t.outside.ok,true);
  assert.equal(T.calculate(o,{...p,outsideFlow:1e9}).outside.ok,false);
  assert.equal(T.calculate(o,{...p,outsideFlow:0,spacing:30}).outside.ok,false);
+});
+test('both stud limit states carry the resistance factor',()=>{
+ const Asa=Math.PI*19**2/4;
+ // Light, weak concrete makes bearing govern; it must still be factored.
+ const light=C.calculate({...base,wc:1500,fck:21}),t=T.calculate(light,p);
+ const bearing=.5*Asa*Math.sqrt(21*light.p.Ec)/1000;
+ assert.ok(bearing<Asa*450/1000);near(t.phiQ,.65*bearing);
+ // Strong concrete leaves steel shear governing at 0.65·Fu·Asa.
+ near(T.calculate(C.calculate({...base,fck:60}),p).phiQ,.65*450*Asa/1000);
 });
