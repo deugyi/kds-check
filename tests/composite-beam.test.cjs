@@ -20,7 +20,7 @@ test('effective width takes the least of the three limits on each side',()=>{
 });
 test('stud strength is the lesser of concrete bearing and the steel cap',()=>{
   const s=CB.studStrength(base),a=CB.STUDS.D19.a;
-  near(s.Ec,.043*Math.pow(2300,1.5)*Math.sqrt(30));
+  near(s.Ec,.077*Math.pow(2300,1.5)*Math.cbrt(34));
   near(s.push,.5*a*Math.sqrt(30*s.Ec));
   near(s.cap,1.0*.75*a*400);
   near(s.Qn,Math.min(s.push,s.cap));

@@ -11,7 +11,7 @@ test('SRC subtracts steel and rebar once and reproduces axial formula',()=>{
 test('rectangular CFT independent hand evaluation of Pno, EI and flexural buckling',()=>{
  const o=C.calculate({...p,type:'rect',B:400,H:600,t:20});
  near(o.props.steel.A,38400);near(o.props.concrete.A,201600);near(o.Pno,18772.8);near(o.C,.9);
- const Is=(400*600**3-360*560**3)/12,Ic=360*560**3/12,EI=210000*Is+.9*(.043*2300**1.5*Math.sqrt(30))*Ic,Pe=Math.PI**2*EI/4000**2;
+ const Is=(400*600**3-360*560**3)/12,Ic=360*560**3/12,EI=210000*Is+.9*(8500*Math.cbrt(34))*Ic,Pe=Math.PI**2*EI/4000**2;
  near(o.axes[0].EI,EI);near(o.axes[0].Pe,Pe/1000);near(o.axes[0].phiPn,.75*18772.8*.658**(18772800/Pe));
  assert.equal(o.axialClass,'조밀');assert.equal(o.flexureClass,'조밀');
 });
@@ -46,15 +46,11 @@ test('SRC detailing violations and unsupported materials cannot pass',()=>{
 });
 
 
-test('Ec follows the composite form with unit mass and ignores former Ec input',()=>{
- for(const fck of [21,30,50,70])near(C.concreteModulus(fck,2300),.043*2300**1.5*Math.sqrt(fck));
- near(C.concreteModulus(30,1800)/C.concreteModulus(30,2300),(1800/2300)**1.5);
- near(C.calculate({...p,Ec:1}).p.Ec,.043*2300**1.5*Math.sqrt(30));
- near(C.calculate({...p,wc:2000}).p.Ec,.043*2000**1.5*Math.sqrt(30));
- // Softer concrete lowers the buckling load of a slender column.
- assert.ok(C.calculate({...p,wc:1800,klx:12000,kly:12000}).Pr<C.calculate({...p,klx:12000,kly:12000}).Pr);
- for(const bad of [NaN,1400,2600])assert.throws(()=>C.concreteModulus(30,bad));
- assert.throws(()=>C.concreteModulus(NaN));assert.throws(()=>C.calculate({...p,wc:NaN}));
+test('normal-weight Ec follows KDS 14 20 10 strength boundaries',()=>{
+ for(const [fck,delta] of [[21,4],[30,4],[40,4],[50,5],[60,6],[70,6]])near(C.concreteModulus(fck),8500*Math.cbrt(fck+delta));
+ near(C.calculate({...p,Ec:1}).p.Ec,8500*Math.cbrt(34));
+ for(const wc of [NaN,1500,1800,2500])assert.throws(()=>C.calculate({...p,wc}));
+ assert.throws(()=>C.concreteModulus(NaN));
 });
 test('RH selection resolves catalog dimensions and BH remains directly editable',()=>{
  const a=C.calculate({...p,B:800,H:800,shapeMode:'rh',section:'H-400×400×13×21',sh:1,sb:1});
