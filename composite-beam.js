@@ -45,7 +45,9 @@ function effectiveWidth(p){
 }
 /* KDS 14 31 80, 4.8-1 and no-deck Rg/Rp table: verified against DOCX math objects, 2026-09-10. */
 function studStrength(p){
-  const stud=STUDS[p.stud],Ec=.043*Math.pow(p.wc,1.5)*Math.sqrt(p.fck);
+  const delta=p.fck<=40?4:p.fck>=60?6:4+(p.fck-40)/10;
+  // KDS 14 31 80 3.2 -> KDS 14 20 10 (4.3-1), (4.3-3).
+  const stud=STUDS[p.stud],Ec=.077*Math.pow(p.wc,1.5)*Math.cbrt(p.fck+delta);
   const Rg=1.0,Rp=.75;                 // 골데크 미사용, 형강에 직접 용접
   const push=.5*stud.a*Math.sqrt(p.fck*Ec),cap=Rg*Rp*stud.a*p.Fu;
   const Qn=Math.min(push,cap);

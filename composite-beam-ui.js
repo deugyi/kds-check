@@ -69,7 +69,7 @@ function renderShearFlow(p,o){
     <div><dt>길이방향 / 폭 방향 간격</dt><dd>${fmt(o.layout.spacing,0)} / ${o.layout.perRow>1?fmt(d.transverse,0):'—'} mm</dd></div>
     <div><dt>반 경간 / 끝 여유 / 중앙 간격</dt><dd>${fmt(o.layout.half,0)} / ${fmt(o.layout.endGap,1)} / ${fmt(o.layout.centreGap,1)} mm</dd></div>
     <div><dt>스터드 상세</dt><dd class="${d.ok?'ok':'warn'}">${d.ok?'충족':d.reasons.join(' / ')}</dd></div></dl>`+
-    `<p class="beam-muted">V′는 3가지 한계상태의 최솟값입니다 (식 4.5-1). Qn = 0.5·Asa√(fck·Ec) ≤ Rg·Rp·Asa·Fu, Rg = ${fmt(s.Rg,2)}, Rp = ${fmt(s.Rp,2)} (골데크 미사용, 형강 직접 용접 · 표 4.3-4). Ec = ${fmt(s.Ec,0)} MPa. 단순보의 최대모멘트 위치를 중앙으로 가정합니다. 각 반 경간에 floor((L/2)/s)줄을 입력 간격으로 중앙 정렬하고 좌우 대칭 배치합니다. 강도에는 한쪽 반 경간 개수만 사용합니다 (4.8.2.3, 4.8.2.4).</p>`;
+    `<p class="beam-muted">V′는 3가지 한계상태의 최솟값입니다 (식 4.5-1). Qn = 0.5·Asa√(fck·Ec) ≤ Rg·Rp·Asa·Fu, Rg = ${fmt(s.Rg,2)}, Rp = ${fmt(s.Rp,2)} (골데크 미사용, 형강 직접 용접 · 표 4.3-4). Ec = ${fmt(s.Ec,0)} MPa · KDS 14 20 10 (4.3-1), 0.077·mc^1.5·∛(fck+Δf). 단순보의 최대모멘트 위치를 중앙으로 가정합니다. 각 반 경간에 floor((L/2)/s)줄을 입력 간격으로 중앙 정렬하고 좌우 대칭 배치합니다. 강도에는 한쪽 반 경간 개수만 사용합니다 (4.8.2.3, 4.8.2.4).</p>`;
 }
 function renderSteel(p,o){
   const b=o.steel;

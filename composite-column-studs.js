@@ -22,11 +22,12 @@ function calculate(o,p){
  if(levels>200)throw Error('배치 단수가 너무 많습니다. 스터드 간격과 기둥 길이를 확인하세요.');
  const z=Array.from({length:levels},(_,i)=>p.edge+i*p.spacing),count=levels*p.perLevel;
  const A=Math.PI*p.diameter**2/4;
- // One resistance factor on both limit states, so no unfactored nominal value
- // can govern: concrete bearing 0.5·Asa√(fck·Ec) (§4.8.2.1, referenced from
- // §4.4.3.3(2)②) and embedded-stud steel shear Fu·Asa (§4.8.3.1), φv = 0.65.
- const PHI_V=.65,concrete=.5*A*Math.sqrt(sec.fck*sec.Ec)/1000,steel=A*p.Fu/1000;
- const phiQ=PHI_V*Math.min(concrete,steel);
+ // Separate nominal (4.8-1) resistance from the conservative design envelope.
+ const PHI_V=.65,Rg=1,Rp=.75,concrete=.5*A*Math.sqrt(sec.fck*sec.Ec)/1000,steel=A*p.Fu/1000;
+ // Keep the (4.8-1) Rg/Rp cap. Applying 0.65 to this entire nominal
+ // envelope is a conservative program assumption, not an explicit factor in (4.8-1).
+ const steelCap=Rg*Rp*steel,Qn=Math.min(concrete,steelCap);
+ const phiQ=Math.min(PHI_V*Qn,PHI_V*steel);
  const capacity=count*phiQ,required=Math.ceil(demand/phiQ-1e-10),checks=[];
  const check=(label,ok,detail)=>checks.push({label,ok,detail});
  check('축력분배 적용 범위',ratio>=0&&ratio<=1,`FyAs/Pno ${ratio.toFixed(3)} / 0–1`);
@@ -65,7 +66,7 @@ function calculate(o,p){
  check('용접 모재 두께',p.diameter<=2.5*plate,`${p.diameter} / 한계 ${2.5*plate} mm`);
  check('도입부 전달강도',capacity+1e-8>=demand,`${capacity.toFixed(1)} / 소요 ${demand.toFixed(1)} kN`);
  const outsideCapacity=p.perLevel*phiQ/(p.spacing/1000),outside=p.outsideFlow===null?null:{demand:p.outsideFlow,capacity:outsideCapacity,ok:p.outsideFlow<=outsideCapacity&&checks.slice(0,-1).every(q=>q.ok)};
- return {p,Pr,ratio,share,demand,Lin,levels,z,count,required,phiQ,capacity,checks,plan,transverse,cover,barClear,outside,ok:checks.every(q=>q.ok),concrete,steel};
+ return {p,Pr,ratio,share,demand,Lin,levels,z,count,required,phiQ,capacity,checks,plan,transverse,cover,barClear,outside,ok:checks.every(q=>q.ok),concrete,steel,steelCap,Qn,phi:PHI_V,Rg,Rp};
 }
 root.CompositeColumnStuds={calculate};if(typeof module!=='undefined'&&module.exports)module.exports=root.CompositeColumnStuds;
 })(typeof globalThis!=='undefined'?globalThis:this);

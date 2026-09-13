@@ -7,9 +7,8 @@
 const node=typeof module!=='undefined'&&module.exports;
 const R=node?require('./rc-beam.js'):root.RCBeam;
 const S=node?require('./steel-section.js'):root.SteelSection;
-/* KDS 14 31 80:2024 4.4.1.2 and 4.8.2.1 define the unit mass wc used by the
- * composite Ec, 0.043·wc^1.5·√fck — the same form as the composite beam. */
-function concreteModulus(fck,wc=2300){if(!Number.isFinite(fck)||fck<21||fck>70)throw Error('콘크리트 강도는 21–70 MPa로 입력하세요.');if(!Number.isFinite(wc)||wc<1500||wc>2500)throw Error('콘크리트 단위체적 질량은 1,500–2,500 kg/m³입니다.');return .043*wc**1.5*Math.sqrt(fck);}
+/* KDS 14 31 80 3.2 -> KDS 14 20 10 4.3.3 (4.3-2)/(4.3-3). Normal-weight concrete only. */
+function concreteModulus(fck,wc=2300){if(!Number.isFinite(fck)||fck<21||fck>70)throw Error('콘크리트 강도는 21–70 MPa로 입력하세요.');if(wc!==2300)throw Error('합성기둥은 보통중량 콘크리트 2,300 kg/m³만 지원합니다.');const delta=fck<=40?4:fck>=60?6:4+(fck-40)/10;return 8500*Math.cbrt(fck+delta);}
 const E=210000,Er=200000;
 function rect(b,h,x=0,y=0,w=1){return {type:'rect',b,h,x,y,w};}
 function circle(r,x=0,y=0,w=1){return {type:'circle',r,x,y,w};}
