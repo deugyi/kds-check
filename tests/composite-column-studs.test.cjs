@@ -6,7 +6,7 @@ test('load-introduction length, count and force match independent arithmetic',()
  const o=C.calculate(base),t=T.calculate(o,p);near(t.Lin,4000/3);assert.equal(t.levels,8);assert.equal(t.count,32);
  assert.deepEqual(t.z,[200,350,500,650,800,950,1100,1250]);assert.ok(t.z.every(z=>z<=t.Lin));
  near(t.demand,4000*(1-355*o.props.steel.A/(o.Pno*1000)));
- near(t.phiQ,.65*Math.min(.5*Math.PI*19**2/4*Math.sqrt(30*8500*Math.cbrt(34)),.75*Math.PI*19**2/4*450)/1000);near(t.capacity,32*t.phiQ);
+ near(t.phiQ,.65*450*Math.PI*19**2/4/1000);near(t.capacity,32*t.phiQ);
  assert.equal(t.required,Math.ceil(t.demand/t.phiQ));assert.equal(t.outside,null);
 });
 test('steel, concrete and split introduction use the correct force direction',()=>{
@@ -20,9 +20,9 @@ test('zero/short zone counts, final boundary and doubled faces cannot overcount'
  assert.equal(T.calculate(o,{...p,length:300}).count,0);
  const t=T.calculate(o,{...p,length:3000,spacing:200});assert.equal(t.levels,5);assert.equal(t.count,20);assert.equal(t.z.at(-1),1000);
 });
-test('spacing, embedment, head, edge distance and bar collision block approval',()=>{
+test('4.8.3 length, spacing and placement limits block approval',()=>{
  const o=C.calculate(base);
- for(const change of [{spacing:30},{spacing:1000},{height:60},{head:20},{edge:50},{height:180}])assert.equal(T.calculate(o,{...p,...change}).ok,false);
+ for(const change of [{spacing:70},{spacing:1000},{height:60},{height:180},{length:300}])assert.equal(T.calculate(o,{...p,...change}).ok,false);
  for(const change of [{spacing:0},{Fu:NaN},{perLevel:3},{length:0},{introLoad:-1},{outsideFlow:-1}])assert.throws(()=>T.calculate(o,{...p,...change}));
 });
 test('SRC studs are paired outwards and CFT anchors point into the concrete',()=>{
@@ -37,14 +37,28 @@ test('outside-region flow has its own demand and cannot pass with invalid spacin
  assert.equal(T.calculate(o,{...p,outsideFlow:1e9}).outside.ok,false);
  assert.equal(T.calculate(o,{...p,outsideFlow:0,spacing:30}).outside.ok,false);
 });
-test('nominal stud cap and conservative design envelope stay separate',()=>{
+test('stud design shear follows 4.8.3.1 and does not depend on the concrete',()=>{
  const o=C.calculate(base),a=Math.PI*19**2/4;
  for(const Fu of [200,450,1200]){
   const t=T.calculate(o,{...p,Fu});
-  near(t.steelCap,.75*a*Fu/1000);
-  near(t.Qn,Math.min(.5*a*Math.sqrt(30*o.p.Ec)/1000,.75*a*Fu/1000));
-  near(t.phiQ,.65*t.Qn);assert.ok(t.phiQ<=.65*a*Fu/1000);
+  near(t.Qnv,a*Fu/1000);near(t.phiQ,.65*a*Fu/1000);assert.equal(t.phi,.65);
   near(T.calculate(o,{...p,Fu,outsideFlow:1}).outside.capacity,p.perLevel*t.phiQ/(p.spacing/1000));
  }
- near(T.calculate(o,p).phiQ,62.1991166764);
+ // Qnv = Fu·Asc has no concrete term, so fck does not change it.
+ near(T.calculate(C.calculate({...base,fck:21}),p).phiQ,T.calculate(C.calculate({...base,fck:60}),p).phiQ);
+ near(T.calculate(o,p).phiQ,.65*450*a/1000);
+});
+test('4.8.3.5 detailing replaces the composite-beam limits',()=>{
+ const o=C.calculate(base),checks=change=>T.calculate(o,{...p,...change}).checks;
+ const find=(list,k)=>list.find(c=>c.label.startsWith(k));
+ // 4d longitudinal spacing is enough; the former 6d beam limit no longer applies.
+ assert.equal(find(checks({spacing:80}),'길이방향 중심 간격').ok,true);
+ assert.equal(find(checks({spacing:70}),'길이방향 중심 간격').ok,false);
+ // No 200 mm edge-distance or head-diameter rule for shear-only embedded studs.
+ assert.ok(!checks({}).some(c=>/머리 직경|단부 거리/.test(c.label)));
+ assert.equal(find(checks({edge:50}),'도입부 내').ok,true);
+ // A round CFT pitch above 32d fails the maximum spacing in any direction.
+ const circle=C.calculate({...base,type:'circle'});
+ assert.equal(find(T.calculate(circle,{...p,perLevel:2}).checks,'단면방향 중심 간격').ok,false);
+ assert.equal(find(T.calculate(circle,{...p,perLevel:4}).checks,'단면방향 중심 간격').ok,true);
 });
