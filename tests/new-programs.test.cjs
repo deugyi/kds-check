@@ -1,0 +1,12 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),E=require('../new-programs');
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
+const L={area:100,h1:200,gamma1:24,h2:50,gamma2:23,h3:30,gamma3:20,h4:0,gamma4:20,fixed:.5,live:3};
+const B={diameter:22,rows:3,cols:2,pitch:70,gauge:70,end:45,side:45,thickness:12,Vu:250,grade:'SM355',boltGrade:'F10T'};
+const W={size:6,length:250,width:150,thickness:12,Fexx:490,Vu:200};
+const P={lx:5,ly:6,h:200,cover:25,fck:30,fy:400,VX:30,VY:30};for(const k of ['bX','bY','tX','tY'])Object.assign(P,{['bar'+k]:'D13',['s'+k]:150,['M'+k]:30});
+test('gravity table uses mm-to-m conversion and correct governing combination',()=>{const r=E.load(L);near(r.D,7.05);near(r.governing.q,13.26);near(r.total,1326);assert.equal(E.load({...L,live:0}).governing.name,'1.4D');});
+test('bolt shear and individual end/interior bearing match independent hand fixture',()=>{const r=E.bolt(B);near(r.phiShear,.75*400*Math.PI*121*6/1000);near(r.phiBearing,1280.664);assert.ok(r.ok);assert.equal(r.dh,24);});
+test('bolt long-joint reduction and cut-edge spacing limits apply',()=>{const a=E.bolt({...B,rows:8,pitch:120}),b=E.bolt({...B,rows:8,pitch:100});near(a.phiShear/b.phiShear,.85);assert.equal(E.bolt({...B,end:35}).edgeOK,false);assert.equal(E.bolt({...B,pitch:50}).spacingOK,false);});
+test('weld capacity and length reduction at exact limits',()=>{near(E.weld(W).capacity,.75*.6*490*Math.SQRT2*6*250/1000);near(E.weld({...W,length:600}).beta,1);near(E.weld({...W,length:1800}).Le,1080);near(E.weld({...W,length:1801}).Le,1080);assert.equal(E.weld({...W,size:4}).detailOK,false);});
+test('slab distinguishes layer depths and reports failure under excessive moment',()=>{const r=E.slab(P);assert.equal(r.rows.length,4);near(r.rows[0].d-r.rows[1].d,12.7);assert.ok(r.rows.every(v=>v.phiMn>0&&v.phiVc>0));assert.equal(E.slab({...P,MbX:1000}).rows[0].flexOK,false);assert.throws(()=>E.slab({...P,ly:11}),/1방향/);});
+test('all calculators reject missing or nonphysical inputs',()=>{assert.throws(()=>E.load({...L,live:NaN}));assert.throws(()=>E.bolt({...B,rows:2.5}));assert.throws(()=>E.weld({...W,length:0}));assert.throws(()=>E.slab({...P,MbX:-1}));});
