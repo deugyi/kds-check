@@ -1,9 +1,10 @@
 (function(){
 'use strict';
-document.querySelectorAll('[data-steel-kind]').forEach(button=>button.addEventListener('click',()=>{
- const kind=button.dataset.steelKind;
+document.querySelectorAll('[data-steel-kind]').forEach(select=>select.addEventListener('change',()=>{
+ const kind=select.value;
  for(const k of ['H','PIPE','BOX','L'])document.getElementById('steel-spec-panel-'+k).hidden=k!==kind;
- document.querySelectorAll('[data-steel-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.steelKind===kind)));
+ document.querySelectorAll('[data-steel-kind]').forEach(s=>{s.value=kind;});
+ document.getElementById('ss_'+kind.toLowerCase()+'_kind').focus();
 }));
 const api=globalThis.SteelSpec,f=(n,d=3)=>n.toLocaleString('ko-KR',{maximumFractionDigits:d});
 function diagram(r){
