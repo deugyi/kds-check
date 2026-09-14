@@ -31,6 +31,7 @@ function diagram(r){
 for(const kind of ['H','PIPE','BOX','L','CHANNEL']){
  const prefix='ss_'+kind.toLowerCase()+'_',$=id=>document.getElementById(prefix+id),rows=api.catalogs[kind],std=api.standards[kind];
  const defaults={H:'H 400 × 200 × 8 × 13',PIPE:'PIPE 216.3 × 6',BOX:'BOX 200 × 200 × 9',L:'L 100 × 100 × 10',CHANNEL:'Channel 200 × 80 × 7.5 × 11 · 경사두께'};
+ if(kind==='H'||kind==='BOX')$('issues').innerHTML=rows.filter(r=>r.sourceIssue).map(r=>`<p class="steel-spec-issue">※ ${r.name} · ${r.sourceIssue.standard} ${r.sourceIssue.table}, 본문 ${r.sourceIssue.page}쪽<br>${r.sourceIssue.message}</p>`).join('');
  let selected=rows.find(r=>r.name===defaults[kind])||rows[0];
  function filtered(){const q=$('search').value.trim().toLowerCase().replace(/[×xX*\s]/g,'');return rows.filter(r=>{
   const type=$('type').value;

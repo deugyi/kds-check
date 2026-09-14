@@ -5,7 +5,7 @@
  */
 (function(root){
 'use strict';
-const parse=s=>s.trim().split('\n').map(l=>l.trim().split(/\s+/).map(Number));
+const parse=s=>s.trim().split('\n').map(l=>l.trim().split(/\s+/).map(v=>Number.isNaN(Number(v))?v:Number(v)));
 const h=parse(`
 100 50 5 7 8 11.85 9.30 187 14.8
 100 100 6 8 10 21.90 17.2 383 134
@@ -21,7 +21,7 @@ const h=parse(`
 194 150 6 9 13 39.01 30.6 2690 507
 200 200 8 12 13 63.53 49.9 4720 1600
 200 204 12 12 13 71.53 56.2 4980 1700
-208 202 10 16 13 83.69 65.7 6350 2200
+208 202 10 16 13 83.69 65.7 6350 2200 H208_IX
 248 124 5 8 12 32.68 25.7 3540 255
 250 125 6 9 12 37.66 29.6 4050 294
 244 175 7 11 16 56.24 44.1 6120 984
@@ -102,7 +102,7 @@ const h=parse(`
 906 301 17 31 28 336.8 264 454000 14100
 912 302 18 34 28 364.0 286 498000 15700
 918 303 19 37 28 391.3 307 542000 17200
-`).map(([H,B,tw,tf,r,A,mass,Ix,Iy])=>({kind:'H',H,B,tw,tf,r,A,mass,Ix,Iy}));
+`).map(([H,B,tw,tf,r,A,mass,Ix,Iy,issueCode])=>({kind:'H',H,B,tw,tf,r,A,mass,Ix,Iy,issueCode}));
 const l=parse(`
 25 25 3 4 2 1.427 1.12 .797 .797
 30 30 3 4 2 1.727 1.36 1.42 1.42
@@ -203,8 +203,8 @@ const box=parse(`
 175 175 5.0 33.36 26.2 1590 1590
 175 175 6.0 39.63 31.1 1860 1860
 200 200 4.5 34.67 27.2 2190 2190
-200 200 5.0 45.63 30.1 2830 2830
-200 200 6.0 59.73 35.8 3620 3620
+200 200 5.0 45.63 30.1 2830 2830 BOX200_5
+200 200 6.0 59.73 35.8 3620 3620 BOX200_6
 200 200 9.0 66.67 52.3 3990 3990
 200 200 12.0 86.53 67.9 4980 4980
 250 250 5.0 48.36 38.0 4810 4810
@@ -217,7 +217,7 @@ const box=parse(`
 300 300 9.0 102.7 80.6 14300 14300
 300 300 12.0 134.5 106 18300 18300
 350 350 9.0 120.7 94.7 23200 23200
-350 350 12.5 158.5 129 29800 29800
+350 350 12.5 158.5 129 29800 29800 BOX350_125
 30 20 1.2 1.105 .868 1.34 .711
 30 20 1.6 1.4317 1.124 1.66 .879
 40 20 1.2 1.3453 1.053 2.73 .923
@@ -281,7 +281,7 @@ const box=parse(`
 400 200 6.0 69.63 54.7 14800 5090
 400 200 9.0 102.7 80.6 21300 7270
 400 200 12.0 134.5 106 27300 9230
-`).map(([H,B,t,A,mass,Ix,Iy])=>({kind:'BOX',H,B,t,A,mass,Ix,Iy}));
+`).map(([H,B,t,A,mass,Ix,Iy,issueCode])=>({kind:'BOX',H,B,t,A,mass,Ix,Iy,issueCode}));
 const pipeDimensions=parse(`
 21.7 2
 27.2 2 2.3
@@ -346,12 +346,25 @@ const channelParallel=parse(`
 380 100 10 16 18 68.20 53.5 14527 592.6 2.63
 `).map(([H,B,tw,tf,r,A,mass,Ix,Iy,Cy])=>({kind:'CHANNEL',variant:'parallel',H,B,tw,tf,r,A,mass,Ix,Iy,Cy}));
 const standards={CHANNEL:['KS D 3502:2022','2022-12-27','부표 5·6 (경사두께·평행플랜지)','KSD3502'],H:['KS D 3502:2022','2022-12-27','부표 9','KSD3502'],L:['KS D 3502:2022','2022-12-27','부표 1·2 (등변·부등변, 동일 두께)','KSD3502'],PIPE:['KS D 3566:2025','2025-07-31','부표 1','KSD3566'],BOX:['KS D 3568:2025','2025-07-31','부표 1 (정사각형·직사각형)','KSD3568']};
+// Issue codes are stored on the affected source rows above, never inferred from dimensions.
+const sourceIssues=Object.freeze({
+ H208_IX:Object.freeze({fields:Object.freeze(['Ix']),standard:'KS D 3502:2022',page:17,table:'부표 9',
+  message:'원문 Ix = 6,350 cm⁴는 필릿을 제외한 공칭치수 이론값 6,425.3 cm⁴보다 작아 Ix 오기 가능성이 높습니다. 원문 Zx = 628 cm³로 환산하면 Ix ≈ 6,531.2 cm⁴입니다. 표에는 원문 Ix를 보존했으며, 설계 적용 전 확인이 필요합니다.'}),
+ BOX200_5:Object.freeze({fields:Object.freeze(['A','Ix','Iy']),standard:'KS D 3568:2025',page:8,table:'부표 1',
+  message:'원문 동일 행에 t=5 mm, 중량 30.1 kg/m, A=45.63 cm², Ix=Iy=2,830 cm⁴가 기재되어 있습니다. 중량·단면적이 불일치하고 I는 각진 모서리 모델의 상한보다 큽니다. 원문 재대조 후 보존한 값이며, 설계 적용 전 확인이 필요합니다.'}),
+ BOX200_6:Object.freeze({fields:Object.freeze(['A','Ix','Iy']),standard:'KS D 3568:2025',page:8,table:'부표 1',
+  message:'원문 동일 행에 t=6 mm, 중량 35.8 kg/m, A=59.73 cm², Ix=Iy=3,620 cm⁴가 기재되어 있습니다. 중량·단면적이 불일치하고 I는 각진 모서리 모델의 상한보다 큽니다. 원문 재대조 후 보존한 값이며, 설계 적용 전 확인이 필요합니다.'}),
+ BOX350_125:Object.freeze({fields:Object.freeze(['A','Ix','Iy']),standard:'KS D 3568:2025',page:8,table:'부표 1',
+  message:'원문 동일 행에 t=12.5 mm, 중량 129 kg/m, A=158.5 cm², Ix=Iy=29,800 cm⁴가 기재되어 있습니다. 중량·단면적 사이에 불일치가 있습니다. 원문 재대조 후 보존한 값이며, 설계 적용 전 확인이 필요합니다.'})
+});
 const catalogs={H:h,PIPE:pipe,BOX:box,L:l,CHANNEL:[...channelTapered,...channelParallel]};
 for(const [kind,rows] of Object.entries(catalogs)){
  rows.forEach((r,i)=>{r.id=kind+'-'+i;r.name=kind+' '+(kind==='PIPE'?[r.D,r.t]:(kind==='H'||kind==='CHANNEL')?[r.H,r.B,r.tw,r.tf]:[r.H,r.B,r.t]).join(' × ');
  if(kind==='CHANNEL')r.name='Channel '+[r.H,r.B,r.tw,r.tf].join(' × ')+' · '+(r.variant==='tapered'?'경사두께':'평행플랜지');
- if(kind==='BOX'&&((r.H===200&&r.B===200&&(r.t===5||r.t===6))||(r.H===350&&r.t===12.5)))r.issue='KS 원문에 기재된 단면적·단위중량 사이에 불일치가 있습니다. 원문 값을 그대로 표시하며, 설계 적용 전 제조사 단면표 및 정오표 확인이 필요합니다.';
- if(kind==='H'&&r.H===208&&r.B===202)r.issue='KS 원문의 Ix = 6,350 cm⁴와 Zx = 628 cm³가 Ix = Zx × H/2 관계에 맞지 않습니다. 원문 Ix를 그대로 표시하며, 설계 적용 전 제조사 단면표 및 정오표 확인이 필요합니다.';
+ if(r.issueCode){
+  const issue=sourceIssues[r.issueCode];if(!issue)throw Error('Unknown source issue: '+r.issueCode);
+  r.sourceIssue=issue;r.issue=issue.message;
+ }
  Object.freeze(r);});Object.freeze(rows);
 }
 root.SteelSpec=Object.freeze({catalogs:Object.freeze(catalogs),standards,find:(kind,id)=>catalogs[kind]?.find(r=>r.id===id)});
