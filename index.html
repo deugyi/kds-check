@@ -278,6 +278,15 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 #t26 .beam-table tbody th{position:static;background:transparent;font-weight:500;border-bottom:1px solid var(--line)}
 #t26 .beam-table td{text-align:right}#ec_error,#cv_error{color:var(--ng)}
 @media(max-width:480px){.cp-specimens{grid-template-columns:1fr}.cp-specimens svg{height:110px}}
+
+#t27 .beam-output h2{font-size:18px}#t27 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#t27 .beam-table tbody th{position:static;background:transparent;border-bottom:1px solid var(--line)}
+#t27 .beam-values div{flex-wrap:wrap}#t27 .beam-values dd{overflow-wrap:anywhere}
+#rd_diagram svg{width:100%;display:block;max-width:800px;margin:auto}
+#rd_error{color:var(--ng)}#t27 .ng{color:var(--ng)}#t27 .ok{color:var(--ok)}
+#t27 .beam-sidebar [hidden],#t27 .beam-output [hidden]{display:none!important}
+.rd-formula{font-size:17px;color:var(--accent);overflow-wrap:anywhere}
+@media(max-width:400px){#t27 .beam-inputs{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="home.css?v=20260912-44">
 <link rel="stylesheet" href="seismic.css?v=20260912-40">
@@ -305,6 +314,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
     <button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">철근콘크리트</button>
     <ul class="menu-list" hidden>
       <li><button type="button" data-t="t22">철근 규격 · KS D 3504</button></li>
+      <li><button type="button" data-t="t27">정착길이</button></li>
       <li><button type="button" data-t="t12">1방향 슬래브</button></li>
       <li><button type="button" data-t="t19">2방향 슬래브</button></li>
       
@@ -353,8 +363,9 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <button type="button" class="home-program" data-open="t13"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 10V65H90M16 48L29 22H46Q57 44 86 54"/><path d="M61 10V39M77 14V45" stroke-dasharray="3 3"/></svg><span class="home-program-copy"><strong>지진하중</strong><span>설계스펙트럼·밑면전단력·보정계수 산정</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 
 </div></div>
-<div class="home-group"><div class="home-section-heading"><div><span class="home-index">02</span><h3>철근콘크리트</h3><p>콘크리트 부재의 내력과 배근 검토</p></div><span>10개 프로그램</span></div><div class="home-cards">
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">02</span><h3>철근콘크리트</h3><p>콘크리트 부재의 내력과 배근 검토</p></div><span>11개 프로그램</span></div><div class="home-cards">
 <button type="button" class="home-program" data-open="t22"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="28" cy="40" r="12"/><circle cx="68" cy="40" r="23"/><path d="M45 40H91"/></svg><span class="home-program-copy"><strong>철근 규격 · KS D 3504</strong><span>호칭별 공칭지름·단면적·단위중량</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t27"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 28H65Q80 28 80 43V67" stroke-width="5"/><path d="M30 10V70M30 16H82M82 10V22" stroke-dasharray="4 3"/></svg><span class="home-program-copy"><strong>정착길이</strong><span>인장·압축·표준갈고리 정착 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 <button type="button" class="home-program" data-open="t12"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="26" width="84" height="25"/><path d="M14 44H86"/><g fill="currentColor"><circle cx="22" cy="34" r="2"/><circle cx="40" cy="34" r="2"/><circle cx="58" cy="34" r="2"/><circle cx="76" cy="34" r="2"/></g></svg><span class="home-program-copy"><strong>1방향 슬래브</strong><span>상·하부 주철근과 배력근 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 <button type="button" class="home-program" data-open="t19"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 15H85V65H15ZM15 32H85M15 49H85M38 15V65M62 15V65"/></svg><span class="home-program-copy"><strong>2방향 슬래브</strong><span>X·Y 상하부 휨·전단·배근 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 <button type="button" class="home-program" data-open="t1"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="27" y="8" width="46" height="64" rx="2"/><rect x="33" y="14" width="34" height="52" rx="5"/><g fill="currentColor"><circle cx="39" cy="58" r="3"/><circle cx="50" cy="58" r="3"/><circle cx="61" cy="58" r="3"/></g></svg><span class="home-program-copy"><strong>보</strong><span>휨·전단 내력과 배근·물량 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
@@ -872,6 +883,30 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <div class="card"><h2>강도등급 대응표</h2><p class="beam-muted">EN 206 표 12 · 보통중량 및 중량콘크리트의 28일 특성압축강도. 임의 시험값의 환산표가 아닙니다.</p><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>등급</th><th>Cylinder (MPa)</th><th>Cube (MPa)</th><th>비율 k</th></tr></thead><tbody id="cv_rows"></tbody></table></div></div>
 <div class="card"><h2>변환 방법 · 적용 범위</h2><p>계수 방식: fcyl = k × fcube, fcube = fcyl / k</p><p class="beam-muted">Cube와 Cylinder 강도 사이에는 모든 콘크리트에 공통으로 적용되는 정확한 환산계수가 없습니다. EN 등급 대응값 및 계수 추정값은 KDS 설계강도나 시험 합격 판정값으로 자동 대체하지 않습니다. 경량콘크리트는 이 등급표에 포함하지 않습니다.</p><a href="https://iieta.org/journals/mmep/paper/10.18280/mmep.120429" target="_blank" rel="noopener">근거 자료 · EN 206 표 12 재수록(표 1) 및 공시체 강도 비교 연구</a></div></div></div></section>
 
+
+<section class="tab" id="t27">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
+<div class="beam-workspace"><aside class="beam-sidebar" aria-label="정착길이 입력">
+<div class="card"><h2>1. 재료 강도 · 철근 규격</h2><div class="grid beam-inputs">
+<label class="beam-wide"><b>콘크리트 강도 fck (MPa)</b><input id="rd_fck" type="number" step="any" min="0" value="30" list="ec_strength_options"></label>
+<label><b>철근 강도 fy (MPa)</b><select id="rd_fy"><option value="300">300 MPa</option><option value="400">400 MPa</option><option value="500" selected>500 MPa</option><option value="600">600 MPa</option></select></label>
+<label><b>철근 규격</b><select id="rd_bar"></select></label><label class="beam-wide"><b>경량콘크리트계수 λ</b><input id="rd_lambda" type="number" step="0.01" min="0.75" max="1" value="1"></label>
+<p class="beam-muted beam-wide">λ = 1.00은 보통중량콘크리트입니다. 경량콘크리트는 KDS 14 20 10에 따라 정한 값(0.75~1.00)을 입력하세요. 철근지름은 KS D 3504 공칭지름을 사용합니다.</p></div></div>
+<div class="card"><h2>2. 정착 형식 · 표면 조건</h2><div class="grid beam-inputs"><label class="beam-wide"><b>정착 형식</b><select id="rd_type"><option value="tension">인장 · 직선 정착</option><option value="compression">압축 · 직선 정착</option><option value="hook90">인장 · 90° 표준갈고리</option><option value="hook180">인장 · 180° 표준갈고리</option></select></label>
+<label id="rd_top_wrap" class="beam-wide"><b>철근 배치 위치</b><select id="rd_top"><option value="no">일반 철근 · α = 1.0</option><option value="yes">상부철근 · α = 1.3</option></select><span class="beam-muted">상부철근: 정착부 아래 300 mm를 초과하여 굳지 않은 콘크리트를 타설한 수평철근.</span></label>
+<label id="rd_epoxy_wrap" class="beam-wide"><b>철근 도막</b><select id="rd_epoxy"><option value="no">비도막 또는 아연도금</option><option value="yes">에폭시 또는 아연·에폭시 이중도막</option></select></label></div></div>
+<div id="rd_tension" class="card"><h2>3. 피복 · 간격 · 횡철근</h2><div class="grid beam-inputs"><label><b>주철근 순피복 (mm)</b><input id="rd_cover" type="number" step="5" min="0" value="40"></label><label><b>주철근 순간격 (mm)</b><input id="rd_clear" type="number" step="5" min="0" value="50"></label><p class="beam-muted beam-wide">순피복은 주철근 표면까지, 순간격은 인접 주철근 표면 사이 거리입니다. 스터럽 외측 피복을 입력하는 항목이 아닙니다.</p><label class="beam-wide"><b>횡방향 철근</b><select id="rd_ties"><option value="no">없음 · Ktr = 0</option><option value="yes">배치함 · Ktr 계산</option></select></label>
+<div id="rd_ties_fields" class="grid beam-inputs beam-wide" hidden><label class="beam-wide"><b>횡철근 단면적 Atr (mm²)</b><input id="rd_Atr" type="number" step="any" min="0" value="142.66"></label><label><b>횡철근 간격 s (mm)</b><input id="rd_s" type="number" step="25" min="0" value="100"></label><label><b>정착 철근 수 n</b><input id="rd_n" type="number" step="1" min="1" value="3"></label><p class="beam-muted beam-wide">Atr: 간격 s 안에서 예상 쪼갬면을 가로지르는 횡철근의 합계 면적. n: 같은 쪼갬면을 따라 정착되는 주철근 수입니다. 기본 Atr는 D10 2가닥의 면적입니다.</p></div></div></div>
+<div id="rd_compression" class="card" hidden><h2>3. 압축철근 횡구속</h2><label><b>0.75 보정 적용 조건</b><select id="rd_compressionConfined"><option value="no">미적용</option><option value="yes">지정 나선철근·띠철근 조건 충족</option></select></label><p class="beam-muted">지름 6 mm 이상·간격 100 mm 이하 나선철근 또는 KDS 14 20 50 4.4.2(3)에 맞는 D13 띠철근(간격 100 mm 이하)으로 둘러싼 경우에만 선택하세요.</p></div>
+<div id="rd_hook" class="card" hidden><h2>3. 갈고리 피복 · 횡구속</h2><div class="grid beam-inputs"><label><b>측면 순피복 (mm)</b><input id="rd_hookSide" type="number" step="5" min="0" value="40"></label><label id="rd_hookTail_wrap"><b>끝 연장부 순피복 (mm)</b><input id="rd_hookTail" type="number" step="5" min="0" value="40"></label><p class="beam-muted beam-wide">측면: 갈고리 평면에 수직인 양측 피복 중 작은 값. 끝 연장부: 90° 갈고리 끝을 넘어선 콘크리트까지의 피복입니다.</p>
+<label class="beam-wide"><b>불연속단 의무 횡구속 조건</b><select id="rd_hookEndRequired"><option value="no">해당 없음</option><option value="yes">해당 · KDS 4.1.5(5)</option></select></label><p class="beam-muted beam-wide">부재 불연속단에서 갈고리 양측면과 상부 또는 하부 피복이 70 mm 미만인 조건에 해당하면 선택하세요. 전 정착구간 횡구속이 필요하며 0.8 감소계수는 적용하지 않습니다.</p>
+<label class="beam-wide"><b>갈고리 횡구속 배치</b><select id="rd_hookTie"><option value="none">없음</option><option value="perpendicular">전 정착구간 · 주철근에 수직 구속</option><option value="parallel">굽힘부·끝 연장부 · 평행 구속 (90°)</option></select></label><div id="rd_hook_ties_fields" class="grid beam-inputs beam-wide" hidden><label><b>횡철근 간격 s (mm)</b><input id="rd_hookSpacing" type="number" step="5" min="0" value="75"></label><label><b>첫 횡철근 거리 a (mm)</b><input id="rd_hookFirst" type="number" step="5" min="0" value="50"></label><p class="beam-muted beam-wide">첫 횡철근 거리는 갈고리 굽힘부 바깥면부터 측정합니다. 간격은 3db 이하, 첫 횡철근 거리는 2db 이하입니다.</p></div></div></div>
+<div class="card"><h2>4. 확보 가능한 길이</h2><label><b>확보 정착길이 (mm · 선택)</b><input id="rd_available" type="number" step="10" min="0" placeholder="미입력 시 소요 길이만 산정"></label><p class="beam-muted">위험단면부터 측정하세요. 갈고리는 구부린 철근의 바깥 끝까지의 투영거리입니다.</p></div>
+</aside><div class="beam-output" aria-label="정착길이 결과"><div class="card"><h2>결과 검토</h2><div id="rd_error" role="alert" hidden></div><div id="rd_summary" aria-live="polite"></div></div><div id="rd_results"><div class="card"><h2>정착 상세 미리보기</h2><div id="rd_diagram"></div><p class="beam-muted">10 mm 단위 올림 제안 상세입니다. 직선 입구 길이와 콘크리트 외곽은 개념 표현이며, 철근 가공·절단길이를 뜻하지 않습니다.</p></div>
+<div class="card"><h2>계산 과정</h2><div id="rd_calculation"></div></div><div class="card"><h2>상세조건 검토</h2><div id="rd_checks"></div></div>
+<div class="card"><h2>철근 규격별 비교</h2><p class="beam-muted">같은 재료·정착 형식·피복·배치 조건을 적용합니다. 규격을 클릭하면 해당 철근으로 다시 검토합니다.</p><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>규격</th><th>db (mm)</th><th>소요 (mm)</th><th>올림 제안 (mm)</th><th>입력조건 검토</th></tr></thead><tbody id="rd_rows"></tbody></table></div></div></div>
+<div class="card"><h2>적용 기준 · 검토 범위</h2><p>KDS 14 20 52:2024 · 4.1.2(3), 4.1.3, 4.1.5</p><p class="beam-muted">단일 이형철근이 fy 전체를 발휘하는 정착을 검토합니다. 초과 배근량에 따른 길이 감소는 적용하지 않습니다. 갈고리 굽힘 반지름과 끝 연장은 KDS 14 20 50 4.1의 표준갈고리 상세를 사용합니다. 피복·간격의 전체 시공 적합성, 다발철근, 겹침이음, 확대머리·기계적·후설치 정착, 철근 절단 위치와 부재별 내진 접합부 특별규정은 별도 검토 대상입니다.</p><a href="https://www.kcsc.re.kr/standardCode/viewer/KDS%2014%2020%2052:2024-12-30" target="_blank" rel="noopener">국가건설기준센터 · 정착 및 이음 원문</a></div></div></div></section>
+
 </main>
 
 <footer>
@@ -1032,6 +1067,8 @@ var SectionPicker=(function(){
 <script src="unit-converter-ui.js?v=20260915-65"></script>
 <script src="concrete-properties.js?v=20260915-67"></script>
 <script src="concrete-properties-ui.js?v=20260915-67"></script>
+<script src="rebar-development.js?v=20260915-68"></script>
+<script src="rebar-development-ui.js?v=20260915-68"></script>
 <script src="home.js?v=20260912-44"></script>
 </body>
 </html>
