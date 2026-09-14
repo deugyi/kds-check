@@ -266,6 +266,8 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 .rs-print-name{display:none}@media print{.rs-print-name{display:inline}#rs_table{overflow:visible!important}}
 .steel-spec-issue{font-size:12px;line-height:1.7;padding:10px 12px;background:#fff5e6;border-left:3px solid #b66b20}.steel-spec-table .beam-view{white-space:nowrap;text-align:left}.steel-spec-table{max-width:100%}@media print{.steel-spec-table{overflow:visible!important}.steel-spec-table tr{break-inside:avoid}}
 .steel-spec-panel[hidden]{display:none!important}
+
+#t24 .beam-output h2{font-size:18px}#t24 .beam-table tbody th{position:static;background:transparent;font-weight:500;border-bottom:1px solid var(--line)}#t24 .beam-table td{text-align:right}#uc_error{color:var(--ng)}
 </style>
 <link rel="stylesheet" href="home.css?v=20260912-44">
 <link rel="stylesheet" href="seismic.css?v=20260912-40">
@@ -286,6 +288,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
       <li><button type="button" data-t="t14">풍하중 : 주골조</button></li>
 <li><button type="button" data-t="t15">풍하중 : 외부마감</button></li>
       <li><button type="button" data-t="t13">지진하중</button></li>
+    <li><button type="button" data-t="t24">단위변환</button></li>
     </ul>
   </div>
   <div class="menu">
@@ -332,11 +335,12 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 
 <main>
 <section class="tab on" id="home" aria-label="검토 프로그램">
-<div class="home-catalog"><div class="home-group"><div class="home-section-heading"><div><span class="home-index">01</span><h3>설계하중</h3><p>설계에 사용하는 하중과 계수 산정</p></div><span>4개 프로그램</span></div><div class="home-cards">
+<div class="home-catalog"><div class="home-group"><div class="home-section-heading"><div><span class="home-index">01</span><h3>설계하중</h3><p>설계에 사용하는 하중과 계수 산정</p></div><span>5개 프로그램</span></div><div class="home-cards">
 <button type="button" class="home-program" data-open="t18"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 15H85V65H15ZM15 32H85M15 49H85M38 15V65M62 15V65"/></svg><span class="home-program-copy"><strong>설계 하중표</strong><span>층별 고정·활하중과 중력하중 조합</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 <button type="button" class="home-program" data-open="t14"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M45 14H78V65H45ZM45 27H78M45 40H78M45 53H78M12 24H35M27 18L35 24 27 30M12 46H35M27 40L35 46 27 52"/></svg><span class="home-program-copy"><strong>풍하중 : 주골조</strong><span>풍방향 하중·전단력·전도모멘트</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 <button type="button" class="home-program" data-open="t15"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 15H80V65H20ZM35 15V65M65 15V65M20 30H80M20 50H80"/></svg><span class="home-program-copy"><strong>풍하중 : 외부마감</strong><span>외벽·평지붕의 정압·부압 검토</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 <button type="button" class="home-program" data-open="t13"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 10V65H90M16 48L29 22H46Q57 44 86 54"/><path d="M61 10V39M77 14V45" stroke-dasharray="3 3"/></svg><span class="home-program-copy"><strong>지진하중</strong><span>설계스펙트럼·밑면전단력·보정계수 산정</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="home-program" data-open="t24"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 25H84L72 13M84 55H16L28 67M24 35V45M40 35V45M56 35V45M72 35V45"/></svg><span class="home-program-copy"><strong>단위변환</strong><span>길이·힘·압력·모멘트 등 단위 환산</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 </div></div>
 <div class="home-group"><div class="home-section-heading"><div><span class="home-index">02</span><h3>철근콘크리트</h3><p>콘크리트 부재의 내력과 배근 검토</p></div><span>10개 프로그램</span></div><div class="home-cards">
 <button type="button" class="home-program" data-open="t22"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="28" cy="40" r="12"/><circle cx="68" cy="40" r="23"/><path d="M45 40H91"/></svg><span class="home-program-copy"><strong>철근 규격 · KS D 3504</strong><span>호칭별 공칭지름·단면적·단위중량</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
@@ -825,6 +829,16 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
 <div class="beam-workspace"><aside class="beam-sidebar" aria-label="철근 규격 선택"><div class="card"><h2>1. 철근 호칭</h2><div class="grid beam-inputs"><label class="beam-wide"><b>이형 봉강 호칭</b><select id="rs_bar"><option value="D25">D25</option></select></label></div><p class="beam-muted">D4–D57 · 19종<br>규격표의 호칭을 눌러도 선택할 수 있습니다.</p></div><div class="card"><h2>2. 굽힘 상세</h2><div class="grid beam-inputs"><label class="beam-wide"><b>표준갈고리 형식</b><select id="rs_bend_type"><option value="main90">주철근 · 90°</option><option value="main180">주철근 · 180°</option><option value="stirrup90">스터럽·띠철근 · 90°</option><option value="stirrup135">스터럽·띠철근 · 135°</option></select></label></div><p class="beam-muted">위에서 선택한 철근 호칭을 사용합니다.</p></div><div class="card"><h2>표기 안내</h2><p>호칭 D10의 공칭지름은 9.53 mm입니다. 호칭 숫자를 실제 지름으로 사용하지 않습니다.</p><p class="beam-muted">공칭치수는 설계와 물량 산정을 위한 기준값입니다. 마디·리브를 포함한 외경 측정값과는 다릅니다.</p><p class="beam-muted">철근 강종(SD400·SD500 등)과 직경 호칭은 별개입니다. 항복강도는 해당 부재 검토에서 따로 선택합니다.</p></div></aside>
 <div class="beam-output"><div class="card"><h2>규격 확인</h2><div id="rs_summary" aria-live="polite"></div><div id="rs_diagram"></div></div><div class="card"><h2>굽힘 상세 · 표준갈고리</h2><div id="rs_bend_summary" aria-live="polite"></div><div id="rs_bend_diagram"></div><p class="beam-muted">KDS 14 20 50 4.1.1·4.1.2 기준입니다. KS D 3504의 재료 굽힘시험 조건과 실제 배근의 표준갈고리 상세는 구분합니다.</p><details class="beam-settings"><summary>굽힘 기준표 및 적용 범위</summary><div style="overflow-x:auto"><table class="beam-table"><thead><tr><th>구분</th><th>철근 호칭</th><th>최소 내면 반지름</th><th>끝 직선 연장</th></tr></thead><tbody><tr><td>주철근 90°</td><td>D10 이상</td><td>D10–D25: 3db<br>D29–D35: 4db<br>D38 이상: 5db</td><td>12db</td></tr><tr><td>주철근 180°</td><td>D10 이상</td><td>위와 동일</td><td>max(4db, 60 mm)</td></tr><tr><td>스터럽·띠철근 90°</td><td>D16 이하 / D19·D22·D25</td><td>2db / 3db</td><td>6db / 12db</td></tr><tr><td>스터럽·띠철근 135°</td><td>D16 이하 / D19·D22·D25</td><td>2db / 3db</td><td>6db</td></tr></tbody></table></div><p>표의 기준값은 반지름 ri입니다. 내면지름 Di는 2ri로 표시합니다. db는 KS 공칭지름이며, 산출값을 아래로 반올림하여 제작하지 않습니다.</p><p>갈고리의 직선 연장길이는 정착길이 ldh와 다릅니다. 정착·피복·간격은 KDS 14 20 52 및 관련 상세를 별도로 검토해야 합니다. 내진갈고리·용접철망·옵셋철근·가열 또는 재굽힘·전체 가공 및 절단길이는 이 화면에서 산정하지 않습니다. 일반 135° 표준갈고리를 내진갈고리로 자동 판정하지 않습니다.</p><p><a href="https://kcsc.re.kr/standardCode/viewer/KDS%2014%2020%2050" target="_blank" rel="noopener noreferrer">국가건설기준센터 · KDS 14 20 50</a></p></details></div><div class="card"><h2>철근 규격표</h2><div id="rs_table" style="overflow-x:auto"></div></div><div class="card"><h2>선택 규격 · 리브 치수</h2><div id="rs_rib"></div></div><div class="card"><h2>기준 및 단위</h2><p>KS D 3504:2025 「철근 콘크리트용 봉강」 표 4를 기준으로 정리했습니다. 개정일 2025.06.02 · 원문 확인일 2026.09.14.</p><p class="beam-muted">단위중량은 KS 표의 kg/m 값을 사용합니다. 단면적×밀도로 다시 계산하면 표의 끝맺음 때문에 미세한 차이가 생길 수 있습니다. 질량 1 t = 1,000 kg이며, tonf는 힘의 단위입니다.</p><p class="beam-muted">D57은 최신 KS 표의 20.2 kg/m를 적용했습니다. 규격 수록은 특정 강종·길이의 생산 및 공급을 보증하지 않습니다. 무게 허용차·길이 허용차·기계적 성질은 원문의 해당 표를 확인하세요.</p><p><a href="https://www.standard.go.kr/KSCI/standardIntro/getStandardSearchView.do?ksNo=KSD3504&amp;tmprKsNo=KSD3504" target="_blank" rel="noopener noreferrer">e나라 표준인증 · KS D 3504 원문 및 개정 정보</a></p></div></div></div></section>
+
+<section class="tab" id="t24">
+<div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
+<div class="beam-workspace"><aside class="beam-sidebar" aria-label="단위변환 입력">
+<div class="card"><h2>1. 변환 종류</h2><div class="grid beam-inputs"><label class="beam-wide"><b>물리량</b><select id="uc_kind"></select></label></div></div>
+<div class="card"><h2>2. 값 · 단위</h2><div class="grid beam-inputs"><label class="beam-wide"><b>변환할 값</b><input id="uc_value" type="number" step="any" value="1"></label><label><b>입력 단위</b><select id="uc_from"></select></label><label><b>결과 단위</b><select id="uc_to"></select></label></div><button type="button" id="uc_swap" class="beam-view" style="margin-top:14px">단위 서로 바꾸기</button><p class="beam-muted">값이나 단위를 바꾸면 즉시 환산합니다. 단위를 서로 바꿀 때 입력 숫자는 유지합니다.</p></div>
+<div class="card"><h2>단위 구분</h2><p class="beam-muted">t는 질량(1,000 kg), tonf는 힘입니다. 질량밀도와 단위중량도 구분하여 선택하세요.</p></div>
+</aside><div class="beam-output" aria-label="단위변환 결과"><div class="card"><h2>결과 검토</h2><p id="uc_error" role="alert" hidden></p><div aria-live="polite"><p id="uc_result" style="font-size:clamp(24px,3vw,36px);font-weight:700;color:var(--accent);overflow-wrap:anywhere"></p><p id="uc_equation" style="overflow-wrap:anywhere"></p></div><p id="uc_factor" class="beam-muted" style="overflow-wrap:anywhere"></p></div>
+<div class="card"><h2>다른 단위로 환산</h2><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th scope="col">단위</th><th scope="col">변환값</th></tr></thead><tbody id="uc_rows"></tbody></table></div></div>
+<div class="card"><h2>환산 기준</h2><p class="beam-muted">표준중력가속도 9.80665 m/s²를 사용합니다. 1 kgf = 9.80665 N, 1 tonf = 9.80665 kN입니다. 1 in = 25.4 mm, 1 ft = 0.3048 m이며, tonf는 미터톤힘입니다. 화면은 유효숫자 최대 10자리로 표시하고 계산에는 반올림 전 환산계수를 사용합니다.</p><a href="https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8" target="_blank" rel="noopener">NIST SI 단위 환산표</a></div></div></div></section>
 </main>
 
 <footer>
@@ -981,6 +995,8 @@ var SectionPicker=(function(){
 <script src="rebar-spec.js?v=20260914-54"></script>
 <script src="rebar-bend.js?v=20260914-55"></script>
 <script src="steel-spec-ui.js?v=20260914-60"></script>
+<script src="unit-converter.js?v=20260915-65"></script>
+<script src="unit-converter-ui.js?v=20260915-65"></script>
 <script src="home.js?v=20260912-44"></script>
 </body>
 </html>
