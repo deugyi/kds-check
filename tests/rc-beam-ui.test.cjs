@@ -18,6 +18,16 @@ function load(){
   for(const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){const file=m[1].match(/src="([^"]+)"/);vm.runInContext(file?fs.readFileSync(path.join(root,file[1].split('?')[0]),'utf8'):m[2],context);}
   return {nodes,context};
 }
+test('development length UI switches modes, checks available length and removes stale results',()=>{
+ const {nodes}=load();
+ assert.equal(nodes.rd_error.hidden,true);assert.match(nodes.rd_summary.innerHTML,/소요 정착길이/);
+ nodes.rd_type.value='compression';nodes.rd_type.events.change();assert.equal(nodes.rd_tension.hidden,true);assert.equal(nodes.rd_compression.hidden,false);assert.match(nodes.rd_calculation.innerHTML,/0.043/);
+ nodes.rd_type.value='hook90';nodes.rd_type.events.change();assert.match(nodes.rd_diagram.innerHTML,/ldh/);
+ nodes.rd_available.value='100';nodes.rd_available.events.input();assert.match(nodes.rd_summary.innerHTML,/확보 길이 부족/);
+ nodes.rd_hookEndRequired.value='yes';nodes.rd_hookEndRequired.events.change();assert.match(nodes.rd_summary.innerHTML,/상세조건 미충족/);
+ nodes.rd_fck.value='';nodes.rd_fck.events.input();assert.equal(nodes.rd_results.hidden,true);assert.equal(nodes.rd_summary.innerHTML,'');assert.equal(nodes.rd_error.hidden,false);
+ nodes.rd_fck.value='30';nodes.rd_fck.events.input();assert.equal(nodes.rd_results.hidden,false);assert.equal(nodes.rd_error.hidden,true);
+});
 test('HTML and scripts initialize with the expected controls and initial results',()=>{
   const {nodes,context}=load();assert.equal(nodes.b_error.hidden,true);assert.match(nodes.b_rows.innerHTML,/418\.83/);assert.match(nodes.b_diagram.innerHTML,/<svg/);
   assert.equal(vm.runInContext('typeof RCColumn',context),'object');assert.match(nodes.c_axes.innerHTML,/<svg/);assert.match(nodes.c_diagram.innerHTML,/<svg/);assert.match(nodes.c_quantities.innerHTML,/만원/);assert.equal(vm.runInContext('typeof SteelBeam',context),'object');assert.match(nodes.sb_flexure.innerHTML,/kN·m/);assert.match(nodes.sb_props.innerHTML,/<svg/);assert.equal(vm.runInContext('typeof runSteelCol',context),'function');
