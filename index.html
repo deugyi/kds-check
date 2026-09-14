@@ -268,6 +268,16 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 .steel-spec-panel[hidden]{display:none!important}
 
 #t24 .beam-output h2{font-size:18px}#t24 .beam-table tbody th{position:static;background:transparent;font-weight:500;border-bottom:1px solid var(--line)}#t24 .beam-table td{text-align:right}#uc_error{color:var(--ng)}
+
+#t25 .beam-output h2,#t26 .beam-output h2{font-size:18px}
+#t25 .beam-output p,#t26 .beam-output p{overflow-wrap:anywhere}
+.cp-value{font-size:clamp(24px,3vw,36px);font-weight:700;color:var(--accent);margin:14px 0}
+.cp-specimens{display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:center;margin:24px 0}
+.cp-specimens svg{display:block;height:150px;width:100%;margin-bottom:16px;stroke:var(--accent);fill:#edf4fa;stroke-width:2}
+.cp-specimens>div:nth-child(2) svg{stroke:#0b857b;fill:#edf7f5}
+#t26 .beam-table tbody th{position:static;background:transparent;font-weight:500;border-bottom:1px solid var(--line)}
+#t26 .beam-table td{text-align:right}#ec_error,#cv_error{color:var(--ng)}
+@media(max-width:480px){.cp-specimens{grid-template-columns:1fr}.cp-specimens svg{height:110px}}
 </style>
 <link rel="stylesheet" href="home.css?v=20260912-44">
 <link rel="stylesheet" href="seismic.css?v=20260912-40">
@@ -331,7 +341,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
       <li><button type="button" data-t="t11">프레임 해석</button></li>
     </ul>
   </div>
-<div class="menu"><button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">기타</button><ul class="menu-list" hidden><li><button type="button" data-t="t24">단위변환</button></li></ul></div>
+<div class="menu"><button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">기타</button><ul class="menu-list" hidden><li><button type="button" data-t="t24">단위변환</button></li><li><button type="button" data-t="t25">콘크리트 탄성계수</button></li><li><button type="button" data-t="t26">콘크리트 강도 변환</button></li></ul></div>
 </nav>
 
 <main>
@@ -370,7 +380,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <div class="home-group"><div class="home-section-heading"><div><span class="home-index">05</span><h3>구조해석</h3><p>보의 부재력과 지점반력 확인</p></div><span>1개 프로그램</span></div><div class="home-cards">
 <button type="button" class="home-program" data-open="t11"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 66V20H90V66M50 20V66" stroke-width="3"/><path d="M6 70H14M46 70H54M86 70H94M20 7V16M16 12L20 16L24 12M40 7V16M36 12L40 16L44 12M60 7V16M56 12L60 16L64 12M80 7V16M76 12L80 16L84 12"/></svg><span class="home-program-copy"><strong>프레임 해석</strong><span>최대 10경간 · 기둥 강성을 고려한 보 해석</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 </div></div>
-<div class="home-group"><div class="home-section-heading"><div><span class="home-index">06</span><h3>기타</h3><p>구조 검토에 필요한 보조 도구</p></div><span>1개 프로그램</span></div><div class="home-cards"><button type="button" class="home-program" data-open="t24"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 25H84L72 13M84 55H16L28 67M24 35V45M40 35V45M56 35V45M72 35V45"/></svg><span class="home-program-copy"><strong>단위변환</strong><span>길이·힘·압력·모멘트 등 단위 환산</span></span><span class="home-arrow" aria-hidden="true">↗</span></button></div></div>
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">06</span><h3>기타</h3><p>구조 검토에 필요한 보조 도구</p></div><span>3개 프로그램</span></div><div class="home-cards"><button type="button" class="home-program" data-open="t24"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 25H84L72 13M84 55H16L28 67M24 35V45M40 35V45M56 35V45M72 35V45"/></svg><span class="home-program-copy"><strong>단위변환</strong><span>길이·힘·압력·모멘트 등 단위 환산</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="t25"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 62V16M18 62H86M18 62L70 22M18 62Q38 22 78 18"/></svg><span class="home-program-copy"><strong>콘크리트 탄성계수</strong><span>KDS 탄성계수 · 산정식과 계산 과정</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="t26"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 28L32 18L48 28V60L28 70L12 60ZM12 28L28 38L48 28M28 38V70M62 28V60Q74 72 88 60V28M62 28Q74 16 88 28Q74 40 62 28"/></svg><span class="home-program-copy"><strong>콘크리트 강도 변환</strong><span>Cube ↔ Cylinder · 강도등급과 계수 환산</span></span><span class="home-arrow" aria-hidden="true">↗</span></button></div></div>
 </div><div class="home-guidance"><strong>검토 결과 사용 안내</strong><p>KDS 14/41 기반의 현장 대안 검토 도구입니다. 적용 기준과 검토 범위는 각 프로그램에서 확인하세요.<br>계산 결과는 구조기술사의 재검증 후 사용하시기 바랍니다.</p></div></section>
 
 
@@ -841,6 +851,27 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 </aside><div class="beam-output" aria-label="단위변환 결과"><div class="card"><h2>결과 검토</h2><p id="uc_error" role="alert" hidden></p><div aria-live="polite"><p id="uc_result" style="font-size:clamp(24px,3vw,36px);font-weight:700;color:var(--accent);overflow-wrap:anywhere"></p><p id="uc_equation" style="overflow-wrap:anywhere"></p></div><p id="uc_factor" class="beam-muted" style="overflow-wrap:anywhere"></p></div>
 <div class="card"><h2>다른 단위로 환산</h2><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th scope="col">단위</th><th scope="col">변환값</th></tr></thead><tbody id="uc_rows"></tbody></table></div></div>
 <div class="card"><h2>환산 기준</h2><p class="beam-muted">표준중력가속도 9.80665 m/s²를 사용합니다. 1 kgf = 9.80665 N, 1 tonf = 9.80665 kN입니다. 1 in = 25.4 mm, 1 ft = 0.3048 m이며, tonf는 미터톤힘입니다. 화면은 유효숫자 최대 10자리로 표시하고 계산에는 반올림 전 환산계수를 사용합니다.</p><a href="https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8" target="_blank" rel="noopener">NIST SI 단위 환산표</a></div></div></div></section>
+
+<section class="tab" id="t25"><div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
+<div class="beam-workspace"><aside class="beam-sidebar" aria-label="콘크리트 탄성계수 입력">
+<div class="card"><h2>1. 콘크리트 강도</h2><div class="grid beam-inputs">
+<label class="beam-wide"><b>강도 입력 기준</b><select id="ec_basis"><option value="fck">설계기준압축강도 fck</option><option value="fcm">평균압축강도 fcm 직접 입력</option></select></label>
+<label class="beam-wide"><b id="ec_strength_label">설계기준압축강도 fck (MPa)</b><input id="ec_strength" type="number" step="any" min="0" value="30" list="ec_strength_options"></label>
+<datalist id="ec_strength_options"><option value="21"><option value="24"><option value="27"><option value="30"><option value="35"><option value="40"><option value="50"><option value="60"><option value="70"><option value="80"></datalist>
+<p class="beam-muted beam-wide">강도를 선택하거나 직접 입력하세요. fcm은 평균압축강도이며, Cube 공시체 강도를 뜻하지 않습니다.</p></div></div>
+<div class="card"><h2>2. 탄성계수 산정 방식</h2><div class="grid beam-inputs"><label class="beam-wide"><b>적용식</b><select id="ec_method"><option value="normal">보통중량콘크리트 · 간편식</option><option value="density">질량밀도 적용 · 일반식</option></select></label><label id="ec_density_wrap" class="beam-wide" hidden><b>질량밀도 mc (kg/m³)</b><input id="ec_density" type="number" step="10" min="1450" max="2500" value="2300"></label><p class="beam-muted beam-wide">간편식은 mc = 2,300 kg/m³인 보통중량콘크리트에 적용합니다. 일반식 적용 범위는 1,450~2,500 kg/m³입니다.</p></div></div>
+</aside><div class="beam-output" aria-label="콘크리트 탄성계수 결과"><div class="card"><h2>결과 검토</h2><p id="ec_error" role="alert" hidden></p><div aria-live="polite"><p id="ec_value" class="cp-value"></p><p id="ec_gpa"></p></div></div>
+<div id="ec_results"><div class="card"><h2>탄성계수 계산 과정</h2><div id="ec_steps"></div></div><div class="card"><h2>강도 보정 · 계산 방법</h2><p>fcm = fck + Δf</p><table class="beam-table"><thead><tr><th>설계기준압축강도 fck</th><th>Δf (MPa)</th></tr></thead><tbody><tr><td>40 MPa 이하</td><td>4</td></tr><tr><td>40 MPa 초과 · 60 MPa 미만</td><td>4 + (fck − 40) / 10</td></tr><tr><td>60 MPa 이상</td><td>6</td></tr></tbody></table><p class="beam-muted">fcm을 직접 입력하면 Δf를 더하지 않습니다. Ec는 단기 탄성계수이며 균열에 따른 부재 강성 저감이나 크리프에 의한 장기 유효탄성계수는 포함하지 않습니다.</p></div>
+<div class="card"><h2>초기접선탄성계수 · 크리프 계산 참고</h2><p id="ec_initial"></p><p class="beam-muted">KDS 4.3.3(2)의 초기접선탄성계수 Eci입니다.</p></div></div>
+<div class="card"><h2>적용 기준</h2><p>KDS 14 20 10:2021 · 4.3.3 탄성계수 · 식 (4.3-1)~(4.3-4)</p><a href="https://www.kcsc.re.kr/standardCode/viewer/KDS%2014%2020%2010:2021-02-18" target="_blank" rel="noopener">국가건설기준센터 · 기준 원문</a></div></div></div></section>
+<section class="tab" id="t26"><div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
+<div class="beam-workspace"><aside class="beam-sidebar" aria-label="콘크리트 강도 변환 입력"><div class="card"><h2>1. 변환 방식</h2><div class="grid beam-inputs"><label class="beam-wide"><b>계산 방식</b><select id="cv_mode"><option value="class">EN 강도등급 대응표</option><option value="estimate">변환계수 직접 입력 · 추정</option></select></label><p class="beam-muted beam-wide">등급 대응값과 개별 공시체 시험값의 추정을 구분합니다.</p></div></div>
+<div id="cv_class_wrap" class="card"><h2>2. 강도등급</h2><label><b>EN 강도등급 · Cylinder / Cube</b><select id="cv_class"></select></label><p class="beam-muted">C30/37은 Cylinder 30 MPa, Cube 37 MPa에 대응하는 강도등급입니다.</p></div>
+<div id="cv_estimate_wrap" class="card" hidden><h2>2. 압축강도 · 변환계수</h2><div class="grid beam-inputs"><label class="beam-wide"><b>변환 방향</b><select id="cv_direction"><option value="cube-cylinder">Cube → Cylinder</option><option value="cylinder-cube">Cylinder → Cube</option></select></label><label class="beam-wide"><b id="cv_input_label">Cube 압축강도 (MPa)</b><input id="cv_strength" type="number" step="any" min="0" value="40"></label><label class="beam-wide"><b>계수 k = fcyl / fcube</b><input id="cv_ratio" type="number" step="0.01" min="0" value="0.8"></label><p class="beam-muted beam-wide">기본 0.80은 간편 추정을 위한 가정값입니다. 공시체 크기·재령·양생·배합 및 시험 자료에 맞는 계수를 입력하세요.</p></div></div>
+</aside><div class="beam-output" aria-label="콘크리트 강도 변환 결과"><div class="card"><h2>결과 검토</h2><p id="cv_error" role="alert" hidden></p><div id="cv_results"><p id="cv_caption"></p><div class="cp-specimens" aria-live="polite"><div><svg viewBox="0 0 160 150" role="img" aria-label="원주형 공시체"><path d="M40 30V120C40 142 120 142 120 120V30"/><ellipse cx="80" cy="30" rx="40" ry="15"/></svg><b>Cylinder · 원주형</b><p id="cv_cylinder" class="cp-value"></p><span class="beam-muted">기준 공시체 Ø150 × 300 mm</span></div><div><svg viewBox="0 0 160 150" role="img" aria-label="입방체 공시체"><path d="M25 45L85 15L140 40V110L80 140L25 115ZM25 45L80 70L140 40M80 70V140"/></svg><b>Cube · 입방체</b><p id="cv_cube" class="cp-value"></p><span class="beam-muted">기준 공시체 150 × 150 × 150 mm</span></div></div><p id="cv_equation"></p></div></div>
+<div class="card"><h2>강도등급 대응표</h2><p class="beam-muted">EN 206 표 12 · 보통중량 및 중량콘크리트의 28일 특성압축강도. 임의 시험값의 환산표가 아닙니다.</p><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>등급</th><th>Cylinder (MPa)</th><th>Cube (MPa)</th><th>비율 k</th></tr></thead><tbody id="cv_rows"></tbody></table></div></div>
+<div class="card"><h2>변환 방법 · 적용 범위</h2><p>계수 방식: fcyl = k × fcube, fcube = fcyl / k</p><p class="beam-muted">Cube와 Cylinder 강도 사이에는 모든 콘크리트에 공통으로 적용되는 정확한 환산계수가 없습니다. EN 등급 대응값 및 계수 추정값은 KDS 설계강도나 시험 합격 판정값으로 자동 대체하지 않습니다. 경량콘크리트는 이 등급표에 포함하지 않습니다.</p><a href="https://iieta.org/journals/mmep/paper/10.18280/mmep.120429" target="_blank" rel="noopener">근거 자료 · EN 206 표 12 재수록(표 1) 및 공시체 강도 비교 연구</a></div></div></div></section>
+
 </main>
 
 <footer>
@@ -999,6 +1030,8 @@ var SectionPicker=(function(){
 <script src="steel-spec-ui.js?v=20260914-60"></script>
 <script src="unit-converter.js?v=20260915-65"></script>
 <script src="unit-converter-ui.js?v=20260915-65"></script>
+<script src="concrete-properties.js?v=20260915-67"></script>
+<script src="concrete-properties-ui.js?v=20260915-67"></script>
 <script src="home.js?v=20260912-44"></script>
 </body>
 </html>
