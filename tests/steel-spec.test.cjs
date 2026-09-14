@@ -49,3 +49,65 @@ test('Channel KS tables 5 and 6 preserve distinct flange types and centroid-axis
  assert.deepEqual([p.tw,p.tf,p.r,p.A,p.mass,p.Ix,p.Iy,p.Cy],[6.5,11.5,12,30.5,24,1984,192.5,2.55]);
  for(const r of rows){assert.ok(r.Cy*10>r.tw&&r.Cy*10<r.B);assert.ok(Math.abs(r.mass/(r.A*.785)-1)<.005);assert.ok(r.Ix>r.Iy);}
 });
+
+// Independent polygon area/centroid moments, with coordinates in mm.
+function polygonProperties(points){
+ let twiceA=0,mx=0,my=0,ix=0,iy=0;
+ for(let i=0;i<points.length;i++){
+  const [x,y]=points[i],[u,v]=points[(i+1)%points.length],cross=x*v-u*y;
+  twiceA+=cross;mx+=(x+u)*cross;my+=(y+v)*cross;
+  ix+=(y*y+y*v+v*v)*cross;iy+=(x*x+x*u+u*u)*cross;
+ }
+ const A=twiceA/2,cx=mx/(6*A),cy=my/(6*A);
+ return {A:Math.abs(A)/100,Ix:Math.abs(ix/12-A*cy*cy)/1e4,Iy:Math.abs(iy/12-A*cx*cx)/1e4,Cy:cx/10};
+}
+function boxGeometryFindings(r){
+ const {H:h,B:b,t}=r;
+ const bounds={Ix:(b*h**3-(b-2*t)*(h-2*t)**3)/12/1e4,Iy:(h*b**3-(h-2*t)*(b-2*t)**3)/12/1e4};
+ const findings=Object.keys(bounds).filter(f=>r[f]>bounds[f]*1.01); // 1% allowance for table rounding.
+ if(Math.abs(r.mass/(r.A*.785)-1)>.02)findings.push('A');
+ return findings;
+}
+test('BOX moments obey sharp-corner upper bounds and mass consistency unless source-flagged',()=>{
+ const detected=[];
+ for(const r of c.BOX){
+  const fields=boxGeometryFindings(r);if(fields.length)detected.push(r.issueCode);
+  for(const f of fields)assert.ok(r.sourceIssue?.fields.includes(f),r.name+' unreviewed '+f);
+ }
+ assert.deepEqual(detected,['BOX200_5','BOX200_6','BOX350_125']);
+ // A displaced moment column must be detected without a special dimension rule.
+ const normal=c.BOX.find(r=>r.H===300&&r.B===200&&r.t===6);
+ assert.deepEqual(boxGeometryFindings(normal),[]);
+ assert.ok(boxGeometryFindings({...normal,Ix:normal.Ix*1.5}).includes('Ix'));
+ assert.ok(boxGeometryFindings({...normal,Iy:normal.Iy*1.5}).includes('Iy'));
+});
+test('every angle and Channel moment cross-checks against an independent nominal polygon within 5%',()=>{
+ for(const r of [...c.L,...c.CHANNEL]){
+  let points;const {H:h,B:b}=r;
+  if(r.kind==='L'){const t=r.t;points=[[0,0],[b,0],[b,t],[t,t],[t,h],[0,h]];}
+  else{const w=r.tw,t=r.tf,d=r.variant==='tapered'?Math.tan(5*Math.PI/180)*(b-w)/2:0;
+   points=[[0,0],[b,0],[b,t-d],[w,t+d],[w,h-t-d],[b,h-t+d],[b,h],[0,h]];
+  }
+  const p=polygonProperties(points);
+  for(const f of ['A','Ix','Iy'])assert.ok(Math.abs(r[f]/p[f]-1)<.05,r.name+' '+f);
+  if(r.kind==='CHANNEL')assert.ok(Math.abs(r.Cy/p.Cy-1)<.05,r.name+' Cy');
+ }
+});
+test('H 208 warning identifies Ix below the nominal rectangle lower bound and retains source values',()=>{
+ const r=c.H.find(r=>r.issueCode==='H208_IX');
+ const lower=(r.B*r.H**3-(r.B-r.tw)*(r.H-2*r.tf)**3)/12/1e4;
+ assert.ok(Math.abs(lower-6425.3269333333)<1e-6);assert.ok(r.Ix<lower);
+ assert.match(r.issue,/Ix 오기 가능성이 높/);assert.match(r.issue,/6,531.2/);
+ assert.deepEqual(r.sourceIssue.fields,['Ix']);
+});
+test('source annotations travel with their data rows and reference specific tables',()=>{
+ for(const r of Object.values(c).flat()){
+  if(!r.issueCode){assert.equal(r.sourceIssue,undefined);continue;}
+  assert.ok(Object.isFrozen(r.sourceIssue));assert.ok(r.sourceIssue.page>0);
+  assert.match(r.sourceIssue.standard,/KS D/);assert.match(r.sourceIssue.table,/부표/);
+  assert.equal(r.issue,r.sourceIssue.message);
+  const reordered=[r,...c.PIPE];assert.equal(reordered[0].issueCode,r.issueCode);
+ }
+ assert.ok(!c.BOX.some(r=>r.H===200&&r.B===200&&r.t===8));
+ assert.ok(!c.BOX.some(r=>r.H===350&&r.B===350&&r.t===12));
+});
