@@ -7,7 +7,8 @@ const num=id=>{const v=get(id).value.trim();return v===''?NaN:Number(v);};
 function read(){
   const j=get('sb_J').value.trim();
   const ks=SectionPicker.selected(get('sb_mode'),get('sb_sec'));
-  // 직접입력 > 규격표 J > 필릿 보정식.
+  // 직접입력 > 동일 치수·r의 기존 J 표값 > 얇은판 근사값.
+  // 목록 95종은 명시적인 J를 전달하며 필릿 보정 대체식을 사용하지 않는다.
   const J=j!==''?Number(j):(ks&&ks.listed?ks.J:null);
   return {H:num('sb_H'),B:num('sb_B'),tw:num('sb_tw'),tf:num('sb_tf'),
     Fy:num('sb_fy'),E:num('sb_e'),rolled:get('sb_mode').value==='ks',
