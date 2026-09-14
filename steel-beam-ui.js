@@ -68,9 +68,7 @@ function sectionSource(p){
   if(!p.section)return 'Built-up · 필릿 없음 · J는 얇은판 합산';
   const s=p.section;
   if(Number.isFinite(p.J)&&get('sb_J').value.trim()!=='')return `KS ${s.name} · J는 직접입력값`;
-  return s.listed
-    ? `KS ${s.name} · J는 KS D 3502:2007 규격표값 (r = ${s.r} mm)`
-    : `<span class="warn">${s.name} · KS D 3502:2007 표에 없는 호칭이라 J를 필릿 보정식으로 산정했습니다 (r = ${s.r} mm)</span>`;
+  return SteelSection.sectionSource(s);
 }
 function renderProps(p,o){
   const s=o.props,c=o.cls,badge=g=>`<span class="slab-face ${g==='조밀'?'top':'bottom'}">${g}</span>`;

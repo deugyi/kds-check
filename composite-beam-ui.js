@@ -45,6 +45,7 @@ function sectionView(p,o){
 }
 function renderSummary(p,o){
   get('cb_summary').innerHTML=sectionView(p,o)+
+    (p.section?`<p class="beam-muted">${SteelSection.sectionSource(p.section)}${get('cb_J').value.trim()!==''?' · 적용 J는 직접입력값':''}</p>`:'')+
     `<p class="beam-capacity">${fmt(o.phiMn,2)} <small>kN·m</small></p><p>정모멘트 설계휨강도 φbMn · φb = 0.90</p>`+
     `<p class="${o.ok?'ok':'ng'}">${o.ok?'휨 · 전단 · 시공 중 · 입력 상세조건 충족':'미달 항목이 있습니다'}</p>`+
     `<dl class="beam-values"><div><dt>Mu / φbMn</dt><dd class="${o.okM?'ok':'ng'}">${fmt(p.Mu,1)} / ${fmt(o.phiMn,1)} = ${fmt(o.ratioM,3)}</dd></div>`+

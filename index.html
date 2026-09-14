@@ -499,7 +499,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
       <label><b>웨브 두께 tw (mm)</b><input id="sb_tw" type="number" min="1" step="1" value="11"></label>
       <label><b>플랜지 두께 tf (mm)</b><input id="sb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="sb_J" type="number" min="0" step="any" placeholder="비우면 자동"><span>규격표값이 있으면 입력</span></label>
-    </div><p class="beam-muted">KS 규격을 고르면 KS D 3502:2007의 치수와 <b>규격표의 비틀림상수 J</b>가 그대로 들어갑니다. Built-up은 치수를 직접 넣고 J는 얇은판 합산으로 구합니다. A·I·Z는 두 경우 모두 필릿을 빼고 계산하며, 규격표보다 3% 정도 작게(안전측) 나옵니다.</p></div>
+    </div><p class="beam-muted">KS D 3502:2022의 95종을 적용합니다. J는 동일 치수·r의 기존 표값 74종, 얇은판 근사값 21종으로 구분해 표시합니다. Built-up은 치수를 직접 입력합니다. A·I·Z는 필릿을 제외한 계산값으로 조회 페이지의 KS 표값과 구분합니다.</p></div>
 
     <div class="card"><h2>3. 비지지길이 · 소요강도</h2><div class="grid beam-inputs">
       <label><b>Lb (mm)</b><input id="sb_lb" type="number" min="1" step="100" value="3000"></label>
@@ -648,7 +648,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
       <label><b>웨브 두께 tw (mm)</b><input id="cb_tw" type="number" min="1" step="1" value="11"></label>
       <label><b>플랜지 두께 tf (mm)</b><input id="cb_tf" type="number" min="1" step="1" value="17"></label>
       <label><b>J 직접입력 (mm⁴)</b><input id="cb_J" type="number" min="0" step="any" placeholder="비우면 자동"></label>
-    </div><p class="beam-muted">KS 규격은 KS D 3502:2007 규격표의 J를 쓰고, Built-up은 얇은판 합산으로 구합니다.</p></div>
+    </div><p class="beam-muted">KS D 3502:2022의 95종을 적용합니다. J는 기존 표값과 얇은판 근사값을 구분해 표시합니다. Built-up은 얇은판 합산 근사식을 사용합니다.</p></div>
 
     <div class="card"><h2>3. 슬래브 · 배치</h2><div class="grid beam-inputs">
       <label><b>보 경간 (mm)</b><input id="cb_span" type="number" min="500" step="100" value="9000"></label>
@@ -768,7 +768,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <label class="beam-wide"><b>역T 절단 높이</b><select id="br_cutMode"><option value="half">각 원본 RH 높이의 1/2만</option><option value="expanded" selected>1/2 기본 + 반 초과 대안 검색</option><option value="custom">절단 높이 직접 입력</option></select></label>
 <label class="beam-wide" id="br_cut_field" hidden><b>역T 높이 hT (mm)</b><input id="br_cutHeight" type="number" min="1" step="50" value="300"><span>하부 플랜지 바깥면부터 절단선까지 · 반 초과 입력 가능</span></label>
 <label class="beam-wide"><b>휨 검토 방향</b><select id="br_bending"><option value="positive">정모멘트 · 상부 압축</option><option value="negative">부모멘트 · 하부 압축</option><option value="both" selected>정·부모멘트 모두</option></select></label>
-</div><p class="beam-muted">상부 RH와 역T 원본은 반드시 같은 규격을 사용합니다. 반 초과 대안은 1/2 높이부터 다음 50 mm 배수 간격으로, 원본 상부 필릿에 닿기 전까지 검색합니다. 자동 검색은 동일 규격 조합 78종을 비교하고, 특정 규격을 선택하면 그 조합만 검토합니다. 역T 웨브를 RH 하부 플랜지 중앙에 전 길이 연속 접합하여 일체 거동하는 조건입니다.</p><p class="beam-muted">중간 플랜지는 내력·강성에서 제외하고 중량에 포함합니다. 상·하부는 같은 규격·강종이므로 플랜지 폭·두께와 웨브 두께가 같습니다. 두 웨브를 잇는 중앙 폭 부분은 연속 웨브 경로로 유지합니다.</p></div>
+</div><p class="beam-muted">상부 RH와 역T 원본은 반드시 같은 규격을 사용합니다. 반 초과 대안은 1/2 높이부터 다음 50 mm 배수 간격으로, 원본 상부 필릿에 닿기 전까지 검색합니다. 자동 검색은 동일 규격 조합 95종을 비교하고, 특정 규격을 선택하면 그 조합만 검토합니다. 역T 웨브를 RH 하부 플랜지 중앙에 전 길이 연속 접합하여 일체 거동하는 조건입니다.</p><p class="beam-muted">중간 플랜지는 내력·강성에서 제외하고 중량에 포함합니다. 상·하부는 같은 규격·강종이므로 플랜지 폭·두께와 웨브 두께가 같습니다. 두 웨브를 잇는 중앙 폭 부분은 연속 웨브 경로로 유지합니다.</p></div>
 <div class="card"><h2 id="br_support_heading">4. 지지조건 · 설계하중</h2><div class="grid beam-inputs"><label><b>비지지길이 Lb (mm)</b><input id="br_Lb" type="number" min="1" step="100" value="3000"></label><label><b>모멘트 수정계수 Cb</b><input id="br_Cb" type="number" min="0.1" step="0.1" value="1"></label></div>
 <div class="grid beam-inputs" id="br_loads"><label><b>소요휨모멘트 Mu (kN·m)</b><input id="br_Mu" type="number" min="0" step="any" value="700"></label><label><b>소요전단력 Vu (kN)</b><input id="br_Vu" type="number" min="0" step="any" value="300"></label></div><p class="beam-muted" id="br_mode_note"></p><p class="beam-muted">Lb와 Cb는 BH·RH에 동일하게 적용합니다. 대체 후에도 횡지지 조건이 유지되는지 확인하세요.</p></div>
 <div class="card"><h2 id="br_conditions_heading">5. 후보 조건</h2><div class="grid beam-inputs"><label><b>RH 높이 상한 (mm)</b><input id="br_maxH" type="number" min="1" step="50" value=""></label><label><b>RH 폭 상한 (mm)</b><input id="br_maxB" type="number" min="1" step="50" value=""></label>
@@ -776,11 +776,11 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <label class="beam-wide"><b>후보 표 표시</b><select id="br_filter"><option value="eligible">조건 충족 후보</option><option value="all">전체 규격 · 제외 사유 포함</option></select></label></div>
 <p class="beam-muted">높이·폭 상한은 비우면 제한하지 않습니다. 높이 상한은 역T를 포함한 전체 높이, 폭 상한은 두 부재 중 큰 폭에 적용합니다. 규격표에서 확인된 보용·기둥용 RH를 검색합니다.</p></div>
 </aside><div class="beam-output" aria-label="BH→RH 결과">
-<div class="card"><h2>결과 검토</h2><p id="br_error" role="alert" hidden></p><div id="br_diagram"></div><div id="br_compare"></div></div>
+<div class="card"><h2>결과 검토</h2><p id="br_error" role="alert" hidden></p><div id="br_diagram"></div><div id="br_compare"></div><p id="br_section_source" class="beam-muted"></p></div>
 <div class="card"><h2>대체 후보 · 단위길이 중량 순</h2><p class="beam-muted">파란색은 우선 제안 후보입니다. 반 초과 대안을 함께 검색할 때는 1/2 절단 충족안을 기본으로 우선 표시합니다. ‘보기’로 다른 후보의 단면과 성능을 비교할 수 있습니다. 중량 증감률 = (후보 중량 / 원안 BH 중량 − 1) × 100%.</p><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th id="br_section_heading">원본 RH 규격</th><th>Fy<br>(MPa)</th><th>중량<br>(kg/m)</th><th>원안 대비<br>중량 증감률</th><th>φMn<br>(kN·m)</th><th>φVn<br>(kN)</th><th>Ix / BH</th><th>판정</th><th>보기</th></tr></thead><tbody id="br_rows"></tbody></table></div></div>
 <div class="card" id="br_assembly_details" hidden><h2>조립 단면 · 정/부모멘트 · 접합 전달력</h2><div id="br_assembly_results"></div></div>
 <div class="card"><h2>검토 범위 · 계산 근거</h2><p class="beam-muted">RH + 역T는 중간 플랜지의 돌출부·필릿을 제외한 일정 웨브 두께의 조립 I형 모델입니다. KDS 14 31 10, 4.3.2.1.1.4·5와 표 4.3-2로 정·부모멘트를 각각 산정합니다. 동일 플랜지·조밀 웨브는 4.3.2.1.1.2·3을 적용합니다. 이 모델은 사용자가 지정한 현장 대안 검토 가정이며 실제 단면의 접합부와 전체 거동 검증을 대신하지 않습니다.</p><p class="beam-muted">KDS 14 31 10, 4.3.2.1.1.2·3(강축 휨·횡비틀림좌굴·국부좌굴), 4.3.2.1.2.2(전단). 기존 철골 보 계산식을 공유합니다. BH는 조밀 플랜지와 조밀·비조밀 웨브를 지원하며, 비조밀 웨브는 4.3.2.1.1.4를 적용합니다. RH는 조밀 웨브 범위입니다.</p>
-<details class="beam-settings"><summary>비교 가정과 제외 항목</summary><p>강종별 항복강도는 공통 강종표에서 판두께를 반영합니다. BH·RH 모두 플랜지와 웨브 중 큰 두께의 Fy를 일괄 적용합니다. E = 210,000 MPa. RH의 J는 보유 KS D 3502 규격표값을 사용합니다.</p><p>단면성능은 기존 계산기와 동일하게 필릿을 제외한 판 합산값입니다. 개산 중량은 밀도 7,850 kg/m³에 RH 필릿 면적을 포함하며 BH 용접금속은 제외합니다. 중량 감소가 공사비 절감을 의미하지 않으며 규격의 생산·재고·발주 중량은 확인해야 합니다.</p><p>Ix 비교는 같은 경간·하중·지지조건에서 강축 휨강성을 비교하는 보조 지표입니다. 실제 처짐, 진동, 자중 변화에 따른 하중 재산정, 약축 휨, 축력·비틀림, 접합부, 지점부 국부강도, 스티프너 상세, 내진 및 합성효과는 별도 검토 대상입니다.</p><p>반 초과 절단 후보는 50 mm 배수 높이로 검색하며 모든 내력·강성·치수 조건을 다시 검토합니다. 반 초과 절단 시 원본 1개에서 같은 역T 2개를 얻을 수 없으며, 잔재·절단 손실과 구매비는 별도입니다.</p><p>하중 기준은 입력된 Mu·Vu만 판정하며 기존 BH 이상의 내력을 보장하지 않습니다. ‘조건 충족’은 이 화면의 검토 범위에 한정됩니다.</p></details></div>
+<details class="beam-settings"><summary>비교 가정과 제외 항목</summary><p>강종별 항복강도는 공통 강종표에서 판두께를 반영합니다. BH·RH 모두 플랜지와 웨브 중 큰 두께의 Fy를 일괄 적용합니다. E = 210,000 MPa. RH의 J는 동일 치수·r의 기존 표값 또는 얇은판 근사값을 사용하며 출처를 표시합니다.</p><p>단면성능은 기존 계산기와 동일하게 필릿을 제외한 판 합산값입니다. 개산 중량은 밀도 7,850 kg/m³에 RH 필릿 면적을 포함하며 BH 용접금속은 제외합니다. 중량 감소가 공사비 절감을 의미하지 않으며 규격의 생산·재고·발주 중량은 확인해야 합니다.</p><p>Ix 비교는 같은 경간·하중·지지조건에서 강축 휨강성을 비교하는 보조 지표입니다. 실제 처짐, 진동, 자중 변화에 따른 하중 재산정, 약축 휨, 축력·비틀림, 접합부, 지점부 국부강도, 스티프너 상세, 내진 및 합성효과는 별도 검토 대상입니다.</p><p>반 초과 절단 후보는 50 mm 배수 높이로 검색하며 모든 내력·강성·치수 조건을 다시 검토합니다. 반 초과 절단 시 원본 1개에서 같은 역T 2개를 얻을 수 없으며, 잔재·절단 손실과 구매비는 별도입니다.</p><p>하중 기준은 입력된 Mu·Vu만 판정하며 기존 BH 이상의 내력을 보장하지 않습니다. ‘조건 충족’은 이 화면의 검토 범위에 한정됩니다.</p></details></div>
 </div></div></section>
 <section class="tab" id="t9">
 <div class="report-toolbar"><p class="report-notice">현장 대안 검토용이며 계산 결과에 법적 책임을 지지 않습니다. 구조기술사의 재검증이 필요합니다.</p><button type="button" class="go" data-report-print>PDF 인쇄</button></div>
@@ -833,7 +833,8 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
   </ul>
 </footer>
 
-<script src="steel-section.js?v=20260914-1"></script>
+<script src="steel-spec.js?v=20260914-60"></script>
+<script src="steel-section.js?v=20260914-61"></script>
 <script>
 /* =======================================================================
    공통
@@ -926,8 +927,8 @@ var SectionPicker=(function(){
 </script>
 <script src="steel-beam.js?v=20260911-15"></script>
 <script src="steel-column.js?v=20260914-1"></script>
-<script src="steel-column-ui.js?v=20260914-1"></script>
-<script src="steel-beam-ui.js?v=20260911-15"></script>
+<script src="steel-column-ui.js?v=20260914-61"></script>
+<script src="steel-beam-ui.js?v=20260914-61"></script>
 <script src="rc-beam.js?v=20260911-15"></script>
 <script src="rc-beam-checks.js?v=20260911-15"></script>
 <script src="rc-beam-ui.js?v=20260911-15"></script>
@@ -936,7 +937,7 @@ var SectionPicker=(function(){
 <script src="rc-slab-uplift.js?v=20260911-15"></script>
 <script src="rc-slab-uplift-ui.js?v=20260912-45"></script>
 <script src="composite-beam.js?v=20260914-53"></script>
-<script src="composite-beam-ui.js?v=20260914-53"></script>
+<script src="composite-beam-ui.js?v=20260914-61"></script>
 <script src="concrete-age.js?v=20260911-15"></script>
 <script src="transfer-beam.js?v=20260911-15"></script>
 <script src="transfer-beam-diagram.js?v=20260911-15"></script>
@@ -944,10 +945,10 @@ var SectionPicker=(function(){
 <script src="steel-builtup-i.js?v=20260911-23"></script>
 <script src="steel-rh-tee.js?v=20260911-23"></script>
 <script src="steel-replacement.js?v=20260911-26"></script>
-<script src="steel-replacement-ui.js?v=20260911-29"></script>
+<script src="steel-replacement-ui.js?v=20260914-61"></script>
 <script src="composite-column.js?v=20260914-53"></script>
 <script src="composite-column-studs.js?v=20260914-60"></script>
-<script src="composite-column-ui.js?v=20260914-60"></script>
+<script src="composite-column-ui.js?v=20260914-61"></script>
 <script src="rc-wall.js?v=20260911-32"></script>
 <script src="rc-wall-ui.js?v=20260911-32"></script>
 <script src="rc-frame.js?v=20260911-33"></script>
@@ -967,7 +968,6 @@ var SectionPicker=(function(){
 <script src="new-programs-ui.js?v=20260914-52"></script>
 <script src="rebar-spec.js?v=20260914-54"></script>
 <script src="rebar-bend.js?v=20260914-55"></script>
-<script src="steel-spec.js?v=20260914-60"></script>
 <script src="steel-spec-ui.js?v=20260914-60"></script>
 <script src="home.js?v=20260912-44"></script>
 </body>

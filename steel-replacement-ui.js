@@ -30,6 +30,7 @@ function teeDiagram(a,row){
   return `<svg viewBox="0 0 660 352" style="width:100%;max-height:430px;display:block" role="img" aria-label="검토 단면: 가운데 플랜지 제외, 파란색 상부 RH와 초록색 하부 역T">${bh}${ghost}${alternative}${NA}${dimension(290,cy,bottom,`H ${a.H} mm`)}${dimension(600,yTop,bottom,`H ${f(H)} mm`)}<g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="155" y="23">기존 BH</text><text x="465" y="23">대안 · 검토 I형 단면</text><text x="155" y="337" font-size="12">${a.H} × ${a.B} × ${a.tw} × ${a.tf} mm</text><text x="465" y="337" font-size="12">상부 폭 ${top.B} / 하부 폭 ${tee.B} mm</text></g></svg><p class="br-diagram-caption">파란색은 상부 RH, 초록색은 하부 역T입니다. 옅은 회색 점선은 실제로 남아 있는 가운데 플랜지이며, 내력·강성에서는 제외하고 중량에는 포함합니다. 보라색 점선은 검토 중립축입니다.<br>상부 RH: ${top.name} · 역T 원본: ${tee.name} · 역T 높이 ${f(t.cut)} mm · 검토 웨브 두께 ${f(e.tw)} mm</p>`;
 }
 function assemblyDetails(row){
+  get('section_source').textContent=row?(row.assembly?'KS D 3502:2022 · 원본 RH '+row.section.name+' · 조립 I형 J는 제외 플랜지를 반영한 치수로 별도 산정':SteelSection.sectionSource(row.section)):'';
   const a=row?.assembly;get('assembly_details').hidden=!a;
   if(!a){get('assembly_results').innerHTML='';return;}
   const o=a.out,p=a.effective;
@@ -73,7 +74,7 @@ for(const id of ['bhGrade']){
   get(id).innerHTML=Object.keys(SteelSection.STEEL).map(g=>`<option>${g}</option>`).join('');
   get(id).value='SM355';
 }
-get('topSection').innerHTML='<option value="auto">자동 검색 · 동일 규격 78종</option>'+SteelSection.SECTIONS.filter(s=>s.listed).map(s=>`<option>${s.name}</option>`).join('');
+get('topSection').innerHTML=`<option value="auto">자동 검색 · 동일 규격 ${SteelSection.SECTIONS.length}종</option>`+SteelSection.SECTIONS.filter(s=>s.listed).map(s=>`<option>${s.name}</option>`).join('');
 get('topSection').value='auto';
 document.getElementById('t8').addEventListener('input',update);
 get('rows').addEventListener('click',e=>{const b=e.target.closest('[data-br-section]');if(!b||!current)return;selected=b.dataset.brSection;table();});
