@@ -62,7 +62,7 @@ test('candidate screening includes both moment signs, combined height, real mass
 
 
 test('RH plus tee candidates always pair the same source section and manual choice is respected',()=>{
- const o=R.calculate(p);assert.equal(o.rows.length,78);assert.ok(o.recommended);
+ const o=R.calculate(p);assert.equal(o.rows.length,95);assert.ok(o.recommended);
  for(const r of o.rows){const a=r.assembly;assert.equal(a.top.name,a.tee.name);near(a.effective.H,1.5*a.top.H);near(a.mass,1.5*a.topMass);near(a.out.props.y,a.effective.H/2);}
  const name=o.recommended.section.name,one=R.calculate({...p,topSection:name});assert.equal(one.rows.length,1);assert.equal(one.rows[0].assembly.top.name,name);assert.equal(one.rows[0].assembly.tee.name,name);
  assert.throws(()=>R.calculate({...p,topSection:'not-a-section'}));
@@ -71,7 +71,7 @@ test('RH plus tee candidates always pair the same source section and manual choi
 
 test('expanded cuts keep half as default and compare only valid higher straight-web cuts',()=>{
  const o=R.calculate({...p,cutMode:'expanded'});assert.ok(o.halfRecommended&&o.extendedRecommended);
- assert.equal(o.recommended,o.halfRecommended);assert.ok(o.rows.length>78);
+ assert.equal(o.recommended,o.halfRecommended);assert.ok(o.rows.length>95);
  assert.equal(new Set(o.rows.map(r=>r.key)).size,o.rows.length);
  for(const r of o.rows){const a=r.assembly;assert.ok(a.cut>=r.section.H/2);assert.ok(a.cut<r.section.H-r.section.tf-r.section.r);if(!r.half)assert.equal(a.cut%50,0);assert.equal(a.top.name,a.tee.name);}
  const x=o.extendedRecommended;assert.ok(x.assembly.cut>x.section.H/2);assert.ok(x.out.flexure.phiMn>=o.target.M);assert.ok(x.out.shear.phiVn>=o.target.V);

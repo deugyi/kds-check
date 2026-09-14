@@ -2,15 +2,14 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const S=require('../steel-section.js');
 
-/* The palette from the H tab of Calc_Sheet.xlsx, merged with the KS D 3502:2007
- * table. Only the 78 designations printed in the standard's table are kept. */
+/* Active catalog: KS D 3502:2022. Existing J records are separately sourced. */
 test('the KS section list is complete and free of duplicates',()=>{
-  assert.equal(S.SECTIONS.length,78);
-  assert.equal(S.sectionList('beam').length,46);
-  assert.equal(S.sectionList('column').length,32);
-  assert.equal(S.sectionList().length,78);
-  assert.equal(new Set(S.SECTIONS.map(s=>s.name)).size,78);
-  assert.equal(S.SECTIONS.filter(s=>s.listed).length,78);
+  assert.equal(S.SECTIONS.length,95);
+  assert.equal(S.sectionList('beam').length,57);
+  assert.equal(S.sectionList('column').length,38);
+  assert.equal(S.sectionList().length,95);
+  assert.equal(new Set(S.SECTIONS.map(s=>s.name)).size,95);
+  assert.equal(S.SECTIONS.filter(s=>s.listed).length,95);
   // Every entry carries the four dimensions plus the rolled fillet radius.
   for(const s of S.SECTIONS)
     for(const k of ['H','B','tw','tf','r'])
@@ -24,9 +23,8 @@ test('section names are built from the dimensions',()=>{
   assert.equal(ref.use,'beam');
   assert.equal(S.findSection('H-1×1×1×1'),null);
 });
-/* The tabulated area matches the fillet-free formula exactly, so the imported
- * list agrees with hProps rather than contradicting it. */
-test('the tabulated area matches hProps, which ignores the fillet',()=>{
+/* Engine areas intentionally exclude fillets; reference A remains separate. */
+test('the engine area matches hProps and remains distinct from KS reference area',()=>{
   for(const s of S.SECTIONS){
     const p=S.hProps(s.H,s.B,s.tw,s.tf,null);
     assert.ok(Math.abs(p.A-s.A)<1e-9,`${s.name}: ${p.A} != ${s.A}`);
@@ -63,19 +61,21 @@ test('listed sections carry the KS D 3502 tabulated J exactly',()=>{
     assert.equal(s.listed,true,name);
     assert.equal(s.J,J*1e4,name);
   }
-  // The fillet correction is only a fallback, and it is never silently exact.
-  for(const s of S.SECTIONS)
-    if(s.listed)assert.notEqual(s.J,S.torsionConstant(s.H,s.B,s.tw,s.tf,s.r));
-    else assert.equal(s.J,S.torsionConstant(s.H,s.B,s.tw,s.tf,s.r));
+  assert.equal(S.SECTIONS.filter(s=>s.JMethod==='table').length,74);
+  assert.equal(S.SECTIONS.filter(s=>s.JMethod==='thin-wall').length,21);
+  for(const s of S.SECTIONS){
+   if(s.JMethod==='thin-wall'){
+    assert.equal(s.J,(2*s.B*s.tf**3+(s.H-s.tf)*s.tw**3)/3);
+    assert.match(S.sectionSource(s),/J 표값 없음 · 얇은판 합산/);
+   }else assert.match(S.sectionSource(s),/2007/);
+   assert.equal(s.standard,'KS D 3502:2022');
+  }
 });
-test('only designations printed in the KS D 3502 table remain',()=>{
-  assert.ok(S.SECTIONS.every(s=>s.listed&&s.J>0));
-  for(const name of ['H-304×301×11×17','H-310×305×15×20','H-343×299×10×15',
-    'H-398×201×9×14','H-506×201×11×19','H-597×302×14×23','H-918×303×19×37'])
-    assert.equal(S.findSection(name),null,name);
-  // Their neighbours in the table are still offered.
-  for(const name of ['H-304×301×11×15','H-310×305×15×17','H-434×299×10×15','H-594×302×14×23'])
-    assert.ok(S.findSection(name),name);
+test('only current 2022 designations are offered, including restored and additional rows',()=>{
+ const ref=require('../steel-spec.js').catalogs.H;
+ assert.deepEqual(new Set(S.SECTIONS.map(s=>[s.H,s.B,s.tw,s.tf,s.r].join('|'))),new Set(ref.map(s=>[s.H,s.B,s.tw,s.tf,s.r].join('|'))));
+ for(const name of ['H-304×301×11×15','H-310×305×15×17','H-386×299×9×14','H-404×201×9×15','H-343×299×10×15','H-398×201×9×14','H-597×302×14×23'])assert.equal(S.findSection(name),null,name);
+ for(const name of ['H-304×301×11×17','H-310×305×15×20','H-506×201×11×19','H-918×303×19×37'])assert.ok(S.findSection(name),name);
 });
 /* The tabulated r is what makes the standard's own area come out right:
  * A_table = 2 B tf + (H - 2 tf) tw + 4 r^2 (1 - pi/4). Checking it here pins
@@ -105,7 +105,7 @@ test('every listed section works through the beam engine',()=>{
   let compact=0;
   for(const s of S.SECTIONS){
     const o=B.calculate({H:s.H,B:s.B,tw:s.tw,tf:s.tf,Fy:325,E:210000,
-      rolled:true,J:null,Lb:3000,Cb:1.0,Mu:0,Vu:0});
+      rolled:true,J:s.J,r:s.r,Lb:3000,Cb:1.0,Mu:0,Vu:0});
     if(o.supported){compact++;assert.ok(o.flexure.phiMn>0);}
     else assert.match(o.message,/조밀단면이 아닙니다/);
   }
