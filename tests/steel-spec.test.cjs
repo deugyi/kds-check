@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {catalogs:c,find}=require('../steel-spec.js');
 test('KS reference catalogs retain unique exact dimension combinations and positive values',()=>{
- assert.deepEqual(Object.fromEntries(Object.entries(c).map(([k,r])=>[k,r.length])),{H:95,PIPE:127,BOX:122,L:53});
+ assert.deepEqual(Object.fromEntries(Object.entries(c).map(([k,r])=>[k,r.length])),{H:95,PIPE:127,BOX:122,L:53,CHANNEL:24});
  for(const [kind,rows] of Object.entries(c)){
   assert.equal(new Set(rows.map(r=>r.name)).size,rows.length);
   for(const r of rows){for(const k of ['H','B','A','mass','Ix','Iy'])assert.ok(Number.isFinite(r[k])&&r[k]>0,r.name+' '+k);assert.equal(find(kind,r.id),r);}
@@ -39,4 +39,13 @@ test('H table moments cross-check against independent numerical strip integratio
   }
   assert.ok(Math.abs(Ix/1e4/r.Ix-1)<.013,r.name+' Ix');assert.ok(Math.abs(Iy/1e4/r.Iy-1)<.013,r.name+' Iy');
  }
+});
+
+test('Channel KS tables 5 and 6 preserve distinct flange types and centroid-axis properties',()=>{
+ const rows=c.CHANNEL;assert.equal(rows.filter(r=>r.variant==='tapered').length,16);assert.equal(rows.filter(r=>r.variant==='parallel').length,8);
+ const t=rows.find(r=>r.H===200&&r.B===80&&r.variant==='tapered');
+ assert.deepEqual([t.tw,t.tf,t.r,t.r2,t.A,t.mass,t.Ix,t.Iy,t.Cy],[7.5,11,12,6,31.33,24.6,1950,168,2.21]);
+ const p=rows.find(r=>r.H===200&&r.B===80&&r.variant==='parallel');
+ assert.deepEqual([p.tw,p.tf,p.r,p.A,p.mass,p.Ix,p.Iy,p.Cy],[6.5,11.5,12,30.5,24,1984,192.5,2.55]);
+ for(const r of rows){assert.ok(r.Cy*10>r.tw&&r.Cy*10<r.B);assert.ok(Math.abs(r.mass/(r.A*.785)-1)<.005);assert.ok(r.Ix>r.Iy);}
 });
