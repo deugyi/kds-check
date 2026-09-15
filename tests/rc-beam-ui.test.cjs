@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 // Small DOM adapter to smoke-test wiring; this does not test visual layout.
-function load(){
+function load(extra={}){
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),nodes={};
   function node(id){return nodes[id]||(nodes[id]={value:'',hidden:false,textContent:'',_html:'',events:{},style:{},classList:{remove(){},add(){},toggle(){}},addEventListener(t,f){this.events[t]=f;},querySelectorAll(){return [];},get innerHTML(){return this._html;},set innerHTML(v){this._html=v;for(const m of v.matchAll(/id="([^"]+)"/g))node(m[1]);}});}
   for(const m of html.matchAll(/id="([^"]+)"/g))node(m[1]);
@@ -14,7 +14,7 @@ function load(){
     const options=[...m[2].matchAll(/<option([^>]*)>([^<]*)<\/option>/g)];const opt=options.find(x=>x[1].includes('selected'))||options[0];if(opt)nodes[m[1]].value=opt[1].match(/value="([^"]*)"/)?.[1]||opt[2];
   }
   const ids=['b_b','b_h','b_bar','b_stirrup','b_fck','b_fck_custom','b_fy','b_fyt','b_compression_bar','b_compression_count','b_cover','b_aggregate','b_legs','b_spacing','b_vu','b_skin_mode','b_skin_bar','b_skin_count','b_environment','b_concrete_price','b_steel_price','b_waste','b_cut_length'];nodes.t1.querySelectorAll=()=>ids.map(id=>nodes[id]);
-  const context=vm.createContext({console,document:{getElementById(id){assert.ok(nodes[id],`missing #${id}`);return nodes[id];},querySelectorAll(){return [];},addEventListener(){}}});
+  const context=vm.createContext({console,...extra,document:{getElementById(id){assert.ok(nodes[id],`missing #${id}`);return nodes[id];},querySelectorAll(){return [];},addEventListener(){}}});
   for(const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){const file=m[1].match(/src="([^"]+)"/);vm.runInContext(file?fs.readFileSync(path.join(root,file[1].split('?')[0]),'utf8'):m[2],context);}
   return {nodes,context};
 }
@@ -236,3 +236,25 @@ test('pile screen labels and draws actual diagonal spacing and removes obsolete 
 
 test('foundation auto shear layout is rendered and invalid inputs remove it',()=>{const {nodes:n}=load();for(const [k,v] of Object.entries({bx:4500,by:4500,h:450,Pu:3000}))n['fs_'+k].value=String(v);n.fs_Pu.events.input();assert.match(n.fs_reinforcement.innerHTML,/폐쇄형/);assert.match(n.fs_reinforcement.innerHTML,/보강 외곽/);assert.match(n.fs_plot.innerHTML,/뚫림 전단철근/);n.fs_Pu.value='';n.fs_Pu.events.input();assert.equal(n.fs_reinforcement.innerHTML,'');});
 test('new initial calculator pages render results and remove stale invalid output',()=>{const {nodes:n}=load();for(const pre of ['ld','ts','bc','wcj']){assert.equal(n[pre+'_error'].hidden,true,pre);assert.match(n[pre+'_plot'].innerHTML,/<svg/);assert.ok(n[pre+'_table'].innerHTML.length>100);}n.bc_Vu.value='';n.bc_Vu.events.input();assert.equal(n.bc_results.hidden,true);assert.equal(n.bc_plot.innerHTML,'');n.bc_Vu.value='250';n.bc_Vu.events.input();assert.equal(n.bc_results.hidden,false);});
+
+test('load schedule edits layers, duplicates independently and updates shared material values',()=>{
+ const {nodes}=load();assert.match(nodes.ld_table.innerHTML,/12\.24/);
+ nodes.ld_copy_case.events.click();assert.match(nodes.ld_case.innerHTML,/value="1"/);
+ nodes.ld_thickness.value='200';nodes.ld_thickness.events.input();assert.match(nodes.ld_summary.innerHTML,/8\.50/);
+ nodes.ld_case.value='0';nodes.ld_case.events.change();assert.equal(nodes.ld_thickness.value,100);assert.match(nodes.ld_summary.innerHTML,/6\.20/);
+ nodes.ld_material_value.value='22';nodes.ld_material_value.events.input();assert.match(nodes.ld_table.innerHTML,/6\.10/);assert.match(nodes.ld_table.innerHTML,/8\.30/);
+ nodes.ld_layer.value='1';nodes.ld_layer.events.change();assert.equal(nodes.ld_thickness_field.hidden,true);
+ nodes.ld_material_value.value='0.4';nodes.ld_material_value.events.input();assert.match(nodes.ld_summary.innerHTML,/6\.40/);
+ nodes.ld_live.value='';nodes.ld_live.events.input();assert.equal(nodes.ld_results.hidden,true);assert.equal(nodes.ld_table.innerHTML,'');
+ nodes.ld_live.value='0';nodes.ld_live.events.input();assert.equal(nodes.ld_error.hidden,true);assert.match(nodes.ld_summary.innerHTML,/1\.4D/);
+});
+test('load schedule restores last valid state and escapes project and material text',()=>{
+ let saved=null;const store={getItem(){return saved;},setItem(k,v){saved=v;}};
+ const {nodes}=load({localStorage:store});nodes.ld_project.value='검토 프로젝트';nodes.ld_project.events.input();
+ nodes.ld_use.value='<img src=x onerror=alert(1)>';nodes.ld_use.events.input();assert.doesNotMatch(nodes.ld_table.innerHTML,/<img/);assert.match(nodes.ld_table.innerHTML,/&lt;img/);
+ nodes.ld_add_material.events.click();nodes.ld_material_name.value='<script>test</script>';nodes.ld_material_name.events.input();assert.doesNotMatch(nodes.ld_material_table.innerHTML,/<script>/);
+ nodes.ld_live.value='7';nodes.ld_live.events.input();const valid=saved;
+ nodes.ld_live.value='-1';nodes.ld_live.events.input();assert.equal(saved,valid);
+ const next=load({localStorage:store});assert.equal(next.nodes.ld_project.value,'검토 프로젝트');assert.equal(next.nodes.ld_live.value,7);assert.equal(next.nodes.ld_error.hidden,true);
+ const corrupt=load({localStorage:{getItem(){return '{';},setItem(){}}});assert.equal(corrupt.nodes.ld_error.hidden,true);assert.match(corrupt.nodes.ld_table.innerHTML,/12\.24/);
+});
