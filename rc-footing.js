@@ -81,7 +81,11 @@ function calculate(input,designShear=true){
   piles=piles.map(v=>({...v,Rs:totalS/piles.length+p.Mys*v.x/xx+p.Mxs*v.y/yy,Ru:totalU/piles.length+p.Myu*v.x/xx+p.Mxu*v.y/yy}));
   const edgeX=p.bx/2-Math.max(...piles.map(v=>Math.abs(v.x)*1000)),edgeY=p.by/2-Math.max(...piles.map(v=>Math.abs(v.y)*1000));
   pileLayout={spacingMin:2.5*p.diameter,edgeMin:1.25*p.diameter,edgeX,edgeY,spacingXOK:p.sx>=2.5*p.diameter,spacingYOK:p.sy>=2.5*p.diameter,edgeXOK:edgeX>=1.25*p.diameter,edgeYOK:edgeY>=1.25*p.diameter,minBx:Math.ceil(((p.nx-1)*Math.max(p.sx,2.5*p.diameter)+2.5*p.diameter)/50)*50,minBy:Math.ceil(((p.ny-1)*Math.max(p.sy,2.5*p.diameter)+2.5*p.diameter)/50)*50};
-  pileLayout.actualMin=Math.min(...piles.flatMap((a,i)=>piles.slice(i+1).map(b=>Math.hypot(a.x-b.x,a.y-b.y)*1000)));
+  // Compare true centre-to-centre distances, including diagonal neighbours.
+  // On a tie use the later pair to keep the dimension toward the top/right.
+  const pairs=piles.flatMap((a,i)=>piles.slice(i+1).map(b=>({a,b,distance:Math.hypot(a.x-b.x,a.y-b.y)*1000})));
+  pileLayout.closestPair=pairs.reduce((best,v)=>v.distance<=best.distance+1e-7?v:best);
+  pileLayout.actualMin=Math.min(...pairs.map(v=>v.distance));
   if(p.autoPoints){pileLayout.spacingXOK=pileLayout.spacingYOK=pileLayout.actualMin>=pileLayout.spacingMin-1e-7;pileLayout.minBx=p.bx;pileLayout.minBy=p.by;}
   pileLayout.ok=pileLayout.spacingXOK&&pileLayout.spacingYOK&&pileLayout.edgeXOK&&pileLayout.edgeYOK;
   bearing={min:Math.min(...piles.map(v=>v.Rs)),max:Math.max(...piles.map(v=>v.Rs)),limit:p.pileAllow,unit:'kN/본'};

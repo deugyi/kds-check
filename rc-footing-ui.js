@@ -3,12 +3,12 @@ const E=RCFooting,F=(x,n=1)=>Number.isFinite(x)?x.toLocaleString('ko-KR',{maximu
 const dl=rows=>'<dl class="beam-values">'+rows.map(([a,b])=>`<div><dt>${a}</dt><dd>${b}</dd></div>`).join('')+'</dl>';
 const status=ok=>`<span style="color:${ok?'#18704c':'#b23c31'}">${ok?'충족':'미충족'}</span>`;
 for(const pre of ['fs','fp']){
- const el=k=>document.getElementById(pre+'_'+k),keys=['shearBar','fyt','fck','fy','bx','by','h','cx','cy','cover','Ps','Pu',...(pre==='fs'?['qa']:['pileCount','sx','sy','diameter','pileAllow','gapFactor'])];
+ const el=k=>document.getElementById(pre+'_'+k),keys=['shearBar','fyt','fck','fy','bx','by','h','cx','cy','cover','Ps','Pu',...(pre==='fs'?['qa']:['pileCount','diameter','pileAllow','gapFactor'])];
  function update(){
   try{
    let p={mode:pre==='fs'?'soil':'pile'};
    for(const k of keys)p[k]=(k.startsWith('bar')||k==='shearBar')?el(k).value:el(k).value===''?NaN:Number(el(k).value);
-   if(pre==='fp'){p.autoSize=true;Object.assign(p,E.pileCountLayout(p));for(const k of ['bx','by','sx','sy'])el(k).value=String(p[k]);}
+   if(pre==='fp'){p.autoSize=true;Object.assign(p,E.pileCountLayout(p));for(const k of ['bx','by'])el(k).value=String(p[k]);el('minDistance').value=F(Math.min(...p.autoPoints.flatMap((a,i)=>p.autoPoints.slice(i+1).map(b=>Math.hypot(a.x-b.x,a.y-b.y)))),1).replaceAll(',','');}
    el('customWrap').hidden=el('fck').value!=='직접 입력';
    if(el('fck').value==='직접 입력')p.fck=el('fckCustom').value===''?NaN:Number(el('fckCustom').value);
    const r=E.design(p),b=r.bearing,pc=r.punching,sr=r.reinforcement;p=r.p;
@@ -37,11 +37,17 @@ for(const pre of ['fs','fp']){
    for(const v of r.piles)svg+=`<circle data-pile="${v.id}" tabindex="0" role="button" aria-label="파일 ${v.id} 반력" cx="${x(v.x*1000)}" cy="${y(v.y*1000)}" r="${p.diameter*sc/2}" fill="#d2e9e4" stroke="#168777"><title>파일 ${v.id}: 사용 ${F(v.Rs)} kN / 계수 ${F(v.Ru)} kN</title></circle><text pointer-events="none" x="${x(v.x*1000)}" y="${y(v.y*1000)+4}" text-anchor="middle" font-size="12">${v.id}</text>`;
    for(const pt of sr.points)svg+=`<circle cx="${x(pt.x)}" cy="${y(pt.y)}" r="2.4" fill="${pt.type==='P'?'#c55f22':pt.type==='X'?'#704ba0':'#198ba0'}"><title>${pt.label} · ${sr.bar}</title></circle>`;
    svg+=`<rect x="${x(-p.cx/2)}" y="${y(p.cy/2)}" width="${p.cx*sc}" height="${p.cy*sc}" fill="#27679b" fill-opacity="${p.mode==='pile'?.25:1}" pointer-events="none"><title>중앙 기둥 ${p.cx} × ${p.cy} mm</title></rect><text x="250" y="463" text-anchor="middle">${p.bx} × ${p.by} × ${p.h} mm</text><text x="470" y="120">청색: 기둥 / 기초</text><text x="470" y="151" fill="#b97626">주황 점선: 기둥면 d/2 검토선</text><text x="470" y="182" fill="#168777">${p.mode==='pile'?'녹색: 파일 · 클릭하여 반력 확인':'지반 반력: 균등 분포'}</text><text x="470" y="230">X 하부 ${p.barX}@${p.spacingX}</text><text x="470" y="260">Y 하부 ${p.barY}@${p.spacingY}</text><text x="470" y="300" font-size="12">보라: X 보강 / 청록: Y 보강</text><text x="470" y="325" font-size="12">주황 점: 뚫림 전단 보강 다리</text></svg>`;
+   if(pl&&p.autoPoints){
+    const v=pl.closestPair,ax=x(v.a.x*1000),ay=y(v.a.y*1000),bx=x(v.b.x*1000),by=y(v.b.y*1000),len=Math.hypot(bx-ax,by-ay),nx=-(by-ay)/len*5,ny=(bx-ax)/len*5;
+    const diagonal=Math.abs(v.a.x-v.b.x)>1e-7&&Math.abs(v.a.y-v.b.y)>1e-7;
+    const label=`파일 ${v.a.id}–${v.b.id}: ${F(v.distance)} mm (${F(v.distance/p.diameter,2)}D)`;
+    svg=svg.replace('</svg>',`<g class="pile-spacing-dimension" pointer-events="none" fill="none" stroke="#125995" stroke-width="1.6"><title>${diagonal?'대각선':'직선'} 최소 중심거리 · ${label}</title><path d="M${ax} ${ay}L${bx} ${by}" stroke-dasharray="5 3"/><path d="M${ax-nx} ${ay-ny}L${ax+nx} ${ay+ny}M${bx-nx} ${by-ny}L${bx+nx} ${by+ny}"/></g><text x="470" y="388" font-size="12" fill="#125995">${diagonal?'대각선':'직선'} 최소 중심거리</text><text x="470" y="410" font-size="12" fill="#125995">${label}</text></svg>`);
+   }
    el('plot').innerHTML=svg;
    el('selection').textContent=p.mode==='pile'?'파일을 클릭하면 해당 파일의 반력이 표시됩니다.':'기초 모서리의 최대·최소 사용 접지압: '+F(b.max)+' / '+F(b.min)+' kPa';
    el('plot').onclick=e=>{const t=e.target.closest('[data-pile]');if(!t)return;const v=r.piles.find(v=>v.id===Number(t.getAttribute('data-pile')));if(v)el('selection').textContent=`파일 ${v.id} · X ${F(v.x*1000)} / Y ${F(v.y*1000)} mm · 사용 ${F(v.Rs)} kN / 계수 ${F(v.Ru)} kN`;};
    el('plot').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el('plot').onclick(e);}};
-  }catch(e){el('error').hidden=false;el('error').textContent=e.message;el('results').hidden=true;for(const k of ['mainRebar','summary','plot','checks','basis','reinforcement'])el(k).innerHTML='';}
+  }catch(e){if(pre==='fp')el('minDistance').value='';el('error').hidden=false;el('error').textContent=e.message;el('results').hidden=true;for(const k of ['mainRebar','summary','plot','checks','basis','reinforcement'])el(k).innerHTML='';}
  }
  for(const k of [...keys,'fckCustom'])for(const event of ['input','change'])el(k).addEventListener(event,update);
  update();
