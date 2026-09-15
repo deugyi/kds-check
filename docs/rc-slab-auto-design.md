@@ -5,8 +5,8 @@
 ## 배근 선정
 
 - 공칭치수/면적은 기존 RCBeam.BARS, 휨내력은 RCSlabUplift.capacity의 변형률 적합 평형·강도감소계수·최소허용변형률을 사용한다. 반대쪽 압축철근 효과는 반영하지 않는다.
-- D10·D13·D16·D19·D22·D25, 주철근 간격 75–300 mm(25 mm 단위)의 조합을 탐색한다. 조건을 충족하는 전체 철근량이 가장 작은 후보, 동률이면 넓은 간격을 선정한다. 정착·이음·겹침·절단손실·시공비를 포함한 최적화는 아니다.
-- **1방향: 상·하부 주철근 공통 간격**, 면별 직경은 다를 수 있다. 배력근은 상·하부 같은 직경/간격으로 자동 설계(75–450 mm, 25 mm 단위)한다. 모멘트 없는 면도 조립을 위한 최소량을 배치하는 제안 정책이다. 기존 검토 함수의 무모멘트 면 면제 조건을 변경한 것은 아니다.
+- D10·D13·D16·D19·D22·D25, 주철근 간격 100–300 mm(10 mm 단위)의 조합을 탐색한다. 조건을 충족하는 전체 철근량이 가장 작은 후보, 동률이면 넓은 간격을 선정한다. 정착·이음·겹침·절단손실·시공비를 포함한 최적화는 아니다.
+- **1방향: 상·하부 주철근 공통 간격**, 면별 직경은 다를 수 있다. 배력근은 상·하부 같은 직경/간격으로 자동 설계(100–300 mm, 10 mm 단위)한다. 모멘트 없는 면도 조립을 위한 최소량을 배치하는 제안 정책이다. 기존 검토 함수의 무모멘트 면 면제 조건을 변경한 것은 아니다.
 - **2방향: 상·하부 X·Y 네 위치 모두 하나의 간격**, 위치별 직경은 다를 수 있다. 각 면에서 X가 외측, Y가 내측이다. 주철근에 휨·최소량·연성·최대간격·균열제어 간격을 적용한다. 2방향의 최소량은 각 면 각 방향 ρmin·bh(1,800 mm² 완화 미적용)이다.
 - 1방향은 기존 코드의 최소량 상한과 양면 합산 배력근 검사를 그대로 사용한다. 주철근 간격 min(2h,300), 균열제어 fs=2fy/3·건조/기타 환경 적용. 2방향에도 같은 간격 검사를 적용한다.
 - 공칭지름과 피복을 반영하여 4개 철근층 사이의 순여유를 확인한다. 내부 골재 가정 25 mm에 따라 순간격 min=max(25,db,100/3) mm, 철근망 사이 100/3 mm 이상.
@@ -73,3 +73,7 @@ Mxy/q = −(1−ν) u,xy
 - [Itasca: Elastic Plate with Combined Uniform Lateral and In-Plane Loads](https://docs.itascacg.com/itasca920/common/sel/test3d/Shell/CombinedLoad/CombinedLoad.html): Navier 해 및 판 해석 검증 예제.
 - [SOLIDWORKS: Clamped Square Plate Under Uniform Loading](https://help.solidworks.com/2026/english/simtutorialonline/Clamped_Square_Plate_Under_Uniform_Loading.htm): 고정 정사각판 변위 검증계수.
 - [Autodesk: Wood and Armer Moments](https://help.autodesk.com/cloudhelp/ENU/ASBD-InProdEU/files/structure/tech_info/ti_rft_moments/ASBD_InProdEU_structure_tech_info_ti_rft_moments_Wood_and_Armer_Moments_html.html): 위치/하중 사례별 모멘트 변환 후 포락의 필요성.
+
+## 기본값 · 2026-09-15 변경
+
+1·2방향 공통: fck 30 MPa, fy 500 MPa, 경간 3 m(2방향 X/Y 모두), 두께 150 mm, 상·하부 피복 20 mm, 기타 노출환경. 자동 제안 간격은 주철근과 배력근 모두 100–300 mm에서 10 mm 단위이며 상·하부 공통 간격 조건을 유지한다. 기준식의 배력근 최대간격 min(5h,450 mm) 자체를 바꾸는 것은 아니며, 사용자 요청의 후보 범위가 추가로 적용된다.
