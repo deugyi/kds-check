@@ -230,6 +230,7 @@ test('pile screen labels and draws actual diagonal spacing and removes obsolete 
  assert.equal(n.fp_minDistance.value,'1250');assert.equal(n.fp_bx.value,'3050');assert.equal(n.fp_by.value,'3050');
  assert.match(n.fp_plot.innerHTML,/대각선 최소 중심거리/);assert.match(n.fp_plot.innerHTML,/파일 3–5: 1,250 mm \(2.5D\)/);
  n.fp_gapFactor.value='3';n.fp_gapFactor.events.input();assert.equal(n.fp_minDistance.value,'1500');assert.match(n.fp_plot.innerHTML,/1,500 mm \(3D\)/);
+ n.fp_gapFactor.value='2.5';n.fp_pileCount.value='3';n.fp_pileCount.events.input();assert.equal(n.fp_bx.value,'2500');assert.equal(n.fp_by.value,'2350');assert.match(n.fp_summary.innerHTML,/633.7/);assert.match(n.fp_plot.innerHTML,/기초 중심 이동/);assert.match(n.fp_basis.innerHTML,/21.4/);
  n.fp_pileCount.value='';n.fp_pileCount.events.input();assert.equal(n.fp_minDistance.value,'');assert.equal(n.fp_plot.innerHTML,'');
 });
 

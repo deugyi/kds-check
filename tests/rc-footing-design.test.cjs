@@ -49,12 +49,14 @@ test('selected soil reinforcement is minimum-area feasible common-pitch pair, in
  }
 });
 
-test('automatic rebar preserves total-count pile layout and equal axial reactions',()=>{
+test('automatic rebar preserves total-count pile layout and self-weight moment equilibrium',()=>{
  for(const pileCount of [3,5,7,8,12,36]){
   const r=F.design({mode:'pile',autoSize:true,pileCount,diameter:500,Ps:3000,Pu:4200,h:1000});
   assert.equal(r.piles.length,pileCount);assert.ok(r.pileLayout.ok);
   close(r.piles.reduce((s,v)=>s+v.Rs,0),r.totalS);close(r.piles.reduce((s,v)=>s+v.Ru,0),r.totalU);
-  for(const v of r.piles)close(v.Ru,r.totalU/pileCount);
+  close(r.piles.reduce((s,v)=>s+v.Ru*v.x,0),r.W*r.p.weightFactor*r.p.footingX/1000);
+  close(r.piles.reduce((s,v)=>s+v.Ru*v.y,0),r.W*r.p.weightFactor*r.p.footingY/1000);
+  if(pileCount!==3)for(const v of r.piles)close(v.Ru,r.totalU/pileCount);
  }
 });
 
