@@ -13,7 +13,7 @@ function validate(p){
  if(p.h>2000||p.L>50)throw Error('지원 범위는 두께 2,000 mm, 경간 50 m 이하입니다.');
  if(p.fck<21||p.fck>90||!R.FY.includes(p.fy))throw Error('fck 21–90 MPa, fy 400/500/600 MPa를 사용하세요.');
  for(const k of ['bottomBar','topBar','tempBar'])if(!BARS.includes(p[k]))throw Error('철근 규격을 선택하세요.');
- if(!['direct','auto'].includes(p.mode)||!['simple','fixed','propped','cantilever'].includes(p.support)||!['dry','other'].includes(p.environment))throw Error('입력 방식·지지조건·노출환경을 선택하세요.');
+ if(!['direct','auto'].includes(p.mode)||!['simple','fixed','propped','proppedReverse','cantilever','cantileverReverse'].includes(p.support)||!['dry','other'].includes(p.environment))throw Error('입력 방식·지지조건·노출환경을 선택하세요.');
  for(const k of p.mode==='direct'?['Mp','Mn','V']:['dead','live','point'])if(!Number.isFinite(p[k])||p[k]<0)throw Error('설계하중은 0 이상의 크기로 입력하세요.');
  if(p.mode==='auto'&&p.point>0&&(!Number.isFinite(p.pointX)||p.pointX<0||p.pointX>p.L))throw Error('집중활하중 위치는 왼쪽 끝부터 0–L m 범위에 입력하세요.');
  const db=R.BARS[p.bottomBar].diameter,dt=R.BARS[p.topBar].diameter,ds=R.BARS[p.tempBar].diameter;
@@ -22,7 +22,7 @@ function validate(p){
 }
 function demand(p){
  if(p.mode==='direct')return {Mp:p.Mp,Mn:p.Mn,V:p.V,formula:'Mu·Vu 직접 입력 · 계수된 설계 포락값',cases:[],governing:{}};
- const support={simple:['pin','pin'],fixed:['fixed','fixed'],propped:['pin','fixed'],cantilever:['fixed','free']}[p.support];
+ const support={simple:['pin','pin'],fixed:['fixed','fixed'],propped:['pin','fixed'],proppedReverse:['fixed','pin'],cantilever:['fixed','free'],cantileverReverse:['free','fixed']}[p.support];
  const cases=[{name:'1.4D',q:1.4*p.dead,P:0},{name:'1.2D + 1.6L',q:1.2*p.dead+1.6*p.live,P:1.6*p.point}].map(c=>{
   const loads=[{type:'uniform',a:0,b:p.L,value:c.q}];
   if(c.P>0)loads.push({type:'point',a:p.pointX,value:c.P});
@@ -59,7 +59,7 @@ function calculate(p){
  const temp={AsEach,As,AsMin,maxSpacing,clearMin,clear,areaOK,spacingOK,clearOK,ok:areaOK&&spacingOK&&clearOK};
  const d=Math.min(bottom.d,top.d),phiVc=.75*Math.min(Math.sqrt(p.fck),8.4)*1000*d/6/1000;
  const shear={d,phiVc,V:load.V,ok:load.V<=phiVc+1e-8};
- const divisor={simple:20,fixed:28,propped:24,cantilever:10}[p.support],factor=p.fy===400?1:.43+p.fy/700;
+ const divisor={simple:20,fixed:28,propped:24,proppedReverse:24,cantilever:10,cantileverReverse:10}[p.support],factor=p.fy===400?1:.43+p.fy/700;
  const thickness={absolute:p.h>=100,reference:Math.max(100,p.L*1000/divisor*factor),divisor,factor};
  thickness.referenceOk=p.h>=thickness.reference-1e-8;
  const suggestions={};for(const which of ['bottom','top'])suggestions[which]=({bottom,top})[which].required?SPACINGS.slice().reverse().map(s=>face(p,which,which==='bottom'?load.Mp:load.Mn,s)).find(r=>r.ok)||null:null;

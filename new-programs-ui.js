@@ -4,7 +4,7 @@ const dl=rows=>'<dl class="beam-values">'+rows.map(([k,v])=>`<div><dt>${k}</dt><
 const table=(heads,rows)=>'<table class="beam-table"><thead><tr>'+heads.map(v=>'<th>'+v+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+v+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
 const svg=body=>'<svg viewBox="0 0 760 380" style="width:100%;max-height:430px" role="img">'+body+'</svg>';
 const source=code=>`<a href="https://www.kcsc.re.kr/standardCode/viewer/${encodeURIComponent(code)}" target="_blank" rel="noopener">${code} 공식 기준</a>`;
-const fields={ld:['area','h1','gamma1','h2','gamma2','h3','gamma3','h4','gamma4','fixed','live'],ts:['lx','ly','h','cover','fck','fy','MbX','MbY','MtX','MtY','VX','VY',...['bX','bY','tX','tY'].flatMap(k=>['bar'+k,'s'+k])],bc:['grade','boltGrade','diameter','thickness','rows','cols','pitch','gauge','end','side','Vu'],wcj:['Fexx','thickness','size','length','width','Vu']};
+const fields={ld:['area','h1','gamma1','h2','gamma2','h3','gamma3','h4','gamma4','fixed','live'],bc:['grade','boltGrade','diameter','thickness','rows','cols','pitch','gauge','end','side','Vu'],wcj:['Fexx','thickness','size','length','width','Vu']};
 for(const pre of Object.keys(fields)){
  const el=k=>document.getElementById(pre+'_'+k);let active='bX',last=null;
  function render(){try{
@@ -17,13 +17,6 @@ for(const pre of Object.keys(fields)){
    el('plot').innerHTML=svg(bars.map(([name,v,c],i)=>`<text x="30" y="${80+i*95}">${name}</text><rect x="180" y="${52+i*95}" width="${v/max*430}" height="40" fill="${c}"><title>${name} ${F(v)} kN/m²</title></rect><text x="${195+v/max*430}" y="${80+i*95}">${F(v)}</text>`).join(''));
    el('basis').innerHTML=source('KDS 41 12 00')+'<p>층 하중 = 두께(mm)/1000 × 단위중량. D는 층 하중과 추가 고정하중의 합입니다. 강도설계 중력하중 조합 1.4D 및 1.2D+1.6L을 비교합니다. 입력된 단위중량과 활하중은 사용자가 확인하는 설계값입니다.</p>';
    el('selection').textContent='면적은 전체 하중 환산에만 사용합니다. 단위는 kN/m²와 kN을 구분합니다.';
-  }else if(pre==='ts'){
-   el('summary').innerHTML=dl([['입력 단면력 검토',status(r.ok)+' · 입력 Mu·Vu에 대한 항목 판정'],['경간 장단변비',F(r.ratio)],['하부 X / Y',`${p.barbX}@${p.sbX} / ${p.barbY}@${p.sbY}`],['상부 X / Y',`${p.bartX}@${p.stX} / ${p.bartY}@${p.stY}`]]);
-   el('table').innerHTML=table(['위치','배근','Mu / φMn (kN·m/m)','Vu / φVc (kN/m)','As / 최소 As (mm²/m)','판정'],r.rows.map(v=>[`${v.face==='b'?'하부':'상부'} ${v.axis}`,`${v.bar}@${v.spacing}`,`${F(v.Mu)} / ${F(v.phiMn)}`,`${F(v.Vu)} / ${F(v.phiVc)}`,`${F(v.As)} / ${F(v.AsMin)}`,status(v.ok)]));
-   const v=r.rows.find(v=>v.key===active),scale=240/Math.max(p.lx,p.ly),w=p.lx*scale,h=p.ly*scale;
-   el('plot').innerHTML='<div>'+r.rows.map(v=>`<button class="beam-view" type="button" data-slab="${v.key}" aria-pressed="${active===v.key}">${v.face==='b'?'하부':'상부'} ${v.axis}</button>`).join(' ')+'</div>'+svg(`<rect x="100" y="55" width="${w}" height="${h}" fill="#eef3f7" stroke="#27679b"/>`+Array.from({length:12},(_,i)=>v.axis==='X'?`<path d="M105 ${60+i*(h-10)/11}H${95+w}" stroke="#27679b"/>`:`<path d="M${105+i*(w-10)/11} 60V${50+h}" stroke="#168777"/>`).join('')+`<text x="${100+w/2}" y="${80+h}" text-anchor="middle">X ${p.lx} m × Y ${p.ly} m</text><text x="420" y="95">${v.face==='b'?'하부':'상부'} ${v.axis} · ${v.bar}@${v.spacing}</text><text x="420" y="140">유효깊이 ${F(v.d)} mm</text><text x="420" y="185">φMn ${F(v.phiMn)} kN·m/m</text><text x="420" y="230">φVc ${F(v.phiVc)} kN/m</text>`);
-   el('selection').textContent='위치 버튼을 선택하면 해당 철근 방향과 내력이 표시됩니다. 도면의 철근선 개수는 방향을 보여주는 개념도입니다.';
-   el('basis').innerHTML=source('KDS 14 20 70')+' · '+source('KDS 14 20 22')+'<p>각 방향 1m 폭으로 휨 평형·변형률 적합과 강도감소계수를 계산합니다. 각 면에서 X 외측·Y 내측으로 d를 계산하며, 입력 Vu는 각 면의 d에 대해 보수적으로 비교합니다. 1방향 전단 φVc = 0.75·min(√fck,8.4)·1000d/6. 최소철근은 ρmin·1000h(상한 완화 미적용), 최대 간격은 min(2h,300mm)입니다.</p>';
   }else if(pre==='bc'){
    el('summary').innerHTML=dl([['볼트·지압·배치 검토',status(r.ok)],['볼트 수',r.n+'개 · '+p.boltGrade+' M'+p.diameter],['볼트 전단 φRn',F(r.phiShear)+' kN'],['구멍 지압 φRn',F(r.phiBearing)+' kN'],['계수전단력 Vu',F(p.Vu)+' kN'],['검토 요구 · 최소강도 45kN 반영',F(r.designDemand)+' kN']]);
    el('table').innerHTML=table(['항목','적용값','판정'],[['표준구멍 직경',r.dh+' mm','—'],['최소 연단거리',r.minEdge+' mm',status(r.edgeOK)],['중심 간격 범위',r.minPitch+'~'+r.maxPitch+' mm',status(r.spacingOK)],['최대 연단거리',r.maxEdge+' mm',status(r.edgeOK)],['볼트 전단',F(r.phiShear)+' kN',status(r.designDemand<=r.phiShear)],['구멍 지압',F(r.phiBearing)+' kN',status(r.designDemand<=r.phiBearing)]]);
