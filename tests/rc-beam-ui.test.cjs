@@ -168,7 +168,8 @@ test('one-way slab initializes, switches load mode, selects steel and clears inv
  const {nodes,context}=load();
  assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_diagram.innerHTML,/<svg/);assert.match(nodes.ow_load.innerHTML,/12.15/);
  nodes.ow_mode.value='direct';nodes.ow_Mp.value='1000';vm.runInContext('runRCSlabOneWay()',context);
- assert.equal(nodes.ow_direct.hidden,false);assert.equal(nodes.ow_auto.hidden,true);assert.match(nodes.ow_summary.innerHTML,/미달/);
+ assert.equal(nodes.ow_direct.hidden,false);assert.equal(nodes.ow_auto.hidden,true);assert.match(nodes.ow_error.textContent,/미달/);assert.equal(nodes.ow_results.hidden,true);
+ nodes.ow_Mp.value='20';vm.runInContext('runRCSlabOneWay()',context);
  nodes.ow_diagram.events.click({target:{closest:()=>({dataset:{face:'top'}})}});assert.match(nodes.ow_selected.innerHTML,/상부/);
  nodes.ow_h.value='';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_results.hidden,true);assert.equal(nodes.ow_diagram.innerHTML,'');
  nodes.ow_h.value='200';nodes.ow_mode.value='auto';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.equal(nodes.ow_results.hidden,false);
@@ -183,7 +184,16 @@ test('slab load combinations, propped end and prominent distribution/shear resul
  assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_load.innerHTML,/21.15/);assert.match(nodes.ow_load.innerHTML,/1.4D/);
  nodes.ow_diagram.events.click({target:{closest:()=>({dataset:{face:'temp'}})}});assert.match(nodes.ow_selected.innerHTML,/배력근/);
  nodes.ow_pointX.value='4';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_results.hidden,true);assert.equal(nodes.ow_summary.innerHTML,'');
- nodes.ow_pointX.value='1.5';nodes.ow_tempSpacing.value='500';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_temp.innerHTML,/미달/);
+ nodes.ow_pointX.value='1.5';vm.runInContext('runRCSlabOneWay()',context);assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_suggestions.innerHTML,/상·하부 주철근 공통 간격/);assert.equal(nodes.ow_tempSpacing,undefined);
+});
+
+test('two-way slab automatically designs all faces and responds to supports, loads and invalid input',()=>{
+ const {nodes}=load();assert.equal(nodes.ts_error.hidden,true);assert.match(nodes.ts_summary.innerHTML,/상·하부 X·Y 모두/);assert.match(nodes.ts_load.innerHTML,/1.4D/);
+ const before=nodes.ts_table.innerHTML;nodes.ts_left.value='fixed';nodes.ts_left.events.change();assert.equal(nodes.ts_error.hidden,true);assert.notEqual(nodes.ts_table.innerHTML,before);
+ nodes.ts_plot.events.click({target:{closest:()=>({dataset:{slab:'tY'}})}});assert.match(nodes.ts_selection.textContent,/상부 Y/);
+ nodes.ts_mode.value='direct';nodes.ts_VX.value='1000';nodes.ts_mode.events.change();assert.equal(nodes.ts_auto.hidden,true);assert.equal(nodes.ts_direct.hidden,false);assert.match(nodes.ts_summary.innerHTML,/전단내력 또는 두께 미달/);
+ nodes.ts_MbX.value='';nodes.ts_MbX.events.input();assert.equal(nodes.ts_results.hidden,true);assert.equal(nodes.ts_table.innerHTML,'');assert.equal(nodes.ts_plot.innerHTML,'');
+ nodes.ts_mode.value='auto';nodes.ts_mode.events.change();assert.equal(nodes.ts_results.hidden,false);assert.equal(nodes.ts_error.hidden,true);
 });
 
 test('seismic UI initializes, responds to changed inputs and clears invalid results',()=>{const {nodes}=load();assert.equal(nodes.eq_error.hidden,true);assert.match(nodes.eq_plot.innerHTML,/설계응답스펙트럼/);assert.match(nodes.eq_axes.innerHTML,/보정 후 동적/);nodes.eq_x_Vt.value='0';nodes.eq_x_Vt.events.input();assert.equal(nodes.eq_results.hidden,true);assert.equal(nodes.eq_summary.innerHTML,'');nodes.eq_correction.value='no';nodes.eq_correction.events.change();assert.equal(nodes.eq_error.hidden,true);assert.match(nodes.eq_summary.innerHTML,/검토 안 함/);nodes.eq_soil.value='S6';nodes.eq_soil.events.change();assert.equal(nodes.eq_results.hidden,true);});
