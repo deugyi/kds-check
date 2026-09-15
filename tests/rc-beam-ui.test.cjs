@@ -209,7 +209,20 @@ test('wind screens initialize, update, and remove stale results',()=>{
  nodes.wc_area.value='0';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,true);assert.equal(nodes.wc_table.innerHTML,'');
  nodes.wc_area.value='2';nodes.wc_area.events.input();assert.equal(nodes.wc_results.hidden,false);
 });
-test('foundation screens initialize, update and clear unsupported contact cases',()=>{const {nodes:n}=load();for(const pre of ['fs','fp']){assert.equal(n[pre+'_error'].hidden,true);assert.match(n[pre+'_checks'].innerHTML,/기둥 뚫림/);assert.match(n[pre+'_plot'].innerHTML,/<svg/);}n.fs_Mys.value='2000';n.fs_Mys.events.input();assert.equal(n.fs_results.hidden,true);assert.equal(n.fs_plot.innerHTML,'');n.fs_Mys.value='0';n.fs_Mys.events.input();assert.equal(n.fs_results.hidden,false);});
+test('foundation screens offer automatic steel and Ps/Pu only, updating and clearing invalid results',()=>{
+ const {nodes:n}=load();
+ for(const pre of ['fs','fp']){
+  assert.equal(n[pre+'_error'].hidden,true);assert.match(n[pre+'_checks'].innerHTML,/기둥 뚫림/);assert.match(n[pre+'_plot'].innerHTML,/<svg/);
+  assert.match(n[pre+'_mainRebar'].innerHTML,/D16@140/);assert.match(n[pre+'_mainRebar'].innerHTML,/X·Y 공통 간격/);
+  for(const k of ['Ns','Nu','Mxs','Mys','Mxu','Myu','barX','barY','spacingX','spacingY','weightFactor'])assert.equal(n[pre+'_'+k],undefined);
+  assert.match(n[pre+'_basis'].innerHTML,/기둥 사용 축력 Ps/);
+  n[pre+'_Pu'].value='5000';n[pre+'_Pu'].events.input();assert.equal(n[pre+'_results'].hidden,false);assert.doesNotMatch(n[pre+'_mainRebar'].innerHTML,/D16@140/);
+  n[pre+'_fy'].value='500';n[pre+'_fy'].events.change();assert.equal(n[pre+'_results'].hidden,false);
+  n[pre+'_Ps'].value='';n[pre+'_Ps'].events.input();assert.equal(n[pre+'_results'].hidden,true);
+  for(const k of ['mainRebar','summary','plot','checks','basis','reinforcement'])assert.equal(n[pre+'_'+k].innerHTML,'');
+  n[pre+'_Ps'].value='1500';n[pre+'_Ps'].events.input();assert.equal(n[pre+'_results'].hidden,false);
+ }
+});
 
-test('foundation auto shear layout is rendered and invalid inputs remove it',()=>{const {nodes:n}=load();for(const [k,v] of Object.entries({bx:4500,by:4500,h:450,Nu:3000}))n['fs_'+k].value=String(v);n.fs_Nu.events.input();assert.match(n.fs_reinforcement.innerHTML,/폐쇄형/);assert.match(n.fs_reinforcement.innerHTML,/보강 외곽/);assert.match(n.fs_plot.innerHTML,/뚫림 전단철근/);n.fs_Nu.value='';n.fs_Nu.events.input();assert.equal(n.fs_reinforcement.innerHTML,'');});
+test('foundation auto shear layout is rendered and invalid inputs remove it',()=>{const {nodes:n}=load();for(const [k,v] of Object.entries({bx:4500,by:4500,h:450,Pu:3000}))n['fs_'+k].value=String(v);n.fs_Pu.events.input();assert.match(n.fs_reinforcement.innerHTML,/폐쇄형/);assert.match(n.fs_reinforcement.innerHTML,/보강 외곽/);assert.match(n.fs_plot.innerHTML,/뚫림 전단철근/);n.fs_Pu.value='';n.fs_Pu.events.input();assert.equal(n.fs_reinforcement.innerHTML,'');});
 test('new initial calculator pages render results and remove stale invalid output',()=>{const {nodes:n}=load();for(const pre of ['ld','ts','bc','wcj']){assert.equal(n[pre+'_error'].hidden,true,pre);assert.match(n[pre+'_plot'].innerHTML,/<svg/);assert.ok(n[pre+'_table'].innerHTML.length>100);}n.bc_Vu.value='';n.bc_Vu.events.input();assert.equal(n.bc_results.hidden,true);assert.equal(n.bc_plot.innerHTML,'');n.bc_Vu.value='250';n.bc_Vu.events.input();assert.equal(n.bc_results.hidden,false);});
