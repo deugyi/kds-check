@@ -29,6 +29,7 @@ test('two-way load combinations, direct-input isolation, zero load and corner to
 test('one-way automatic designs independently pass existing checks with identical face spacing',()=>{
  for(const support of ['simple','fixed','propped','proppedReverse','cantilever','cantileverReverse'])for(const fy of [400,500,600]){
   const r=C.oneWay({...p,h:300,support,fy,point:10}),v=O.calculate(r.p);assert.equal(r.p.bottomSpacing,r.p.topSpacing);assert.ok(v.bottom.ok&&v.top.ok&&v.temp.ok);assert.ok(r.bottom.As>=r.bottom.AsMin);assert.ok(r.top.As>=r.top.AsMin);
+  for(const spacing of [r.commonSpacing,r.p.tempSpacing])assert.ok(spacing>=100&&spacing<=300&&spacing%10===0);
  }
  const low=C.oneWay(p),high=C.oneWay({...p,live:35});assert.ok(high.steelArea>low.steelArea);
  // No hidden nominal loads affect direct mode; no self weight is added.
@@ -43,13 +44,14 @@ test('mirroring the restrained end and point-load position preserves demands and
 });
 test('automatic slab reinforcement passes independent manual checker and all-face spacing constraint',()=>{
  const r=C.twoWay({...p,dead:10,live:15,left:'fixed',right:'fixed'}),manual={...r.p,...r.load};
+ assert.ok(r.commonSpacing>=100&&r.commonSpacing<=300&&r.commonSpacing%10===0);
  for(const row of r.rows){manual['bar'+row.key]=row.bar;manual['s'+row.key]=row.spacing;assert.equal(row.spacing,r.commonSpacing);assert.ok(row.flexOK&&row.detailOK);assert.ok(row.spacing<=row.maxSpacing);}
  const v=N.slab(manual);for(let i=0;i<v.rows.length;i++){near(v.rows[i].phiMn,r.rows[i].phiMn);near(v.rows[i].phiVc,r.rows[i].phiVc);}
  const b=r.rows.filter(v=>v.face==='b'),t=r.rows.filter(v=>v.face==='t');const inside=r.p.h-2*r.p.cover-[...b,...t].reduce((s,v)=>s+R.BARS[v.bar].diameter,0);assert.ok(inside>=100/3);
 });
 test('candidate ranking has no lighter feasible one-way combination in the discrete search',()=>{
  const r=C.oneWay({...p,mode:'direct',Mp:30,Mn:20,V:20}),q=r.p,min=S.minimumSteel(q);
- for(const s of C.SPACINGS)for(const a of C.BARS)for(const b of C.BARS){const bot=O.face({...q,bottomBar:a},'bottom',30,s),top=O.face({...q,topBar:b},'top',20,s);if(!bot.ok||!top.ok||Math.min(bot.As,top.As)<min)continue;for(const t of C.BARS)for(let st=75;st<=450;st+=25){const temp=2*R.BARS[t].area*1000/st;if(temp<min||st>5*q.h||st-R.BARS[t].diameter<Math.max(100/3,R.BARS[t].diameter)||q.h-2*q.cover-R.BARS[a].diameter-R.BARS[b].diameter-2*R.BARS[t].diameter<100/3)continue;assert.ok(bot.As+top.As+temp>=r.steelArea-1e-7);}}
+ for(const s of C.SPACINGS)for(const a of C.BARS)for(const b of C.BARS){const bot=O.face({...q,bottomBar:a},'bottom',30,s),top=O.face({...q,topBar:b},'top',20,s);if(!bot.ok||!top.ok||Math.min(bot.As,top.As)<min)continue;for(const t of C.BARS)for(let st=100;st<=300;st+=10){const temp=2*R.BARS[t].area*1000/st;if(temp<min||st>5*q.h||st-R.BARS[t].diameter<Math.max(100/3,R.BARS[t].diameter)||q.h-2*q.cover-R.BARS[a].diameter-R.BARS[b].diameter-2*R.BARS[t].diameter<100/3)continue;assert.ok(bot.As+top.As+temp>=r.steelArea-1e-7);}}
 });
 test('shear failures are not hidden by successful automatic flexural design',()=>{
  const one=C.oneWay({...p,mode:'direct',Mp:20,Mn:20,V:1000});assert.equal(one.shear.ok,false);assert.equal(one.ok,false);

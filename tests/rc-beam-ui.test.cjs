@@ -166,6 +166,7 @@ test('RC frame editor solves, changes support and load forms, and clears unstabl
 
 test('one-way slab initializes, switches load mode, selects steel and clears invalid results',()=>{
  const {nodes,context}=load();
+ for(const [key,value] of Object.entries({fck:'30',fy:'500',h:'150',L:'3',cover:'20',environment:'other'}))assert.equal(nodes['ow_'+key].value,value);
  assert.equal(nodes.ow_error.hidden,true);assert.match(nodes.ow_diagram.innerHTML,/<svg/);assert.match(nodes.ow_load.innerHTML,/12.15/);
  nodes.ow_mode.value='direct';nodes.ow_Mp.value='1000';vm.runInContext('runRCSlabOneWay()',context);
  assert.equal(nodes.ow_direct.hidden,false);assert.equal(nodes.ow_auto.hidden,true);assert.match(nodes.ow_error.textContent,/미달/);assert.equal(nodes.ow_results.hidden,true);
@@ -189,6 +190,7 @@ test('slab load combinations, propped end and prominent distribution/shear resul
 
 test('two-way slab automatically designs all faces and responds to supports, loads and invalid input',()=>{
  const {nodes}=load();assert.equal(nodes.ts_error.hidden,true);assert.match(nodes.ts_summary.innerHTML,/상·하부 X·Y 모두/);assert.match(nodes.ts_load.innerHTML,/1.4D/);
+ for(const [key,value] of Object.entries({fck:'30',fy:'500',h:'150',lx:'3',ly:'3',cover:'20',environment:'other'}))assert.equal(nodes['ts_'+key].value,value);
  const before=nodes.ts_table.innerHTML;nodes.ts_left.value='fixed';nodes.ts_left.events.change();assert.equal(nodes.ts_error.hidden,true);assert.notEqual(nodes.ts_table.innerHTML,before);
  nodes.ts_plot.events.click({target:{closest:()=>({dataset:{slab:'tY'}})}});assert.match(nodes.ts_selection.textContent,/상부 Y/);
  nodes.ts_mode.value='direct';nodes.ts_VX.value='1000';nodes.ts_mode.events.change();assert.equal(nodes.ts_auto.hidden,true);assert.equal(nodes.ts_direct.hidden,false);assert.match(nodes.ts_summary.innerHTML,/전단내력 또는 두께 미달/);
