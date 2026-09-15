@@ -7,7 +7,7 @@ const S=typeof module!=='undefined'&&module.exports?require('./rc-slab-uplift.js
 const F=typeof module!=='undefined'&&module.exports?require('./rc-frame.js'):root.RCFrame;
 const AGGREGATE=25;
 const BARS=['D10','D13','D16','D19','D22','D25'];
-const SPACINGS=[75,100,125,150,175,200,225,250,275,300];
+const SPACINGS=Array.from({length:21},(_,i)=>100+10*i);
 function validate(p){
  for(const k of ['h','L','fck','fy','cover','bottomSpacing','topSpacing','tempSpacing'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error('치수·강도·피복·간격은 0보다 큰 숫자를 입력하세요.');
  if(p.h>2000||p.L>50)throw Error('지원 범위는 두께 2,000 mm, 경간 50 m 이하입니다.');

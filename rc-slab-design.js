@@ -10,7 +10,7 @@ function oneWay(input){
  const seed={...input,bottomBar:'D10',topBar:'D10',tempBar:'D10',bottomSpacing:150,topSpacing:150,tempSpacing:250};
  O.validate(seed);const load=O.demand(seed),minimum=S.minimumSteel(seed);let best=null;
  const temperatures=[];
- for(const bar of BARS)for(let s=75;s<=450;s+=25){const b=R.BARS[bar];if(2*b.area*1000/s>=minimum-1e-8&&s<=5*seed.h&&s-b.diameter>=Math.max(clearMin,b.diameter))temperatures.push({bar,s,area:2*b.area*1000/s});}
+ for(const bar of BARS)for(const s of SPACINGS){const b=R.BARS[bar];if(2*b.area*1000/s>=minimum-1e-8&&s<=5*seed.h&&s-b.diameter>=Math.max(clearMin,b.diameter))temperatures.push({bar,s,area:2*b.area*1000/s});}
  for(const spacing of SPACINGS){
   const options={};for(const which of ['bottom','top'])options[which]=BARS.map(bar=>O.face({...seed,[which+'Bar']:bar},which,which==='bottom'?load.Mp:load.Mn,spacing)).filter(v=>v.ok&&v.As>=minimum-1e-8);
   for(const bottom of options.bottom)for(const top of options.top)for(const t of temperatures){
@@ -18,7 +18,7 @@ function oneWay(input){
    const candidate={bottom,top,temp:t,spacing,weight:bottom.As+top.As+t.area};if(better(candidate,best))best=candidate;
   }
  }
- if(!best)throw Error('자동 배근 설계 미달: D10–D25, 간격 75–300 mm 범위에서 가능한 배근이 없습니다. 두께를 늘리거나 경간·하중을 조정하세요.');
+ if(!best)throw Error('자동 배근 설계 미달: D10–D25, 간격 100–300 mm (10 mm 단위) 범위에서 가능한 배근이 없습니다. 두께를 늘리거나 경간·하중을 조정하세요.');
  const p={...seed,bottomBar:best.bottom.bar,topBar:best.top.bar,bottomSpacing:best.spacing,topSpacing:best.spacing,tempBar:best.temp.bar,tempSpacing:best.temp.s};
  return {...O.calculate(p),automatic:true,steelArea:best.weight,commonSpacing:best.spacing};
 }
