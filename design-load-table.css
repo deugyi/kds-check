@@ -1,0 +1,37 @@
+#t18 [hidden]{display:none!important}
+#t18 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}
+#t18 .ld-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+#t18 .ld-actions button{margin:0;padding:7px 10px;font-size:14px}
+#t18 .ld-actions button:disabled{opacity:.45;cursor:default}
+#t18 .ld-selected-note{border-left:3px solid var(--accent);padding:10px 12px;background:var(--code);font-size:14px;line-height:1.7;margin:12px 0 0}
+#t18 .ld-table-scroll{overflow-x:auto}
+#t18 .ld-schedule{width:100%;min-width:800px;border-collapse:collapse;font-size:13px;line-height:1.6}
+#t18 .ld-schedule th,#t18 .ld-schedule td{padding:9px 7px;border-bottom:1px solid var(--line);vertical-align:middle;text-align:right}
+#t18 .ld-schedule thead th{background:var(--code);font-weight:600;white-space:nowrap;text-align:center}
+#t18 .ld-schedule .ld-description{min-width:130px;max-width:185px;text-align:left;word-break:keep-all;overflow-wrap:anywhere}
+#t18 .ld-schedule .ld-material{min-width:112px;text-align:left;word-break:keep-all;overflow-wrap:anywhere}
+#t18 .ld-schedule .ld-total{background:var(--code);font-weight:600}
+#t18 .ld-schedule tbody{border-top:2px solid var(--line)}
+#t18 .ld-schedule tbody.ld-active{border-top-color:var(--accent)}
+#t18 .ld-schedule .ld-governing{color:var(--accent);font-weight:700}
+#t18 .ld-pick{border:0;background:transparent;color:var(--accent);padding:0;text-align:left;cursor:pointer;font:inherit;line-height:inherit;text-decoration:underline;text-underline-offset:3px}
+#t18 .ld-pick:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#t18 .ld-schedule small{display:block;font-size:12px;color:var(--dim);margin-top:5px}
+#t18 #ld_plot svg{display:block;width:100%;max-height:180px;margin-top:12px}
+#t18 #ld_plot text{fill:var(--ink);font-size:13px}
+#t18 #ld_material_table table{min-width:470px}
+#t18 #ld_material_table th,#t18 #ld_material_table td{white-space:normal;min-width:0;word-break:keep-all}
+#t18 #ld_project_title{font-size:16px;font-weight:600;overflow-wrap:anywhere;word-break:keep-all}
+#t18 .ld-print-name{display:none}
+@media(max-width:650px){#t18 .ld-actions button{min-height:40px}}
+@media print{
+ #t18 .beam-sidebar,#t18 .ld-focus,#t18 .ld-actions,#t18 .ld-catalog,#t18 #ld_selection{display:none!important}
+ #t18 .ld-table-scroll{overflow:visible!important}
+ #t18 .ld-print-name{display:inline}#t18 .ld-pick{display:none}
+ #t18 .ld-schedule-card{break-inside:auto!important}
+ #t18 .ld-schedule{min-width:0!important;font-size:7pt;width:100%;table-layout:fixed}
+ #t18 .ld-schedule th,#t18 .ld-schedule td{padding:3px;min-width:0!important;max-width:none!important;white-space:normal!important;overflow-wrap:anywhere}
+ #t18 .ld-schedule small{font-size:6.5pt}
+ #t18 .ld-schedule tbody{break-inside:avoid}#t18 .ld-schedule thead{display:table-header-group}
+ #t18 .ld-schedule .ld-number{width:4%}#t18 .ld-schedule .ld-description{width:20%}#t18 .ld-schedule .ld-material{width:17%}
+}

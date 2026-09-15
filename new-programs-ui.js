@@ -4,20 +4,13 @@ const dl=rows=>'<dl class="beam-values">'+rows.map(([k,v])=>`<div><dt>${k}</dt><
 const table=(heads,rows)=>'<table class="beam-table"><thead><tr>'+heads.map(v=>'<th>'+v+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+v+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
 const svg=body=>'<svg viewBox="0 0 760 380" style="width:100%;max-height:430px" role="img">'+body+'</svg>';
 const source=code=>`<a href="https://www.kcsc.re.kr/standardCode/viewer/${encodeURIComponent(code)}" target="_blank" rel="noopener">${code} 공식 기준</a>`;
-const fields={ld:['area','h1','gamma1','h2','gamma2','h3','gamma3','h4','gamma4','fixed','live'],bc:['grade','boltGrade','diameter','thickness','rows','cols','pitch','gauge','end','side','Vu'],wcj:['Fexx','thickness','size','length','width','Vu']};
+const fields={bc:['grade','boltGrade','diameter','thickness','rows','cols','pitch','gauge','end','side','Vu'],wcj:['Fexx','thickness','size','length','width','Vu']};
 for(const pre of Object.keys(fields)){
  const el=k=>document.getElementById(pre+'_'+k);let active='bX',last=null;
  function render(){try{
   const p={};for(const k of fields[pre])p[k]=(k==='grade'||k==='boltGrade'||k.startsWith('bar'))?el(k).value:el(k).value===''?NaN:Number(el(k).value);
-  const r=E[{ld:'load',ts:'slab',bc:'bolt',wcj:'weld'}[pre]](p);last={r,p};el('error').hidden=true;el('results').hidden=false;
-  if(pre==='ld'){
-   el('summary').innerHTML=dl([['고정하중 D',F(r.D)+' kN/m²'],['활하중 L',F(r.live)+' kN/m²'],['사용하중 D+L',F(r.service)+' kN/m²'],['지배 중력하중 조합',r.governing.name],['계수하중',F(r.governing.q)+' kN/m²'],['검토 면적 전체 계수하중',F(r.total)+' kN']]);
-   el('table').innerHTML=table(['고정하중 구성','두께 (mm)','단위중량 (kN/m³)','하중 (kN/m²)'],r.rows.map(v=>[v.name,v.h,v.gamma,F(v.q)]).concat([['추가 고정하중','—','—',F(r.fixed)]]))+table(['하중조합','면적당 (kN/m²)','전체 (kN)'],r.combos.map(v=>[v.name,F(v.q),F(v.q*p.area)]));
-   const max=Math.max(1,r.governing.q,r.service),bars=[['고정 D',r.D,'#27679b'],['활 L',r.live,'#168777'],['지배 계수하중',r.governing.q,'#704ba0']];
-   el('plot').innerHTML=svg(bars.map(([name,v,c],i)=>`<text x="30" y="${80+i*95}">${name}</text><rect x="180" y="${52+i*95}" width="${v/max*430}" height="40" fill="${c}"><title>${name} ${F(v)} kN/m²</title></rect><text x="${195+v/max*430}" y="${80+i*95}">${F(v)}</text>`).join(''));
-   el('basis').innerHTML=source('KDS 41 12 00')+'<p>층 하중 = 두께(mm)/1000 × 단위중량. D는 층 하중과 추가 고정하중의 합입니다. 강도설계 중력하중 조합 1.4D 및 1.2D+1.6L을 비교합니다. 입력된 단위중량과 활하중은 사용자가 확인하는 설계값입니다.</p>';
-   el('selection').textContent='면적은 전체 하중 환산에만 사용합니다. 단위는 kN/m²와 kN을 구분합니다.';
-  }else if(pre==='bc'){
+  const r=E[{bc:'bolt',wcj:'weld'}[pre]](p);last={r,p};el('error').hidden=true;el('results').hidden=false;
+  if(pre==='bc'){
    el('summary').innerHTML=dl([['볼트·지압·배치 검토',status(r.ok)],['볼트 수',r.n+'개 · '+p.boltGrade+' M'+p.diameter],['볼트 전단 φRn',F(r.phiShear)+' kN'],['구멍 지압 φRn',F(r.phiBearing)+' kN'],['계수전단력 Vu',F(p.Vu)+' kN'],['검토 요구 · 최소강도 45kN 반영',F(r.designDemand)+' kN']]);
    el('table').innerHTML=table(['항목','적용값','판정'],[['표준구멍 직경',r.dh+' mm','—'],['최소 연단거리',r.minEdge+' mm',status(r.edgeOK)],['중심 간격 범위',r.minPitch+'~'+r.maxPitch+' mm',status(r.spacingOK)],['최대 연단거리',r.maxEdge+' mm',status(r.edgeOK)],['볼트 전단',F(r.phiShear)+' kN',status(r.designDemand<=r.phiShear)],['구멍 지압',F(r.phiBearing)+' kN',status(r.designDemand<=r.phiBearing)]]);
    const sc=250/Math.max(r.width,r.length),ox=130,oy=50;let g=`<rect x="${ox}" y="${oy}" width="${r.width*sc}" height="${r.length*sc}" fill="#eef3f7" stroke="#27679b"/>`;
