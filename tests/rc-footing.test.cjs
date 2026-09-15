@@ -14,3 +14,14 @@ test('automatic pile footprint follows counts, diameter and spacing factor',()=>
 test('automatic footprint rounds up and enforces minimum spacing multiplier',()=>{const r=F.pileSize({nx:3,ny:2,diameter:450,gapFactor:2.5});near(r.bx,3400);near(r.by,2250);assert.throws(()=>F.pileSize({nx:2,ny:2,diameter:500,gapFactor:2.4}),/2.5/);});
 test('total count layouts preserve all piles, centroid, spacing and biaxial equilibrium',()=>{for(let n=3;n<=36;n++){const r=F.calculate({mode:'pile',autoSize:true,pileCount:n,diameter:500,gapFactor:2.5,Mxu:40,Myu:60}),v=r.piles;assert.equal(v.length,n);near(v.reduce((s,a)=>s+a.x,0),0);near(v.reduce((s,a)=>s+a.y,0),0);near(v.reduce((s,a)=>s+a.Ru,0),r.totalU);near(v.reduce((s,a)=>s+a.Ru*a.x,0),60);near(v.reduce((s,a)=>s+a.Ru*a.y,0),40);assert.ok(r.pileLayout.actualMin>=1250-1e-7);assert.ok(r.pileLayout.ok);}});
 test('five pile quincunx and seven/eight pile footprints are square without adding spare piles',()=>{for(const n of [5,7,8]){const r=F.pileCountLayout({pileCount:n,diameter:500});assert.equal(r.autoPoints.length,n);near(r.bx,r.by);}assert.throws(()=>F.pileCountLayout({pileCount:2,diameter:500}),/3~36/);});
+
+test('five-pile closest centre distance is diagonal, not its X/Y projection',()=>{
+ for(const diameter of [450,500,600])for(const gapFactor of [2.5,3]){
+  const r=F.calculate({mode:'pile',autoSize:true,pileCount:5,diameter,gapFactor}),v=r.pileLayout.closestPair;
+  const distance=diameter*gapFactor;
+  near(r.pileLayout.actualMin,distance);near(v.distance,distance);
+  near(Math.abs(v.a.x-v.b.x)*1000,distance/Math.sqrt(2));near(Math.abs(v.a.y-v.b.y)*1000,distance/Math.sqrt(2));
+  assert.ok(v.a.id===3||v.b.id===3);
+  near(r.p.bx,Math.ceil((Math.sqrt(2)*distance+2.5*diameter)/50)*50);near(r.p.by,r.p.bx);
+ }
+});

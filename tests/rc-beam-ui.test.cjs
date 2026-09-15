@@ -224,5 +224,14 @@ test('foundation screens offer automatic steel and Ps/Pu only, updating and clea
  }
 });
 
+test('pile screen labels and draws actual diagonal spacing and removes obsolete axis fields',()=>{
+ const {nodes:n}=load();assert.equal(n.fp_sx,undefined);assert.equal(n.fp_sy,undefined);
+ n.fp_pileCount.value='5';n.fp_pileCount.events.input();
+ assert.equal(n.fp_minDistance.value,'1250');assert.equal(n.fp_bx.value,'3050');assert.equal(n.fp_by.value,'3050');
+ assert.match(n.fp_plot.innerHTML,/대각선 최소 중심거리/);assert.match(n.fp_plot.innerHTML,/파일 3–5: 1,250 mm \(2.5D\)/);
+ n.fp_gapFactor.value='3';n.fp_gapFactor.events.input();assert.equal(n.fp_minDistance.value,'1500');assert.match(n.fp_plot.innerHTML,/1,500 mm \(3D\)/);
+ n.fp_pileCount.value='';n.fp_pileCount.events.input();assert.equal(n.fp_minDistance.value,'');assert.equal(n.fp_plot.innerHTML,'');
+});
+
 test('foundation auto shear layout is rendered and invalid inputs remove it',()=>{const {nodes:n}=load();for(const [k,v] of Object.entries({bx:4500,by:4500,h:450,Pu:3000}))n['fs_'+k].value=String(v);n.fs_Pu.events.input();assert.match(n.fs_reinforcement.innerHTML,/폐쇄형/);assert.match(n.fs_reinforcement.innerHTML,/보강 외곽/);assert.match(n.fs_plot.innerHTML,/뚫림 전단철근/);n.fs_Pu.value='';n.fs_Pu.events.input();assert.equal(n.fs_reinforcement.innerHTML,'');});
 test('new initial calculator pages render results and remove stale invalid output',()=>{const {nodes:n}=load();for(const pre of ['ld','ts','bc','wcj']){assert.equal(n[pre+'_error'].hidden,true,pre);assert.match(n[pre+'_plot'].innerHTML,/<svg/);assert.ok(n[pre+'_table'].innerHTML.length>100);}n.bc_Vu.value='';n.bc_Vu.events.input();assert.equal(n.bc_results.hidden,true);assert.equal(n.bc_plot.innerHTML,'');n.bc_Vu.value='250';n.bc_Vu.events.input();assert.equal(n.bc_results.hidden,false);});
