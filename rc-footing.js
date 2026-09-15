@@ -48,7 +48,7 @@ function pileSize(p){
  const sx=p.diameter*factor,sy=sx,bx=Math.ceil(((p.nx-1)*sx+2.5*p.diameter)/50)*50,by=Math.ceil(((p.ny-1)*sy+2.5*p.diameter)/50)*50;
  return {sx,sy,bx,by,area:bx*by/1e6};
 }
-function calculate(input){
+function calculate(input,designShear=true){
  const p={...defaults,...input};
  if(p.mode==='pile'&&p.autoSize)Object.assign(p,p.pileCount!==undefined?pileCountLayout(p):pileSize(p));
  for(const k of ['fck','fy','bx','by','h','cx','cy','cover','spacingX','spacingY','Ns','Nu','weightFactor'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error(k+' 입력은 0보다 큰 유한한 수여야 합니다.');
@@ -133,9 +133,36 @@ function calculate(input){
  notes.push('정착길이·기둥 지압 및 다월·침하·활동·전체 안정은 별도 검토입니다. 여러 하중조합은 각각 입력하여 검토하세요.');
  if(punching.hasMoment)notes.push('편심 뚫림은 모멘트 전량을 선형 둘레 전단응력으로 부담하는 보수적 예비 검토입니다. KDS 4.11.7의 휨·전단·비틀림 분담 상세 검토를 대체하지 않습니다.');
  const result={p,dx,dy,d,W,totalS,totalU,piles,bearing,pileLayout,rows,punching,notes,depthOK:d>=(p.mode==='soil'?150:300),pressure};
- result.reinforcement=T.design(result,punch);
+ if(designShear)result.reinforcement=T.design(result,punch);
  return result;
 }
-root.RCFooting={defaults,fraction,punch,pileSize,pileCountLayout,calculate};
+// The UI accepts centred axial loads only. Keep the general verification
+// path above for independent checks and previously supported moment cases.
+const AUTO_BARS=['D10','D13','D16','D19','D22','D25'];
+const AUTO_SPACINGS=Array.from({length:21},(_,i)=>100+10*i);
+function design(input){
+ for(const k of ['Ps','Pu'])if(!Number.isFinite(input[k])||input[k]<=0)throw Error(k+' 입력은 0보다 큰 숫자여야 합니다.');
+ const seed={...defaults,...input,Ns:input.Ps,Nu:input.Pu,Mxs:0,Mys:0,Mxu:0,Myu:0,weightFactor:1.2};
+ // Resolve the pile arrangement once, rather than for every bar candidate.
+ if(seed.mode==='pile'&&seed.autoSize)Object.assign(seed,seed.pileCount!==undefined?pileCountLayout(seed):pileSize(seed));
+ const prepared={...seed,autoSize:false};
+ let best=null,firstError=null,valid=0;
+ for(const barX of AUTO_BARS)for(const barY of AUTO_BARS)for(const spacing of AUTO_SPACINGS){
+  const weight=(R.BARS[barX].area+R.BARS[barY].area)*1000/spacing;
+  if(best&&(weight>best.weight+1e-8||Math.abs(weight-best.weight)<1e-8&&spacing<=best.spacing))continue;
+  let r;
+  try{r=calculate({...prepared,barX,barY,spacingX:spacing,spacingY:spacing},false);}
+  catch(e){firstError??=e;continue;}
+  valid++;
+  if(!r.rows.every(v=>v.flexOK&&v.steelOK))continue;
+  best={barX,barY,spacing,weight};
+ }
+ if(!valid&&firstError)throw firstError;
+ if(!best)throw Error('자동 배근 설계 미달: D10–D25, 간격 100–300 mm (10 mm 단위)에서 휨·최소철근·배치 조건을 만족하는 배근이 없습니다. 기초 두께 또는 하중·형상을 조정하세요.');
+ // Recompute d, both shear checks, and reinforcement for the selected bars.
+ const r=calculate({...seed,barX:best.barX,barY:best.barY,spacingX:best.spacing,spacingY:best.spacing});
+ return {...r,automatic:true,commonSpacing:best.spacing,steelArea:best.weight};
+}
+root.RCFooting={defaults,fraction,punch,pileSize,pileCountLayout,calculate,design,AUTO_BARS,AUTO_SPACINGS};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.RCFooting;
 })(typeof globalThis!=='undefined'?globalThis:this);
