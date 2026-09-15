@@ -7,7 +7,7 @@ function design(r,punch){
  const p=r.p,bar=R.BARS[p.shearBar||'D13'],fyt=p.fyt||400;
  if(!['D10','D13','D16'].includes(p.shearBar||'D13')||![400,500].includes(fyt))throw Error('전단철근은 D10·D13·D16, 강도는 400·500 MPa로 선택하세요.');
  const result={bar:p.shearBar||'D13',fyt,oneway:[],punching:{needed:!r.punching.ok},points:[],notes:[]};
- const margin=p.cover+bar.diameter/2;
+ const margin=p.cover+bar.diameter/2,ox=p.footingX??0,oy=p.footingY??0;
  for(const v of r.rows){
   const needed=!v.shearOK,axis=v.axis,width=axis==='X'?p.by:p.bx,along=axis==='X'?p.bx:p.by;
   const Vc=v.phiVc/.75,required=Math.max(0,v.Vu/.75-Vc),limit=.2*(1-p.fck/250)*p.fck*width*v.d/1000;
@@ -28,7 +28,7 @@ function design(r,punch){
    Object.assign(row,{ok:true,s:actual,sMax:s,t,legs,rows:n,Av,avReq,Vs:actualVs,phiVn:.75*(Vc+actualVs),count:n*legs/2});
    for(let i=0;i<n;i++)for(let j=0;j<legs;j++){
     const a=-along/2+margin+i*actual,b=-width/2+margin+j*t;
-    result.points.push({x:axis==='X'?a:b,y:axis==='X'?b:a,type:axis,label:axis+' 방향 폐쇄형 스터럽 · 2다리 1조'});
+    result.points.push({x:ox+(axis==='X'?a:b),y:oy+(axis==='X'?b:a),type:axis,label:axis+' 방향 폐쇄형 스터럽 · 2다리 1조'});
    }
    break;
   }
@@ -43,7 +43,7 @@ function design(r,punch){
   function check(offset){
    const bx=p.cx+2*offset,by=p.cy+2*offset,c=punch(p.fck,d,bx,by,rho);
    const jx=d*(bx*by*by/2+by**3/6),jy=d*(by*bx*bx/2+bx**3/6);
-   const vu=r.totalU*1000/(c.b0*d)+Math.abs(p.Mxu)*1e6*by/2/jx+Math.abs(p.Myu)*1e6*bx/2/jy;
+   const vu=r.totalU*1000/(c.b0*d)+(r.punching.Mx??Math.abs(p.Mxu))*1e6*by/2/jx+(r.punching.My??Math.abs(p.Myu))*1e6*bx/2/jy;
    const base=Math.min(c.vc,.63*Math.sqrt(p.fck)),cap=Math.min(.58*p.fck*c.cu/d,.25*p.fck);
    return {...c,offset,bx,by,vu,base,cap,ok:vu<=.75*Math.min(base,cap)};
   }
@@ -51,7 +51,7 @@ function design(r,punch){
   if(d<Math.max(150,16*bar.diameter))pr.reason='d ≥ max(150 mm, 전단철근 직경의 16배) 조건 미달 · 두께 증대 필요';
   else if(inner.vu>.75*inner.cap)pr.reason='뚫림 압축파괴 상한 초과 · 기초 두께 또는 기둥 크기 증대 필요';
   else{
-   const maxOffset=Math.min((p.bx-p.cx)/2,(p.by-p.cy)/2)-margin;
+   const maxOffset=Math.min((p.bx-p.cx)/2-Math.abs(ox),(p.by-p.cy)/2-Math.abs(oy))-margin;
    for(const s of choices){
     if(s>d/2)continue;
     for(let n=1;n<=60;n++){
