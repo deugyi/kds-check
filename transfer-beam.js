@@ -62,7 +62,11 @@ function interfaceCheck(p,H,joint,fc,r,lay,Vu,values){
 function phase(p,k,wet){
   const active=wet?k-1:k,H=p.heights.slice(0,active).reduce((a,v)=>a+v,0),loaded=p.heights.slice(0,k).reduce((a,v)=>a+v,0);
   const D=24*p.b/1000*loaded/1000,w=p.deadFactor*D;
-  const out={stage:k,wet,H,loaded,D,w,M:w*p.span*p.span/8,V:w*p.span/2,interfaces:[]};
+  const final=!wet&&k===p.heights.length,Vself=w*p.span/2;
+  // finalVu is total factored shear, including self-weight; never add it twice.
+  const Vinput=final?(p.finalVu??null):null,V=Vinput===null?Vself:Math.max(Vself,Vinput);
+  const out={stage:k,wet,final,H,loaded,D,w,M:w*p.span*p.span/8,V,Vself,Vinput,
+    Vsource:Vinput!==null&&Vinput>Vself?'input':'self',interfaces:[]};
   if((wet&&k<=p.release)||(!wet&&k<p.release))return {...out,status:'shored',message:'동바리 지지 상태 · 동바리 내력은 별도 검토'};
   try{
     const values=p.strengths[active]||[];
@@ -79,6 +83,7 @@ function phase(p,k,wet){
   }catch(e){return {...out,status:'missing',message:e.message};}
 }
 function calculate(p){
+  if(p.finalVu!==undefined&&p.finalVu!==null&&(!Number.isFinite(p.finalVu)||p.finalVu<0))throw Error('최종 계수전단력 Vu는 0 이상의 숫자로 입력하거나 비워 두세요.');
   for(const key of ['b','h','span','deadFactor','stirrupSpacing','dowelSpacing'])pos(p[key],key);
   if(p.deadFactor<1)throw Error('자중 하중계수는 1 이상이어야 합니다.');
   if(!p.heights.length||p.heights.length>10||p.heights.some(v=>!Number.isFinite(v)||v<=0)||Math.abs(p.heights.reduce((a,v)=>a+v,0)-p.h)>.01)throw Error('타설 높이 합계를 확인하세요.');

@@ -778,7 +778,8 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
       <div class="card"><h2>5. 지지 · 하중 조건</h2><div class="grid beam-inputs">
         <label class="beam-wide"><b>동바리 해체 차수 (양생 후)</b><select id="tb_release"><option value="1" selected>1차 양생 후</option><option value="2">2차 양생 후</option></select></label>
         <label><b>자중 하중계수</b><input id="tb_dead_factor" type="number" min="1" step="0.1" value="1.4"></label>
-      </div><p class="beam-muted">해체 후 양단 단순지지·전 경간 등분포 자중만 검토합니다. 콘크리트 단위중량 24 kN/m³. 동바리 해체 전 지지력, 작업하중·장비·상부층 하중은 별도입니다.</p></div>
+        <label class="beam-wide"><b>최종 계수전단력 Vu (kN)</b><input id="tb_final_vu" type="number" min="0" step="any" placeholder="미입력 시 자중 검토"><span class="beam-muted">자중을 포함한 최종 설계전단력의 절댓값입니다. 최종 양생 후에만 max(자중 Vu, 입력 Vu)를 적용하며 자중을 중복 가산하지 않습니다.</span></label>
+      </div><p class="beam-muted">타설 단계는 해체 후 양단 단순지지·전 경간 등분포 자중으로 검토합니다. 콘크리트 단위중량 24 kN/m³. 최종 입력 Vu는 수직 전단·이어치기면에 적용하며, 휨은 자중 Mu만 검토합니다. 최종 하중의 휨과 동바리 지지력은 별도입니다.</p></div>
       <div class="card"><h2>6. 하부 인장근 · 스터럽</h2><div class="grid beam-inputs">
         <label><b>인장철근 규격</b><select id="tb_bar"><option>D19</option><option>D22</option><option>D25</option><option>D29</option><option selected>D32</option><option>D35</option></select></label>
         <label><b>1단 가닥 수</b><input id="tb_n1" type="number" min="2" step="1" value="8"></label>
@@ -805,7 +806,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
         <div class="card tb-preview-card"><h2>전이보 타설 · 단면 미리보기</h2><p class="beam-muted">아래쪽 1차부터 위쪽 n차까지 색으로 구분합니다. 차수를 선택하면 그 단계까지 타설한 높이를 확인할 수 있습니다.</p><div class="beam-preview"><div id="tb_diagram"></div><div><p class="beam-layout" id="tb_size"></p><p class="beam-muted">직사각형 전이보</p><dl class="beam-values" id="tb_materials"></dl></div></div><div class="tb-preview-caption"><div id="tb_legend"></div><div id="tb_rebar_legend"></div><p id="tb_graph_info" class="beam-muted" aria-live="polite">철근을 가리키거나 선택하면 규격과 배치 정보를 확인할 수 있습니다.</p><div id="tb_graph_note" class="beam-muted"></div></div></div>
         <div class="card"><h2>타설 단계별 자중 · 휨 · 수직 전단</h2><div id="tb_phase_results"></div></div>
         <div class="card"><h2>이어치기면 전단 전달 · 추가 다월바</h2><div id="tb_joint_results"></div></div>
-        <div class="card"><h2>계산 가정 · 적용 범위</h2><p class="beam-muted">동바리 해체 후 양단 단순지지, 전 경간 등분포 자중 검토입니다. 타설 중에는 새 콘크리트를 하중으로만 보며 직전 검토 시점의 발현강도와 하부 단면을 사용합니다. 양생 후에는 입력한 시점별 강도로 누적 단면을 검토합니다.</p><p class="beam-muted">휨·수직 전단은 활성 단면의 최소 발현강도를 사용합니다. 발현강도 21 MPa 미만 및 경간/높이 ≤ 4인 깊은보는 적합 판정을 제공하지 않습니다. 이어치기면은 전단흐름과 전단마찰 철근량을 비교하는 예비 검토입니다.</p><p class="beam-muted">자중의 단계별 탄성 응력 이력, 크리프·수축, 변형·균열, 동바리 반력과 해체 순서, 시공이음 상세 및 철근 정착길이의 자동 검토는 포함하지 않습니다. 전체 타설 안전 판정이 아닙니다. <a href="docs/transfer-beam.md" target="_blank" rel="noopener">계산 근거</a></p></div>
+        <div class="card"><h2>계산 가정 · 적용 범위</h2><p class="beam-muted">타설 단계는 동바리 해체 후 양단 단순지지, 전 경간 등분포 자중 검토입니다. 최종 양생 후 수직 전단·이어치기면에는 입력 최종 Vu와 자중 Vu 중 큰 값을 적용합니다. 타설 중에는 새 콘크리트를 하중으로만 보며 직전 검토 시점의 발현강도와 하부 단면을 사용합니다. 양생 후에는 입력한 시점별 강도로 누적 단면을 검토합니다.</p><p class="beam-muted">휨·수직 전단은 활성 단면의 최소 발현강도를 사용합니다. 발현강도 21 MPa 미만 및 경간/높이 ≤ 4인 깊은보는 적합 판정을 제공하지 않습니다. 이어치기면은 전단흐름과 전단마찰 철근량을 비교하는 예비 검토입니다.</p><p class="beam-muted">자중의 단계별 탄성 응력 이력, 크리프·수축, 변형·균열, 동바리 반력과 해체 순서, 시공이음 상세 및 철근 정착길이의 자동 검토는 포함하지 않습니다. 전체 타설 안전 판정이 아닙니다. <a href="docs/transfer-beam.md" target="_blank" rel="noopener">계산 근거</a></p></div>
       </div>
     </div>
   </div>
@@ -1064,9 +1065,9 @@ var SectionPicker=(function(){
 <script src="composite-beam.js?v=20260914-53"></script>
 <script src="composite-beam-ui.js?v=20260914-61"></script>
 <script src="concrete-age.js?v=20260911-15"></script>
-<script src="transfer-beam.js?v=20260911-15"></script>
+<script src="transfer-beam.js?v=20260920-79"></script>
 <script src="transfer-beam-diagram.js?v=20260911-15"></script>
-<script src="transfer-beam-ui.js?v=20260911-15"></script>
+<script src="transfer-beam-ui.js?v=20260920-79"></script>
 <script src="steel-builtup-i.js?v=20260911-23"></script>
 <script src="steel-rh-tee.js?v=20260911-23"></script>
 <script src="steel-replacement.js?v=20260911-26"></script>
