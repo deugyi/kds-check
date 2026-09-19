@@ -275,3 +275,13 @@ test('footing-joint manual strengths track each lift and stage without assuming 
  nodes.fj_fc_1.value='15';nodes.fj_fc_1.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/제안 보류/);
  nodes.fj_strengthMode.value='estimate';nodes.fj_strengthMode.events.input();nodes.fj_count.value='3';nodes.fj_count.events.input();assert.match(nodes.fj_phases.innerHTML,/3차 양생 후/);assert.equal(nodes.fj_height.value,500);
 });
+
+test('foundation joint compression control is optional and reports its contribution separately',()=>{
+ const {nodes}=load();assert.equal(nodes.fj_compression_field.hidden,true);
+ nodes.fj_mode.value='mat';nodes.fj_mode.events.input();nodes.fj_crossLegs.value='0';nodes.fj_crossLegs.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/D16@/);
+ nodes.fj_compressionMode.value='manual';nodes.fj_compressionMode.events.input();assert.equal(nodes.fj_compression_field.hidden,false);
+ nodes.fj_compression.value='1000';nodes.fj_compression.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/영구 순압축력/);assert.doesNotMatch(nodes.fj_joint_summary.innerHTML,/D16@/);assert.match(nodes.fj_joints.innerHTML,/순압축/);
+ nodes.fj_compression.value='-1';nodes.fj_compression.events.input();assert.equal(nodes.fj_results.hidden,true);
+ nodes.fj_compressionMode.value='none';nodes.fj_compressionMode.events.input();assert.equal(nodes.fj_results.hidden,false);
+ nodes.fj_mode.value='pile';nodes.fj_pileCount.value='3';nodes.fj_mode.events.input();assert.match(nodes.fj_capacity.innerHTML,/4.11.7/);
+});

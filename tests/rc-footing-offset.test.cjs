@@ -50,16 +50,13 @@ test('shifted footing contains the full column and full punching perimeter',()=>
  assert.throws(()=>F.calculate({...p,h:1800}),/위험둘레가 기초 밖/);
 });
 
-test('shear grids translate with footing while punching rings remain at column and inside nearest edge',()=>{
+test('shear grids translate with footing while eccentric punching reinforcement remains pending',()=>{
  const r=F.calculate({mode:'pile',autoSize:true,pileCount:3,diameter:500,gapFactor:4,h:650,Nu:3500}),s=r.reinforcement,pr=s.punching;
- assert.ok(pr.needed&&pr.ok);assert.ok(s.points.some(v=>v.type!=='P'));
+ assert.ok(pr.needed&&!pr.ok);assert.match(pr.reason,/4.11.7/);assert.deepEqual(pr.rings,[]);assert.ok(s.points.some(v=>v.type!=='P'));
  const margin=r.p.cover+R.BARS[r.p.shearBar].diameter/2,b=r.bounds;
  for(const v of s.points){assert.ok(v.x>=b.left+margin-1e-7&&v.x<=b.right-margin+1e-7);assert.ok(v.y>=b.bottom+margin-1e-7&&v.y<=b.top-margin+1e-7);}
  const grid=s.points.filter(v=>v.type==='Y');
  near((Math.min(...grid.map(v=>v.y))+Math.max(...grid.map(v=>v.y)))/2,r.p.footingY);
- assert.ok(-pr.outer.by/2>b.bottom+margin);assert.ok(pr.outer.by/2<b.top-margin);
- assert.ok(-pr.outer.bx/2>b.left+margin);assert.ok(pr.outer.bx/2<b.right-margin);
- for(const ring of pr.rings){near(ring.points.reduce((s,v)=>s+v.x,0),0);near(ring.points.reduce((s,v)=>s+v.y,0),0);}
- const inner=pr.inner,jx=r.d*(inner.bx*inner.by**2/2+inner.by**3/6);
- near(inner.vu,r.totalU*1000/(inner.b0*r.d)+Math.abs(r.selfMoments.Mxu)*1e6*inner.by/2/jx);
+ assert.equal(s.points.some(v=>v.type==='P'),false);
+ near(r.punching.vu,r.punching.Vu*1000/(r.punching.b0*r.d));
 });

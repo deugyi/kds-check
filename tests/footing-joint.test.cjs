@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const E=require('../footing-joint.js');
+const E=require('../footing-joint.js'),F=require('../rc-footing.js');
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8*Math.max(1,Math.abs(b)),`${a} != ${b}`);
 const base=()=>({...E.clone(E.defaults),strengthMode:'manual',strengths:{1:[30],2:[30,30]}});
 test('soil self-weight cancels from net strip forces, while total bearing grows with wet lift',()=>{
@@ -93,4 +93,29 @@ test('one installed dowel grid satisfies every demanding phase including anchora
   assert.ok(lo.ok&&up.ok);assert.ok(j.lo>=lo.required&&j.up>=up.required);
   assert.ok(198.6*1e6/j.spacing**2>=v.required);
  }
+});
+
+test('permanent normal compression gives phi mu sigma credit without treating Pu/A as permanent',()=>{
+ const p={...base(),mode:'mat',crossLegs:0};
+ const a=E.calculate(p).phases.at(-1).interfaces[0];
+ const b=E.calculate({...p,compressionMode:'manual',compression:233}).phases.at(-1).interfaces[0];
+ near(b.compressionCapacity,.75*.233);near(a.required-b.required,.233*1e6/500);
+ near(b.cap,a.cap);near(b.tau,a.tau);assert.equal(b.existingArea,0);
+ const off=E.calculate({...p,compression:999999}).phases.at(-1).interfaces[0];near(off.required,a.required);
+ const smooth=E.calculate({...p,surface:'smooth',compressionMode:'manual',compression:233}).phases.at(-1).interfaces[0];near(smooth.compressionCapacity,.75*.6*.233);
+});
+test('compression can remove extra dowels but cannot raise the concrete interface cap',()=>{
+ const p={...base(),mode:'mat',crossLegs:0,compressionMode:'manual',compression:1000};
+ const a=E.calculate(p).phases.at(-1).interfaces[0];assert.equal(a.required,0);assert.equal(a.status,'existing');
+ p.stages[1].cured.vx=100000;p.compression=1e9;
+ const b=E.calculate(p).phases.at(-1).interfaces[0];assert.equal(b.status,'cap');assert.equal(b.ok,false);
+ for(const compression of [-1,NaN,Infinity])assert.throws(()=>E.calculate({...p,compression}));
+});
+test('joint page reports direct punching separately and does not pass eccentric moment transfer',()=>{
+ const r=E.calculate({...base(),mode:'pile',pileCount:3}),ph=r.phases.at(-1),j=ph.punching;
+ assert.equal(j.status,'eccentric');assert.equal(j.ok,false);assert.ok(j.Mx>0);
+ near(j.vu,j.Vu*1000/(2*(j.px+j.py)*j.d));
+ const rho=ph.checks.reduce((a,c)=>a+c.As/(1000*c.d),0)/2;
+ near(j.phiV,.75*F.punch(ph.fc,j.d,j.px,j.py,rho).vc);
+ assert.match(ph.message,/4.11.7/);
 });

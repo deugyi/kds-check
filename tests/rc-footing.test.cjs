@@ -6,7 +6,14 @@ test('biaxial pile reactions satisfy force and moment equilibrium',()=>{const r=
 test('linear pile shear share at inner, middle, outer positions',()=>{near(F.fraction(-250,500),0);near(F.fraction(0,500),.5);near(F.fraction(250,500),1);});
 test('KDS punching independent fixture and coefficient bounds',()=>{const r=F.punch(30,600,1200,1200,.005);const cu=600*(25*Math.sqrt(.005/30)-300*.005/30);near(r.cu,cu);near(r.vc,(.5**.25)*1.25*Math.sqrt((.2*Math.sqrt(30))*(.2*Math.sqrt(30)+20))*cu/600);near(F.punch(30,5000,5600,5600,.001).ks,.75);near(F.punch(30,100,700,700,.04).rho,.03);});
 test('soil tensile contact, pile uplift, invalid geometry and blank numbers reject results',()=>{assert.throws(()=>F.calculate({Mys:2000}),/접촉/);assert.throws(()=>F.calculate({mode:'pile',Mys:4000}),/인발/);assert.throws(()=>F.calculate({mode:'pile',sx:4000}),/가장자리/);assert.throws(()=>F.calculate({Nu:NaN}),/유한/);});
-test('moment reversal is symmetric and increases punching demand',()=>{const a=F.calculate({Mxu:100,Myu:120}),b=F.calculate({Mxu:-100,Myu:-120}),z=F.calculate({});near(a.punching.vu,b.punching.vu);near(a.rows[0].Mu,b.rows[0].Mu);assert.ok(a.punching.vu>z.punching.vu);});
+test('moment reversal preserves direct punching and requires separate moment-transfer verification',()=>{const a=F.calculate({Mxu:100,Myu:120}),b=F.calculate({Mxu:-100,Myu:-120}),z=F.calculate({});near(a.punching.vu,b.punching.vu);near(a.rows[0].Mu,b.rows[0].Mu);near(a.punching.vu,z.punching.vu);assert.equal(a.punching.ok,false);assert.equal(a.punching.hasMoment,true);assert.equal(a.reinforcement.punching.ok,false);assert.match(a.reinforcement.punching.reason,/4.11.7/);});
+
+test('foundation code spacing limit is min(3h,450), independently of @100-300 automatic candidates',()=>{
+ const a=F.calculate({h:700,spacingX:450,spacingY:450,barX:'D32',barY:'D32'});
+ assert.equal(a.rows[0].maxSpacing,450);assert.equal(a.rows[0].steelOK,true);
+ const b=F.calculate({h:700,spacingX:451,spacingY:451,barX:'D32',barY:'D32'});assert.equal(b.rows[0].steelOK,false);
+ assert.equal(Math.max(...F.AUTO_SPACINGS),300);
+});
 test('rectangular footing enforces uniform short-direction central-band allocation',()=>{const r=F.calculate({by:4000});near(r.rows[0].band,8/7);near(r.rows[1].band,1);});
 test('pile spacing checks distinguish diameter from effective depth and catch default edge deficit',()=>{const r=F.calculate({mode:'pile'}),v=r.pileLayout;near(v.spacingMin,1250);near(v.edgeMin,625);near(v.edgeX,600);assert.equal(v.ok,false);near(v.minBx,3050);});
 test('pile layout boundaries accept equality and reject short spacing independently',()=>{assert.equal(F.calculate({mode:'pile',bx:3050,by:3050}).pileLayout.ok,true);const v=F.calculate({mode:'pile',sx:1200,bx:4000,by:4000}).pileLayout;assert.equal(v.spacingXOK,false);assert.equal(v.edgeXOK,true);assert.equal(v.ok,false);});
