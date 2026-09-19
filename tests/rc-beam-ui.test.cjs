@@ -258,3 +258,20 @@ test('load schedule restores last valid state and escapes project and material t
  const next=load({localStorage:store});assert.equal(next.nodes.ld_project.value,'검토 프로젝트');assert.equal(next.nodes.ld_live.value,7);assert.equal(next.nodes.ld_error.hidden,true);
  const corrupt=load({localStorage:{getItem(){return '{';},setItem(){}}});assert.equal(corrupt.nodes.ld_error.hidden,true);assert.match(corrupt.nodes.ld_table.innerHTML,/12\.24/);
 });
+
+test('horizontal footing joints initialize, switch foundation modes and clear invalid results',()=>{
+ const {nodes}=load();assert.equal(nodes.fj_error.hidden,true);assert.match(nodes.fj_diagram.innerHTML,/<svg/);assert.match(nodes.fj_phases.innerHTML,/2차 타설 중/);
+ nodes.fj_mode.value='pile';nodes.fj_mode.events.input();assert.equal(nodes.fj_bx.value,2500);assert.match(nodes.fj_reactions.innerHTML,/계수반력/);
+ nodes.fj_mode.value='mat';nodes.fj_mode.events.input();assert.equal(nodes.fj_axial.hidden,true);assert.equal(nodes.fj_wet_inputs.hidden,false);
+ nodes.fj_crossLegs.value='0';nodes.fj_crossLegs.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/D16@/);assert.match(nodes.fj_diagram.innerHTML,/추가 다월바 D16/);
+ nodes.fj_h.value='';nodes.fj_h.events.input();assert.equal(nodes.fj_results.hidden,true);assert.equal(nodes.fj_diagram.innerHTML,'');assert.equal(nodes.fj_joints.innerHTML,'');
+ nodes.fj_h.value='1500';nodes.fj_h.events.input();assert.equal(nodes.fj_results.hidden,false);
+});
+test('footing-joint manual strengths track each lift and stage without assuming unmeasured values',()=>{
+ const {nodes}=load();nodes.fj_strengthMode.value='manual';nodes.fj_strengthMode.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/제안 보류/);
+ nodes.fj_fc_0.value='30';nodes.fj_fc_0.events.input();
+ nodes.fj_edit.value='1';nodes.fj_edit.events.change();nodes.fj_fc_0.value='30';nodes.fj_fc_0.events.input();nodes.fj_fc_1.value='30';nodes.fj_fc_1.events.input();
+ assert.doesNotMatch(nodes.fj_joint_summary.innerHTML,/제안 보류/);assert.equal(nodes.fj_error.hidden,true);
+ nodes.fj_fc_1.value='15';nodes.fj_fc_1.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/제안 보류/);
+ nodes.fj_strengthMode.value='estimate';nodes.fj_strengthMode.events.input();nodes.fj_count.value='3';nodes.fj_count.events.input();assert.match(nodes.fj_phases.innerHTML,/3차 양생 후/);assert.equal(nodes.fj_height.value,500);
+});
