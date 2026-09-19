@@ -10,7 +10,7 @@ const COLORS=['#2878b5','#df9a33','#3a9b78','#8b6cb5','#c96772'];
 const defaults={mode:'soil',fck:40,fy:500,fyt:500,fyd:500,bx:3000,by:3000,h:1500,cx:600,cy:600,cover:80,
  Ps:1500,Pu:2100,qa:250,pileCount:4,diameter:500,gapFactor:2.5,pileAllow:800,
  barX:'D25',barY:'D25',spacing:150,crossBar:'D13',crossLegs:2,crossSX:400,crossSY:400,dowel:'D16',
- surface:'rough',strengthMode:'estimate',cement:'normal',temperature:20,
+ surface:'rough',compressionMode:'none',compression:0,strengthMode:'estimate',cement:'normal',temperature:20,
  stages:[{height:750,days:7,load:0,wet:{mx:0,my:0,vx:0,vy:0},cured:{mx:0,my:0,vx:0,vy:0}},
  {height:750,days:7,load:100,wet:{mx:0,my:0,vx:150,vy:150},cured:{mx:300,my:300,vx:400,vy:400}}],strengths:{}};
 const clone=v=>JSON.parse(JSON.stringify(v));
@@ -27,6 +27,8 @@ function validate(p){
  if(!Number.isInteger(p.crossLegs)||p.crossLegs<0||p.crossLegs>6)throw Error('기존 관통철근 다리 수는 격자당 0~6개입니다.');
  if(p.crossSX<R.BARS[p.crossBar].diameter+25||p.crossSY<R.BARS[p.crossBar].diameter+25)throw Error('관통철근 간격이 부족합니다.');
  if(!['rough','smooth'].includes(p.surface)||!['estimate','manual'].includes(p.strengthMode))throw Error('접합면·발현강도 입력 방식을 확인하세요.');
+ if(!['none','manual'].includes(p.compressionMode))throw Error('영구 순압축력 반영 방식을 선택하세요.');
+ if(p.compressionMode==='manual')num(p.compression,'최소 영구 순압축응력');
  if(!Array.isArray(p.stages)||p.stages.length<2||p.stages.length>5)throw Error('타설 차수는 2~5차입니다.');
  let sum=0;for(const s of p.stages){positive(s.height,'차수별 높이');num(s.days,'경과일수');sum+=s.height;
   if(p.mode!=='mat'){num(s.load,'전달 축력 비율');if(s.load>100)throw Error('전달 축력 비율은 0~100%입니다.');}
@@ -129,18 +131,22 @@ function jointCheck(p,H,j,joint,values,axes){
  const upper=development(p,p.crossBar,p.fyt,upperFc,Math.min(p.crossSX,p.crossSY)/Math.max(1,p.crossLegs),H-joint-p.cover);
  const area=p.crossLegs*R.BARS[p.crossBar].area*1e6/(p.crossSX*p.crossSY);
  const existingArea=lower.ok&&upper.ok?area:0,existing=phi*mu*existingArea*p.fyt/1e6;
- const required=Math.max(0,(tau-existing)*1e6/(phi*mu*p.fyd));
+ // User supplies a lower bound valid over every checked region and phase.
+ // Pu/A is not permanent normal pressure and is never substituted here.
+ const compressionStress=p.compressionMode==='manual'?p.compression/1000:0;
+ const compressionCapacity=phi*mu*compressionStress;
+ const required=Math.max(0,(tau-existing-compressionCapacity)*1e6/(phi*mu*p.fyd));
  let proposal=null;
  if(required>1e-8&&tau<=cap+1e-8){
   for(let spacing=300;spacing>=100;spacing-=10){
    const provided=R.BARS[p.dowel].area*1e6/(spacing*spacing);
    const lo=development(p,p.dowel,p.fyd,values[j],spacing,p.stages[j].height-p.cover),up=development(p,p.dowel,p.fyd,values[j+1],spacing,p.stages[j+1].height-p.cover);
-   if(provided>=required-1e-8&&lo.ok&&up.ok){proposal={spacing,provided,lo,up,length:Math.ceil((lo.required+up.required)/10)*10,capacity:Math.min(cap,existing+phi*mu*provided*p.fyd/1e6)};break;}
+   if(provided>=required-1e-8&&lo.ok&&up.ok){proposal={spacing,provided,lo,up,length:Math.ceil((lo.required+up.required)/10)*10,capacity:Math.min(cap,existing+compressionCapacity+phi*mu*provided*p.fyd/1e6)};break;}
   }
  }
  const lowerD=development(p,p.dowel,p.fyd,values[j],300,p.stages[j].height-p.cover),upperD=development(p,p.dowel,p.fyd,values[j+1],300,p.stages[j+1].height-p.cover);
  const status=tau>cap+1e-8?'cap':required<=1e-8?'existing':proposal?'proposed':!lowerD.ok||!upperD.ok?'anchorage':'spacing';
- return {index:j,joint,fc,mu,tau,stresses,cap,area,existingArea,existing,lower,upper,required,proposal,lowerD,upperD,status,
+ return {index:j,joint,fc,mu,tau,stresses,cap,area,existingArea,existing,compressionStress,compressionCapacity,lower,upper,required,proposal,lowerD,upperD,status,
   ok:status==='existing'||status==='proposed'};
 }
 function phase(p,g,k,wet,strengths){
@@ -153,7 +159,7 @@ function phase(p,g,k,wet,strengths){
   const checks=f.axes.map(a=>{
    const st=steel(p,H,a.axis),c=S.capacity({h:H,fck:fc,fy:p.fy},st.d,st.As),reverseMissing=(a.Mu< -1e-8||a.MuNeg< -1e-8)&&!st.hasTop;
    const phiVc=.75*Math.min(Math.sqrt(fc),8.4)*st.d/6,Vu=a.Vd===null?a.Vu:a.Vd;
-   const steelOK=st.As>=S.minimumRatio(p.fy)*1000*H&&p.spacing<=Math.min(2*H,300);
+   const steelOK=st.As>=S.minimumRatio(p.fy)*1000*H&&p.spacing<=Math.min(3*H,450);
    return {...a,d:st.d,As:st.As,phiMn:c.phiMn,phiVc,shearVu:Vu,steelOK,flexOK:!reverseMissing&&Math.abs(a.Mu)<=c.phiMn&&c.ductile,reverseMissing,shearOK:Vu<=phiVc};
   });
   let z=0;for(let j=0;j<active-1;j++){z+=p.stages[j].height;out.interfaces.push(jointCheck(p,H,j,z,values,f.axes));}
@@ -164,12 +170,14 @@ function phase(p,g,k,wet,strengths){
    else{
     const rho=checks.reduce((a,c)=>a+c.As/(1000*c.d),0)/2,pc=F.punch(fc,d,px,py,rho);
     const Vu=p.mode==='soil'?f.Nu*(1-px*py/(1e6*g.A)):Math.abs(f.piles.reduce((a,v)=>a+v.Ru*Math.min(1,F.fraction(Math.abs(v.x)*1000-px/2,p.diameter)+F.fraction(Math.abs(v.y)*1000-py/2,p.diameter)),0)-f.wu*(g.A-px*py/1e6));
-    const Mx=1.2*f.W*Math.abs(g.footingY)/1000,My=1.2*f.W*Math.abs(g.footingX)/1000,jx=d*(px*py*py/2+py**3/6),jy=d*(py*px*px/2+px**3/6);
-    const vu=Vu*1000/(pc.b0*d)+Mx*1e6*py/2/jx+My*1e6*px/2/jy,phiV=.75*Math.min(pc.vc,.63*Math.sqrt(fc),.25*fc);
-    punching={status:'checked',Vu,vu,phiV,ok:vu<=phiV,px,py,d};
+    const Mx=1.2*f.W*Math.abs(g.footingY)/1000,My=1.2*f.W*Math.abs(g.footingX)/1000;
+    // 4.11.2 direct punching only. 4.11-17 side-face torsional shear
+    // limits are not direct punching caps. 4.11.7 requires its own check.
+    const vu=Vu*1000/(pc.b0*d),phiV=.75*pc.vc,hasMoment=Mx>1e-8||My>1e-8;
+    punching={status:hasMoment?'eccentric':'checked',Vu,vu,phiV,directOK:vu<=phiV,ok:vu<=phiV&&!hasMoment,Mx,My,px,py,d};
    }
   }
-  return {...out,...f,fc,values,checks,punching,status:'calculated',message:f.bearing&&!f.bearing.ok?'허용지지력 초과':checks.some(a=>!a.flexOK||!a.steelOK)?'휨·배근 확인 필요':checks.some(a=>!a.shearOK)||punching&&!punching.ok?'기초 수직 전단 확인 필요':out.interfaces.some(j=>!j.ok)?'접합면 보강 조건 미충족':out.interfaces.some(j=>j.status==='proposed')?'추가 다월바 배근안 제안':'계산 항목 충족'};
+  return {...out,...f,fc,values,checks,punching,status:'calculated',message:f.bearing&&!f.bearing.ok?'허용지지력 초과':checks.some(a=>!a.flexOK||!a.steelOK)?'휨·배근 확인 필요':punching?.status==='eccentric'?'편심모멘트 전달 · KDS 4.11.7 별도 검토 필요':checks.some(a=>!a.shearOK)||punching&&!punching.ok?'기초 수직 전단 확인 필요':out.interfaces.some(j=>!j.ok)?'접합면 보강 조건 미충족':out.interfaces.some(j=>j.status==='proposed')?'추가 다월바 배근안 제안':'계산 항목 충족'};
  }catch(e){return {...out,message:e.message};}
 }
 function calculate(input){

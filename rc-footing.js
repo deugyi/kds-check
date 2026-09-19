@@ -130,7 +130,10 @@ function calculate(input,designShear=true){
   // Uniform short-direction reinforcement also meets the central-band allocation.
   const beta=Math.max(B,L)/Math.min(B,L),band=along<width?2*beta/(beta+1):1;
   const Mu=maxM/width*band,phiVc=.75*Math.min(Math.sqrt(p.fck),8.4)*width*dd/6;
-  rows.push({axis,sides,d:dd,As,AsMin,bar:p['bar'+axis],spacing,band,Mu,phiMn:cap.phiMn,Vu:maxV,phiVc,ductile:cap.ductile,steelOK:As>=AsMin&&spacing<=Math.min(2*p.h,300)&&spacing-bar.diameter>=Math.max(25,bar.diameter),reverse,flexOK:Mu<=cap.phiMn&&cap.ductile&&!reverse,shearOK:maxV<=phiVc});
+  // KDS 14 20 20 4.2.2(3): code limit is independent of the user's
+  // narrower @100-300 automatic candidate range below.
+  const maxSpacing=Math.min(3*p.h,450);
+  rows.push({axis,sides,d:dd,As,AsMin,bar:p['bar'+axis],spacing,maxSpacing,band,Mu,phiMn:cap.phiMn,Vu:maxV,phiVc,ductile:cap.ductile,steelOK:As>=AsMin&&spacing<=maxSpacing&&spacing-bar.diameter>=Math.max(25,bar.diameter),reverse,flexOK:Mu<=cap.phiMn&&cap.ductile&&!reverse,shearOK:maxV<=phiVc});
  }
  if(rows.some(v=>v.reverse))notes.push('반대 부호 휨이 발생하여 상부 철근 검토가 필요합니다. 하부 철근만으로 충족 판정하지 않습니다.');
  const px=p.cx+d,py=p.cy+d;
@@ -140,17 +143,14 @@ function calculate(input,designShear=true){
  else Vu=piles.reduce((s,v)=>s+v.Ru*Math.min(1,fraction(Math.abs(v.x)*1000-px/2,p.diameter)+fraction(Math.abs(v.y)*1000-py/2,p.diameter)),0)-wu*(A-px*py/1e6);
  Vu=Math.abs(Vu);
  const rho=(rows[0].As/(1000*dx)+rows[1].As/(1000*dy))/2,pc=punch(p.fck,d,px,py,rho);
- const jx=d*(px*py*py/2+py**3/6),jy=d*(py*px*px/2+px**3/6);
- // Conservative eccentric punching bound: do not cancel column and
- // footing self-weight moments or claim moment relief from pile reactions.
+ // Keep direct punching (4.11.2) separate from moment transfer (4.11.7).
  const punchMx=Math.abs(p.Mxu)+Math.abs(selfMoments.Mxu),punchMy=Math.abs(p.Myu)+Math.abs(selfMoments.Myu);
- const vu=Vu*1000/(pc.b0*d)+punchMx*1e6*py/2/jx+punchMy*1e6*px/2/jy;
- const phiV=.75*Math.min(pc.vc,.63*Math.sqrt(p.fck),.25*p.fck);
- const punching={...pc,px,py,d,Vu,vu,phiV,ratio:vu/phiV,ok:vu<=phiV,Mx:punchMx,My:punchMy,hasMoment:!!(punchMx||punchMy)};
+ const vu=Vu*1000/(pc.b0*d),phiV=.75*pc.vc,hasMoment=punchMx>1e-8||punchMy>1e-8;
+ const punching={...pc,px,py,d,Vu,vu,phiV,ratio:vu/phiV,directOK:vu<=phiV,ok:vu<=phiV&&!hasMoment,Mx:punchMx,My:punchMy,hasMoment};
  notes.push('기둥을 원점으로 하는 일정 두께·보통중량 콘크리트 기초입니다. 전단철근 외면까지 피복을 적용하고, 보강이 불필요해도 선택 전단철근 직경만큼 유효깊이를 보수적으로 확보합니다. 철근은 하부 X층, 그 위 Y층으로 전체 폭에 균등 배치합니다.');
  notes.push('정착길이·기둥 지압 및 다월·침하·활동·전체 안정은 별도 검토입니다. 여러 하중조합은 각각 입력하여 검토하세요.');
- if(p.footingX||p.footingY)notes.push('파일군 도심은 기둥 중심에 맞추고 기초 외곽은 파일 배치에 따라 이동합니다. 자중 편심은 파일 반력과 양쪽 기둥면의 휨·전단에 반영하며, 뚫림에는 자중 편심모멘트 전량을 보수적으로 추가합니다.');
- if(punching.hasMoment)notes.push('편심 뚫림은 모멘트 전량을 선형 둘레 전단응력으로 부담하는 보수적 예비 검토입니다. KDS 4.11.7의 휨·전단·비틀림 분담 상세 검토를 대체하지 않습니다.');
+ if(p.footingX||p.footingY)notes.push('파일군 도심은 기둥 중심에 맞추고 기초 외곽은 파일 배치에 따라 이동합니다. 자중 편심은 파일 반력과 양쪽 기둥면의 휨·전단에 반영합니다.');
+ if(punching.hasMoment)notes.push('불균형모멘트가 있어 KDS 14 20 22 4.11.7의 φMn=φf·MF+φv·MS+φv·MT 및 양방향 상호작용 검토가 필요합니다. 현재 직접 뚫림 값만 표시하며, 전체 충족이나 뚫림 보강 배근을 제안하지 않습니다.');
  const result={p,bounds,selfMoments,reactionMoments,dx,dy,d,W,totalS,totalU,piles,bearing,pileLayout,rows,punching,notes,depthOK:d>=(p.mode==='soil'?150:300),pressure};
  if(designShear)result.reinforcement=T.design(result,punch);
  return result;

@@ -35,16 +35,17 @@ function design(r,punch){
   if(!row.ok&&!row.reason)row.reason='75 mm 이상 간격으로 배치 불가 · 직경 또는 두께 증대 필요';
   result.oneway.push(row);
  }
- if(result.punching.needed){
+ if(r.punching.hasMoment){
+  Object.assign(result.punching,{needed:true,ok:false,rings:[],reason:'편심모멘트 전달 · KDS 14 20 22 4.11.7 별도 검토 필요. 직접 뚫림만으로 보강안을 제안하지 않습니다.'});
+ }else if(result.punching.needed){
   const d=r.d,fs=.5*Math.min(fyt,400),rho=r.punching.rho,pr=result.punching;
   Object.assign(pr,{fs,ok:false,rings:[]});
-  // Conservative load bound: total factored axial reaction and full moments.
+  // Conservative direct-shear load bound: total factored axial reaction.
   // No soil/pile reaction or self-weight relief at any punching perimeter.
   function check(offset){
    const bx=p.cx+2*offset,by=p.cy+2*offset,c=punch(p.fck,d,bx,by,rho);
-   const jx=d*(bx*by*by/2+by**3/6),jy=d*(by*bx*bx/2+bx**3/6);
-   const vu=r.totalU*1000/(c.b0*d)+(r.punching.Mx??Math.abs(p.Mxu))*1e6*by/2/jx+(r.punching.My??Math.abs(p.Myu))*1e6*bx/2/jy;
-   const base=Math.min(c.vc,.63*Math.sqrt(p.fck)),cap=Math.min(.58*p.fck*c.cu/d,.25*p.fck);
+   const vu=r.totalU*1000/(c.b0*d);
+   const base=c.vc,cap=.58*p.fck*c.cu/d; // 4.11.3(3), not side-face v_nT
    return {...c,offset,bx,by,vu,base,cap,ok:vu<=.75*Math.min(base,cap)};
   }
   const inner=check(d/2);pr.inner=inner;
@@ -86,7 +87,7 @@ function design(r,punch){
  }
  result.notes.push('표시 점은 수직 전단철근 다리입니다. 1방향은 인접 2다리를 폐쇄형 스터럽으로 묶고, 뚫림은 각 열의 상·하부 휨철근을 둘러싸도록 정착합니다. 상부 정착용 철근 및 정착 상세는 구조기술사 확인이 필요합니다.');
  result.notes.push('1방향 격자와 뚫림 둘레 보강은 각각의 전용 철근량입니다. 내력을 중복 합산하지 않습니다. 실제 시공 배치는 주철근·파일 두부와의 간섭을 조정해야 합니다.');
- if(result.punching.needed)result.notes.push('뚫림 보강은 모든 검토 둘레에서 총 계수축력과 모멘트 전량을 사용하여 반력 공제 없이 보수적으로 산정합니다. 가장 바깥 철근에서 d/2 떨어진 무보강 둘레까지 확인합니다.');
+ if(result.punching.needed&&!r.punching.hasMoment)result.notes.push('직접 뚫림 보강은 모든 검토 둘레에서 총 계수축력을 사용하여 반력 공제 없이 산정합니다. 가장 바깥 철근에서 d/2 떨어진 무보강 둘레까지 확인합니다. 편심모멘트 전달 검토에는 적용하지 않습니다.');
  return result;
 }
 root.RCFootingShear={design};if(typeof module!=='undefined'&&module.exports)module.exports=root.RCFootingShear;
