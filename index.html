@@ -302,6 +302,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 .slab-steel-item b{color:var(--steel-color)}.slab-steel-item span{font-size:12px}.slab-steel-item[aria-pressed=true]{background:var(--code);border-color:var(--steel-color)}
 @media(max-width:650px){.slab-plan-layout{grid-template-columns:1fr;gap:12px}.slab-plan-layout svg{max-width:380px;margin:auto}}
 @media print{.slab-plan-layout{grid-template-columns:1fr 1fr}.slab-steel-item{break-inside:avoid}}
+body:has(.site-page.on)>footer{display:none}
 </style>
 <link rel="stylesheet" href="home.css?v=20260912-44">
 <link rel="stylesheet" href="seismic.css?v=20260912-40">
@@ -370,6 +371,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
     </ul>
   </div>
 <div class="menu"><button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">기타</button><ul class="menu-list" hidden><li><button type="button" data-t="t24">단위변환</button></li><li><button type="button" data-t="t25">콘크리트 탄성계수</button></li><li><button type="button" data-t="t26">콘크리트 강도 변환</button></li></ul></div>
+<div class="menu"><button type="button" class="menu-top" aria-haspopup="true" aria-expanded="false">서리풀 현장</button><ul class="menu-list" hidden><li><button type="button" data-t="site-prd">PRD</button></li><li><button type="button" data-t="site-steel">철골보</button></li><li><button type="button" data-t="site-slab">슬래브</button></li></ul></div>
 </nav>
 
 <main>
@@ -411,6 +413,7 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <button type="button" class="home-program" data-open="t11"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 66V20H90V66M50 20V66" stroke-width="3"/><path d="M6 70H14M46 70H54M86 70H94M20 7V16M16 12L20 16L24 12M40 7V16M36 12L40 16L44 12M60 7V16M56 12L60 16L64 12M80 7V16M76 12L80 16L84 12"/></svg><span class="home-program-copy"><strong>프레임 해석</strong><span>최대 10경간 · 기둥 강성을 고려한 보 해석</span></span><span class="home-arrow" aria-hidden="true">↗</span></button>
 </div></div>
 <div class="home-group"><div class="home-section-heading"><div><span class="home-index">06</span><h3>기타</h3><p>구조 검토에 필요한 보조 도구</p></div><span>3개 프로그램</span></div><div class="home-cards"><button type="button" class="home-program" data-open="t24"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 25H84L72 13M84 55H16L28 67M24 35V45M40 35V45M56 35V45M72 35V45"/></svg><span class="home-program-copy"><strong>단위변환</strong><span>길이·힘·압력·모멘트 등 단위 환산</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="t25"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 62V16M18 62H86M18 62L70 22M18 62Q38 22 78 18"/></svg><span class="home-program-copy"><strong>콘크리트 탄성계수</strong><span>KDS 탄성계수 · 산정식과 계산 과정</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="t26"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 28L32 18L48 28V60L28 70L12 60ZM12 28L28 38L48 28M28 38V70M62 28V60Q74 72 88 60V28M62 28Q74 16 88 28Q74 40 62 28"/></svg><span class="home-program-copy"><strong>콘크리트 강도 변환</strong><span>Cube ↔ Cylinder · 강도등급과 계수 환산</span></span><span class="home-arrow" aria-hidden="true">↗</span></button></div></div>
+<div class="home-group"><div class="home-section-heading"><div><span class="home-index">07</span><h3>서리풀 현장</h3><p>공종별 시공 현황 관리</p></div><span>3개 메뉴</span></div><div class="home-cards"><button type="button" class="home-program" data-open="site-prd"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="30" cy="25" r="9"/><circle cx="70" cy="25" r="9"/><circle cx="30" cy="55" r="9"/><circle cx="70" cy="55" r="9"/></svg><span class="home-program-copy"><strong>PRD</strong><span>천공·자재 반입·시공 현황 · 준비 중</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="site-steel"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 16H82V25H54V55H82V64H18V55H46V25H18Z"/></svg><span class="home-program-copy"><strong>철골보</strong><span>철골보 시공 현황 · 준비 중</span></span><span class="home-arrow" aria-hidden="true">↗</span></button><button type="button" class="home-program" data-open="site-slab"><svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 24L62 12L90 30L40 44ZM12 24V40L40 62L90 46V30M40 44V62M28 20L56 40M46 16L74 35"/></svg><span class="home-program-copy"><strong>슬래브</strong><span>슬래브 시공 현황 · 준비 중</span></span><span class="home-arrow" aria-hidden="true">↗</span></button></div></div>
 </div><div class="home-guidance"><strong>검토 결과 사용 안내</strong><p>KDS 14/41 기반의 현장 대안 검토 도구입니다. 적용 기준과 검토 범위는 각 프로그램에서 확인하세요.<br>계산 결과는 구조기술사의 재검증 후 사용하시기 바랍니다.</p></div></section>
 
 
@@ -939,6 +942,9 @@ main:has(#t12.on){max-width:1440px} #t12{font-size:16px} #t12 .card{padding:20px
 <div class="card"><h2>선택 시점 · 기초 내력 및 반력</h2><div id="fj_capacity" class="beam-table-wrap"></div><div id="fj_reactions" class="beam-table-wrap"></div></div>
 <div class="card"><h2>계산 근거 및 적용 범위</h2><div id="fj_basis" class="beam-muted"></div></div>
 </div></div></div></section>
+<section class="tab site-page" id="site-prd" aria-label="서리풀 현장 · PRD"><div class="card"><h2>서리풀 현장 · PRD</h2><p>천공·자재 반입·시공 현황</p><p class="beam-muted">시공 현황 관리 기능을 준비 중입니다.</p></div></section>
+<section class="tab site-page" id="site-steel" aria-label="서리풀 현장 · 철골보"><div class="card"><h2>서리풀 현장 · 철골보</h2><p>철골보 시공 현황</p><p class="beam-muted">시공 현황 관리 기능을 준비 중입니다.</p></div></section>
+<section class="tab site-page" id="site-slab" aria-label="서리풀 현장 · 슬래브"><div class="card"><h2>서리풀 현장 · 슬래브</h2><p>슬래브 시공 현황</p><p class="beam-muted">시공 현황 관리 기능을 준비 중입니다.</p></div></section>
 </main>
 
 <footer>
