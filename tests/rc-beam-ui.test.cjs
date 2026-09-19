@@ -14,10 +14,21 @@ function load(extra={}){
     const options=[...m[2].matchAll(/<option([^>]*)>([^<]*)<\/option>/g)];const opt=options.find(x=>x[1].includes('selected'))||options[0];if(opt)nodes[m[1]].value=opt[1].match(/value="([^"]*)"/)?.[1]||opt[2];
   }
   const ids=['b_b','b_h','b_bar','b_stirrup','b_fck','b_fck_custom','b_fy','b_fyt','b_compression_bar','b_compression_count','b_cover','b_aggregate','b_legs','b_spacing','b_vu','b_skin_mode','b_skin_bar','b_skin_count','b_environment','b_concrete_price','b_steel_price','b_waste','b_cut_length'];nodes.t1.querySelectorAll=()=>ids.map(id=>nodes[id]);
+  nodes.t7.querySelectorAll=()=>[...html.matchAll(/<(?:input|select)\b[^>]*id="(tb_[^"]+)"/g)].map(m=>nodes[m[1]]);
   const context=vm.createContext({console,...extra,document:{getElementById(id){assert.ok(nodes[id],`missing #${id}`);return nodes[id];},querySelectorAll(){return [];},addEventListener(){}}});
   for(const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){const file=m[1].match(/src="([^"]+)"/);vm.runInContext(file?fs.readFileSync(path.join(root,file[1].split('?')[0]),'utf8'):m[2],context);}
   return {nodes,context};
 }
+test('transfer final Vu updates outputs, indicates load scope and clears invalid results',()=>{
+ const {nodes:n}=load();assert.equal(n.tb_final_vu.value,'');assert.match(n.tb_phase_results.innerHTML,/최종 Vu 미입력/);
+ n.tb_span.value='20';n.tb_span.events.input();const before=n.tb_joint_results.innerHTML;
+ n.tb_final_vu.value='10000';n.tb_final_vu.events.input();assert.equal(n.tb_error.hidden,true);
+ assert.match(n.tb_phase_results.innerHTML,/10,000/);assert.match(n.tb_phase_results.innerHTML,/최종 입력 Vu 지배/);
+ assert.match(n.tb_phase_results.innerHTML,/자중 Mu/);assert.match(n.tb_phase_results.innerHTML,/최종 하중의 휨 검토는 별도/);
+ assert.notEqual(n.tb_joint_results.innerHTML,before);assert.match(n.tb_diagram.innerHTML,/<svg/);
+ n.tb_final_vu.value='-1';n.tb_final_vu.events.input();assert.equal(n.tb_results.hidden,true);assert.equal(n.tb_joint_results.innerHTML,'');
+ n.tb_final_vu.value='';n.tb_final_vu.events.input();assert.equal(n.tb_results.hidden,false);assert.equal(n.tb_joint_results.innerHTML,before);
+});
 test('development length UI switches modes, checks available length and removes stale results',()=>{
  const {nodes}=load();
  assert.equal(nodes.rd_error.hidden,true);assert.match(nodes.rd_summary.innerHTML,/소요 정착길이/);

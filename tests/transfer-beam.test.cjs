@@ -3,6 +3,32 @@ const assert=require('node:assert/strict');
 const T=require('../transfer-beam.js');
 const base=()=>({b:800,h:1500,span:8,fy:500,fyt:400,fyd:400,heights:[750,750],strengths:{1:[24],2:[24,24]},release:1,deadFactor:1.4,bar:'D32',stirrup:'D13',counts:[8,0,0],legs:4,stirrupSpacing:200,cover:40,aggregate:25,dowel:'D19',dowelCount:0,dowelSpacing:200,crossAnchored:false,dowelAnchored:false});
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7*Math.max(1,Math.abs(b)),`${a} != ${b}`);
+test('final total Vu applies only after last cure, without weight or factor duplication',()=>{
+ const p=base(),original=T.calculate(p).phases;p.finalVu=1000;
+ const updated=T.calculate(p).phases,last=updated.at(-1),old=original.at(-1);
+ assert.deepEqual(updated.slice(0,-1),original.slice(0,-1));
+ near(last.V,1000);near(last.Vself,161.28);near(last.M,old.M);near(last.r.phiMn,old.r.phiMn);
+ assert.equal(last.Vsource,'input');assert.equal(last.Vinput,1000);
+ near(last.shear.Vu,1000);near(last.shear.ratio,1000/last.shear.phiVn);
+ near(last.interfaces[0].demand/old.interfaces[0].demand,1000/old.V);
+ assert.ok(last.interfaces[0].requiredArea>old.interfaces[0].requiredArea);
+ const overloaded=T.calculate({...p,finalVu:10000}).phases.at(-1);assert.equal(overloaded.shear.ok,false);
+});
+test('optional final Vu never reduces self-weight demand and rejects invalid values',()=>{
+ const old=T.calculate(base()).phases.at(-1);
+ for(const finalVu of [null,undefined,0,10,old.V]){
+  const last=T.calculate({...base(),finalVu}).phases.at(-1);near(last.V,old.V);near(last.interfaces[0].demand,old.interfaces[0].demand);assert.equal(last.Vsource,'self');
+ }
+ for(const finalVu of [-1,NaN,Infinity,'100'])assert.throws(()=>T.calculate({...base(),finalVu}),/최종 계수전단력/);
+});
+test('final Vu updates every joint after final release but preserves missing strength and deep-beam limits',()=>{
+ const p={...base(),heights:[500,500,500],release:3,strengths:{3:[30,25,24]},finalVu:800};
+ let rows=T.calculate(p).phases;assert.ok(rows.slice(0,-1).every(r=>r.status==='shored'));
+ const last=rows.at(-1),self=T.calculate({...p,finalVu:null}).phases.at(-1);assert.equal(last.interfaces.length,2);
+ last.interfaces.forEach((j,i)=>near(j.demand/self.interfaces[i].demand,800/self.V));
+ p.span=6;assert.equal(T.calculate(p).phases.at(-1).status,'outside');
+ p.strengths={};assert.equal(T.calculate(p).phases.at(-1).status,'missing');
+});
 test('wet second lift increases demand without crediting fresh concrete strength or depth',()=>{
  const rows=T.calculate(base()).phases;
  assert.equal(rows[0].status,'shored');near(rows[1].D,14.4);near(rows[1].M,161.28);near(rows[2].M,322.56);near(rows[2].V,161.28);
