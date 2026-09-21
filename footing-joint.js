@@ -180,6 +180,40 @@ function phase(p,g,k,wet,strengths){
   return {...out,...f,fc,values,checks,punching,status:'calculated',message:f.bearing&&!f.bearing.ok?'허용지지력 초과':checks.some(a=>!a.flexOK||!a.steelOK)?'휨·배근 확인 필요':punching?.status==='eccentric'?'편심모멘트 전달 · KDS 4.11.7 별도 검토 필요':checks.some(a=>!a.shearOK)||punching&&!punching.ok?'기초 수직 전단 확인 필요':out.interfaces.some(j=>!j.ok)?'접합면 보강 조건 미충족':out.interfaces.some(j=>j.status==='proposed')?'추가 다월바 배근안 제안':'계산 항목 충족'};
  }catch(e){return {...out,message:e.message};}
 }
+// Additional straight dowels only: one bar per grid point, once per interface.
+function quantities(p,g,joints,phases){
+ const bar=R.BARS[p.dowel],edge=p.cover+bar.diameter/2;
+ const rows=joints.map(j=>{
+  const row={index:j.index,bar:p.dowel,spacing:j.spacing,status:'blocked',reason:'접합면 검토 조건 미충족 · 산출 보류',count:null,length:null,totalLength:null,kg:null,tonf:null};
+  if(j.missing||j.blocked)return row;
+  if(!j.additional)return {...row,status:'none',reason:'추가 다월바 불필요',count:0,length:0,totalLength:0,kg:0,tonf:0};
+  if(!(j.spacing>0))return row;
+  const clearX=g.bx-2*edge,clearY=g.by-2*edge;
+  if(clearX<=0||clearY<=0)return {...row,reason:'다월바 피복 확보 불가 · 산출 보류'};
+  const nx=Math.max(2,Math.ceil(clearX/j.spacing-1e-10)+1),ny=Math.max(2,Math.ceil(clearY/j.spacing-1e-10)+1);
+  const sx=clearX/(nx-1),sy=clearY/(ny-1),s=Math.min(sx,sy);
+  if(s-bar.diameter<Math.max(25,bar.diameter))return {...row,reason:'물량 격자의 철근 순간격 부족 · 산출 보류'};
+  // Uniform end-to-end grid may be tighter than the proposed maximum spacing.
+  // Verify its anchorage at every phase requiring additional steel.
+  let lo=0,up=0;
+  for(const v of j.all.filter(v=>v.required>1e-8)){
+   const ph=phases.find(r=>r.stage===v.stage&&r.wet===v.wet);
+   if(!ph?.values)return row;
+   const a=development(p,p.dowel,p.fyd,ph.values[j.index],s,p.stages[j.index].height-p.cover);
+   const b=development(p,p.dowel,p.fyd,ph.values[j.index+1],s,p.stages[j.index+1].height-p.cover);
+   if(!a.ok||!b.ok)return {...row,reason:'물량 격자의 양측 정착 부족 · 산출 보류'};
+   lo=Math.max(lo,a.required);up=Math.max(up,b.required);
+  }
+  // Round each embedded leg up to 10 mm; do not silently exceed lift depth.
+  lo=Math.ceil(lo/10-1e-10)*10;up=Math.ceil(up/10-1e-10)*10;
+  if(lo>p.stages[j.index].height-p.cover+1e-8||up>p.stages[j.index+1].height-p.cover+1e-8)return {...row,reason:'10 mm 올림 절단길이의 정착 공간 부족 · 산출 보류'};
+  const length=lo+up,count=nx*ny,totalLength=count*length/1000,unitKg=bar.area*.00785,kg=totalLength*unitKg;
+  return {...row,status:'ready',reason:'전면 격자 · 직선 다월바',nx,ny,sx,sy,edge,lo,up,count,length,totalLength,unitKg,kg,tonf:kg/1000};
+ });
+ const complete=rows.every(r=>r.status!=='blocked');
+ const total=rows.filter(r=>r.status!=='blocked').reduce((a,r)=>({count:a.count+r.count,totalLength:a.totalLength+r.totalLength,kg:a.kg+r.kg,tonf:a.tonf+r.tonf}),{count:0,totalLength:0,kg:0,tonf:0});
+ return {rows,total,complete,area:g.A};
+}
 function calculate(input){
  const p={...clone(defaults),...input};validate(p);const g=geometry(p);
  const age=p.strengthMode==='estimate'?Age.schedule(p.fck,p.cement,p.temperature,p.stages.map(s=>s.days)):null;
@@ -201,8 +235,8 @@ function calculate(input){
   }
   return {index:j,all,missing,blocked,governing,spacing:Number.isFinite(spacing)?spacing:null,lo,up,additional:all.some(v=>v.required>1e-8)};
  });
- return {p,g,age,phases,joints};
+ return {p,g,age,phases,joints,quantities:quantities(p,g,joints,phases)};
 }
-root.FootingJoint={defaults,clone,COLORS,calculate,geometry,forces,interfaceStress,development,jointCheck};
+root.FootingJoint={defaults,clone,COLORS,calculate,geometry,forces,interfaceStress,development,jointCheck,quantities};
 if(req)module.exports=root.FootingJoint;
 })(globalThis);
