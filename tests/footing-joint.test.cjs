@@ -2,6 +2,37 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const E=require('../footing-joint.js'),F=require('../rc-footing.js');
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8*Math.max(1,Math.abs(b)),`${a} != ${b}`);
 const base=()=>({...E.clone(E.defaults),strengthMode:'manual',strengths:{1:[30],2:[30,30]}});
+test('additional dowel quantities count one vertical bar per grid point and use development length',()=>{
+ const r=E.calculate({...base(),crossLegs:0}),q=r.quantities,v=q.rows[0];
+ assert.equal(q.complete,true);assert.equal(v.status,'ready');assert.equal(v.nx,11);assert.equal(v.ny,11);assert.equal(v.count,121);
+ near(v.sx,(3000-2*(80+15.9/2))/10);assert.ok(v.sx<=v.spacing&&v.sy<=v.spacing);
+ const ld=E.development(r.p,'D16',500,30,Math.min(v.sx,v.sy),670).required;
+ const leg=Math.ceil(ld/10)*10;near(v.length,2*leg);near(v.totalLength,121*2*leg/1000);
+ near(v.kg,v.totalLength*198.6*.00785);near(v.tonf,v.kg/1000);near(q.total.tonf,v.tonf);
+ assert.ok(v.lo<=670&&v.up<=670);
+});
+test('quantity uses actual automatic pile dimensions and full mat area, not the one metre analysis strip',()=>{
+ const pile=E.calculate({...base(),mode:'pile',pileCount:3,crossLegs:0}),v=pile.quantities.rows[0];
+ assert.equal(v.status,'ready');assert.equal(v.nx,Math.ceil((pile.g.bx-175.9)/v.spacing)+1);assert.equal(v.ny,Math.ceil((pile.g.by-175.9)/v.spacing)+1);
+ const mat=E.calculate({...base(),mode:'mat',bx:6000,by:4000,crossLegs:0}),m=mat.quantities.rows[0];
+ assert.equal(m.status,'ready');near(mat.quantities.area,24);assert.equal(m.count,m.nx*m.ny);assert.ok(m.count>121);
+});
+test('quantity envelopes stages once per interface and sums distinct interfaces only',()=>{
+ const p={...base(),crossLegs:0,h:2250,strengths:{1:[30],2:[30,30],3:[30,30,30]}};
+ p.stages=[...p.stages,E.clone(p.stages[1])];p.stages[1].load=50;
+ const r=E.calculate(p),q=r.quantities;assert.equal(q.complete,true);assert.equal(q.rows.length,2);
+ assert.ok(r.joints[0].all.length>1);assert.equal(q.total.count,q.rows[0].count+q.rows[1].count);
+ near(q.total.totalLength,q.rows[0].totalLength+q.rows[1].totalLength);
+});
+test('unnecessary bars are zero but unknown or infeasible designs are not zero quantities',()=>{
+ const zero=E.calculate(base()).quantities;assert.equal(zero.complete,true);assert.equal(zero.total.count,0);assert.equal(zero.rows[0].status,'none');
+ for(const p of [{...base(),strengths:{}},{...base(),crossLegs:0,Pu:1e8}]){
+  const q=E.calculate(p).quantities;assert.equal(q.complete,false);assert.equal(q.rows[0].status,'blocked');assert.equal(q.rows[0].count,null);assert.equal(q.rows[0].tonf,null);
+ }
+ const r=E.calculate({...base(),crossLegs:0});
+ const q=E.quantities(r.p,r.g,[r.joints[0],{...r.joints[0],index:1,blocked:true}],r.phases);
+ assert.equal(q.complete,false);near(q.total.tonf,r.quantities.total.tonf);
+});
 test('soil self-weight cancels from net strip forces, while total bearing grows with wet lift',()=>{
  const r=E.calculate(base()),a=r.phases[1],b=r.phases[2];
  near(a.axes[0].Mu,0);near(b.axes[0].Vu,0);near(a.W,162);near(b.W,324);near(a.bearing.value,18);near(b.bearing.value,36);

@@ -270,6 +270,15 @@ test('load schedule restores last valid state and escapes project and material t
  const corrupt=load({localStorage:{getItem(){return '{';},setItem(){}}});assert.equal(corrupt.nodes.ld_error.hidden,true);assert.match(corrupt.nodes.ld_table.innerHTML,/12\.24/);
 });
 
+test('foundation dowel quantities update, remain independent of preview and never show stale totals',()=>{
+ const {nodes:n}=load();assert.match(n.fj_quantities.innerHTML,/추가 다월바 불필요/);
+ n.fj_crossLegs.value='0';n.fj_crossLegs.events.input();const q=n.fj_quantities.innerHTML;
+ assert.match(q,/121/);assert.match(q,/0.1603 tonf/);assert.match(q,/102.85/);
+ n.fj_view.value='0';n.fj_view.events.change();assert.equal(n.fj_quantities.innerHTML,q);
+ n.fj_strengthMode.value='manual';n.fj_strengthMode.events.input();assert.match(n.fj_quantities.innerHTML,/산출 보류/);assert.match(n.fj_quantities.innerHTML,/전체 필요 물량이 아닙니다/);
+ n.fj_h.value='';n.fj_h.events.input();assert.equal(n.fj_quantities.innerHTML,'');assert.equal(n.fj_results.hidden,true);
+ n.fj_h.value='1500';n.fj_strengthMode.value='estimate';n.fj_strengthMode.events.input();assert.equal(n.fj_results.hidden,false);assert.equal(n.fj_quantities.innerHTML,q);
+});
 test('horizontal footing joints initialize, switch foundation modes and clear invalid results',()=>{
  const {nodes}=load();assert.equal(nodes.fj_error.hidden,true);assert.match(nodes.fj_diagram.innerHTML,/<svg/);assert.match(nodes.fj_phases.innerHTML,/2차 타설 중/);
  nodes.fj_mode.value='pile';nodes.fj_mode.events.input();assert.equal(nodes.fj_bx.value,2500);assert.match(nodes.fj_reactions.innerHTML,/계수반력/);
