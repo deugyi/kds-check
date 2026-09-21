@@ -93,6 +93,15 @@ function validate(data){
  const records={};for(const [k,v] of Object.entries(data.records||{})){if(!keys.has(k))throw Error('도면에 없는 공의 기록이 있습니다.');records[k]=record(v);}
  return {...data,records};
 }
-root.PRD={parse,decode,stages,status,record,validate};
+function fixedDrawing(base,saved){
+ const fixed=validate(base);
+ if(!saved)return {...fixed,records:{}};
+ const previous=validate(saved);
+ if(previous.id!==fixed.id)throw Error('서리풀 PRD 기본 도면의 백업만 복원할 수 있습니다.');
+ const keys=new Set(fixed.drawing.piles.map(p=>p.key));
+ if(Object.keys(previous.records).some(k=>!keys.has(k)))throw Error('기본 도면에 없는 공의 기록이 있습니다.');
+ return {...fixed,records:previous.records};
+}
+root.PRD={parse,decode,stages,status,record,validate,fixedDrawing};
 if(typeof module!=='undefined')module.exports=root.PRD;
 })(globalThis);

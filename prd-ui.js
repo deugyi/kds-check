@@ -1,15 +1,15 @@
 (function(){
 'use strict';
 if(!document.createElementNS)return;
-const $=id=>document.getElementById(id),P=globalThis.PRD,NS='http://www.w3.org/2000/svg',STORE='kds-prd-v1',ACTIVE=STORE+'-active';
-let data=null,selected=null,view=null,full=null,drag=null,dirty=false;
+const $=id=>document.getElementById(id),P=globalThis.PRD,NS='http://www.w3.org/2000/svg',STORE='kds-prd-v1';
+let data=null,selected=null,view=null,full=null,drag=null,dirty=false,baseDrawing=null;
 const map=$('prd-map'),group=$('prd-geometry'),labels=$('prd-labels');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const title=p=>p.number.join(' / ')||'번호 미연결 · '+p.key;
 const message=(s,error=false)=>{$('prd-feedback').textContent=s;$('prd-feedback').classList.toggle('prd-error',error);};
 function svg(name,attrs,parent){const n=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));parent.appendChild(n);return n;}
 function stage(p){return P.stages.find(s=>s[0]===P.status(data.records[p.key]));}
-function persist(){try{localStorage.setItem(STORE+'-'+data.id,JSON.stringify(data));localStorage.setItem(ACTIVE,data.id);return true;}catch{message('이 브라우저에 저장하지 못했습니다. 백업 저장으로 기록을 내려받으세요.',true);return false;}}
+function persist(){try{localStorage.setItem(STORE+'-'+data.id,JSON.stringify(data));return true;}catch{message('이 브라우저에 저장하지 못했습니다. 백업 저장으로 기록을 내려받으세요.',true);return false;}}
 function viewbox(){map.setAttribute('viewBox',view.join(' '));labels.style.display=$('prd-show-labels').checked&&view[2]<full[2]*.48?'':'none';}
 function fit(){if(full){view=[...full];viewbox();}}
 function zoom(factor,point){if(!view)return;const nw=Math.max(full[2]/35,Math.min(full[2]*1.3,view[2]*factor)),ratio=nw/view[2];point=point||[view[0]+view[2]/2,view[1]+view[3]/2];view=[point[0]-(point[0]-view[0])*ratio,point[1]-(point[1]-view[1])*ratio,nw,view[3]*ratio];viewbox();}
@@ -53,22 +53,34 @@ function activate(next){
  $('prd-import-warning').textContent=[...data.drawing.warnings,...(different?[`레이어 공경과 원 지름이 다른 공 ${different}개: 화면은 도면 형상 그대로 표시합니다.`]:[])].join('\n');$('prd-import-warning').hidden=!$('prd-import-warning').textContent;
  draw();
 }
-async function load(file,backup=false){
- if(!file)return;
- if(!saveForm())return;
+async function restore(file){
+ if(!file||!saveForm())return;
+ if(!baseDrawing){message('기본 도면을 먼저 불러와야 합니다.',true);return;}
  if(file.size>20*1024*1024){message('20MB 이하 파일을 선택해 주세요.',true);return;}
- message('도면을 읽고 있습니다…');
  try{
-  let next;
-  if(backup){next=P.validate(JSON.parse(await file.text()));const existing=localStorage.getItem(STORE+'-'+next.id);if(existing&&existing!==JSON.stringify(next)&&!confirm('백업 파일의 기록으로 이 도면의 저장 기록을 교체할까요?')){message('복원을 취소했습니다.');return;}}
-  else{const bytes=await file.arrayBuffer(),id=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');let saved=null;try{saved=localStorage.getItem(STORE+'-'+id);}catch{}
-   if(saved)next=P.validate(JSON.parse(saved));else next={version:1,id,filename:file.name,drawing:P.parse(P.decode(bytes)),records:{}};
-  }
-  activate(next);if(persist())message(backup?'백업의 도면과 기록을 복원했습니다.':'도면을 불러왔습니다. 공을 클릭해 날짜를 입력하세요.');
- }catch(e){message('불러오지 못했습니다. '+e.message,true);}
+  const next=P.fixedDrawing(baseDrawing,JSON.parse(await file.text()));
+  if(JSON.stringify(next.records)!==JSON.stringify(data.records)&&!confirm('백업 파일의 기록으로 현재 시공 기록을 교체할까요?')){message('복원을 취소했습니다.');return;}
+  activate(next);if(persist())message('기본 도면의 시공 기록을 복원했습니다.');
+ }catch(e){message('복원하지 못했습니다. '+e.message,true);}
 }
-$('prd-file').addEventListener('change',e=>{load(e.target.files[0]);e.target.value='';});
-$('prd-restore').addEventListener('change',e=>{load(e.target.files[0],true);e.target.value='';});
+$('prd-restore').addEventListener('change',e=>{restore(e.target.files[0]);e.target.value='';});
+async function openFixedDrawing(){
+ $('prd-retry').disabled=true;message('서리풀 PRD 기본 도면을 불러오고 있습니다…');
+ try{
+  const response=await fetch('prd-default.json?v=20260921-83');
+  if(!response.ok)throw Error('도면 응답 오류');
+  baseDrawing=P.fixedDrawing(await response.json());
+  let saved=null,readError=false;
+  try{const raw=localStorage.getItem(STORE+'-'+baseDrawing.id);if(raw)saved=JSON.parse(raw);}
+  catch{readError=true;}
+  let next=baseDrawing;
+  if(saved){try{next=P.fixedDrawing(baseDrawing,saved);}catch{readError=true;}}
+  activate(next);
+  message(readError?'저장 기록을 읽지 못했습니다. 기본 도면을 표시합니다. 기존 기록은 덮어쓰지 않았으니 백업 파일로 복원해 주세요.':saved?'기본 도면과 저장된 시공 기록을 불러왔습니다.':'기본 도면이 준비되었습니다. 공을 클릭해 시공 일자를 입력하세요.',readError);
+ }catch{message('기본 도면을 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요.',true);}
+ finally{$('prd-retry').disabled=false;}
+}
+$('prd-retry').addEventListener('click',openFixedDrawing);
 function download(name,content,type){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('prd-backup').addEventListener('click',()=>{if(data&&saveForm())download('PRD-현황-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(data),'application/json');});
 $('prd-csv').addEventListener('click',()=>{if(!data||!saveForm())return;const cell=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replace(/"/g,'""')+'"';const rows=[['객체ID','공 번호','부재명','타입','반력 원문','공경 레이어','상태','천공 일자','자재 반입 일자','자재 시공 일자','메모','확인 사항'],...data.drawing.piles.map(p=>{const r=data.records[p.key]||{};return [p.key,title(p),p.name.join(' / '),p.type.join(' / '),p.reaction.join(' / '),p.layer,stage(p)[1],r.drilled,r.delivered,r.installed,r.note,p.warnings.join(' / ')];})];download('PRD-시공현황.csv','\ufeff'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8');});
@@ -84,5 +96,5 @@ map.addEventListener('pointermove',e=>{if(!drag)return;if(Math.hypot(e.clientX-d
 map.addEventListener('pointerup',()=>{if(drag&&!drag.moved&&drag.key)select(drag.key);drag=null;});map.addEventListener('pointercancel',()=>drag=null);
 map.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset.key){e.preventDefault();select(e.target.dataset.key);}});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-try{const id=localStorage.getItem(ACTIVE),saved=id&&localStorage.getItem(STORE+'-'+id);if(saved){activate(P.validate(JSON.parse(saved)));message('이 브라우저에 저장된 도면과 기록을 불러왔습니다.');}}catch{message('저장된 기록을 읽지 못했습니다. 백업 파일을 복원하거나 DXF를 다시 선택해 주세요.',true);}
+openFixedDrawing();
 })();
