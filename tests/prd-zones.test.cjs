@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const Z=require('../prd-zones.js'),P=require('../prd.js'),base=require('../prd-default.json');
+const Z=require('../prd-zones.js'),P=require('../prd.js'),base=require('./prd-fixture.cjs');
 test('fixed drawing maps all 790 unique objects into the ten named construction zones',()=>{
  const z=Z.build(base.drawing);assert.equal(z.zones.length,10);assert.equal(z.issues.length,0);
  assert.deepEqual(Object.fromEntries(z.zones.map(z=>[z.id,z.keys.length])),{A1:120,A2:118,A3:115,B1:70,B2:81,B3:77,C1:44,C2:37,C3:88,C4:40});

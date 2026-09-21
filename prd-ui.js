@@ -4,6 +4,8 @@ if(!document.createElementNS)return;
 const $=id=>document.getElementById(id),P=globalThis.PRD,Z=globalThis.PRDZones,NS='http://www.w3.org/2000/svg',STORE='kds-prd-v1';
 let data=null,selected=null,view=null,full=null,drag=null,dirty=false,baseDrawing=null,zoneData=null,activeZone='';
 let frame=0,wheel=null,paintedView=null,sortedPiles=[];
+const cloud=globalThis.SiteCloud;
+let busy=false,loading=false,loadedUser=null,versions=new Map(),legacy=null;
 const pileNodes=new Map(),pilesByKey=new Map(),searchText=new Map(),collator=new Intl.Collator('ko',{numeric:true});
 const map=$('prd-map'),group=$('prd-geometry'),labels=$('prd-labels'),zoneShapes=$('prd-zone-shapes'),zoneLabels=$('prd-zone-labels');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -11,7 +13,17 @@ const title=p=>p.number.join(' / ')||'번호 미연결 · '+p.key;
 const message=(s,error=false)=>{$('prd-feedback').textContent=error?s:'';$('prd-feedback').hidden=!error;$('prd-feedback').classList.toggle('prd-error',error);$('prd-form-feedback').textContent=error?'':s;};
 function svg(name,attrs,parent){const n=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));parent.appendChild(n);return n;}
 function stage(p){return P.stages.find(s=>s[0]===P.status(data.records[p.key]));}
-function persist(){try{localStorage.setItem(STORE+'-'+data.id,JSON.stringify(data));return true;}catch{message('이 브라우저에 저장하지 못했습니다. 기록이 사라지지 않도록 창을 닫지 말고 저장 공간을 확인해 주세요.',true);return false;}}
+function controls(){
+ const disabled=busy||!cloud?.canEdit();
+ for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note','prd-save'])$(id).disabled=disabled;
+ $('prd-import-local').hidden=!legacy||!cloud?.canEdit();
+ $('prd-import-local').disabled=busy;$('prd-refresh').disabled=busy;
+}
+function takeRows(rows){
+ const records={},nextVersions=new Map();
+ for(const row of rows){if(!pilesByKey.has(row.pile_key))continue;records[row.pile_key]=P.record(row);nextVersions.set(row.pile_key,row.version);}
+ data.records=records;versions=nextVersions;
+}
 // Coalesce pointer/wheel bursts into one SVG update per animation frame.
 function viewbox(){if(!frame)frame=requestAnimationFrame(paintView);}
 function paintView(){
@@ -30,17 +42,28 @@ function setSelected(key){
  if(selected!==key){pileNodes.get(selected)?.classList.remove('prd-selected');pileNodes.get(key)?.classList.add('prd-selected');selected=key;}
  if(selected)$('prd-current-status').textContent=stage(pilesByKey.get(selected))[1];
 }
-function saveForm(silent=false){
+async function saveForm(silent=false){
+ if(busy)return false;
  if(!selected||!dirty)return true;
- try{const r=P.record({drilled:$('prd-drilled').value,delivered:$('prd-delivered').value,installed:$('prd-installed').value,note:$('prd-note').value});data.records[selected]=r;const ok=persist();dirty=!ok;renderStatus();if(ok&&!silent)message('저장했습니다. 이 브라우저에 보관됩니다.');return ok;}catch(e){message(e.message,true);return false;}
+ const key=selected,epoch=cloud.generation;
+ try{
+  const r=P.record({drilled:$('prd-drilled').value,delivered:$('prd-delivered').value,installed:$('prd-installed').value,note:$('prd-note').value});
+  busy=true;controls();message('서버에 저장하고 있습니다…');
+  const saved=await cloud.save(key,r,versions.get(key)||0);
+  if(epoch!==cloud.generation||!cloud.allowed())return false;
+  data.records[key]=P.record(saved);versions.set(key,saved.version);dirty=false;renderStatus();
+  if(!silent)message('서버에 저장했습니다.');return true;
+ }catch(e){message(e?.code?cloud.explain(e):e.message,true);return false;}
+ finally{busy=false;controls();}
 }
-function select(key,focus=false){
- if(!saveForm(true))return;
+async function select(key,focus=false){
+ if(busy||!data||!cloud.allowed())return;
+ if(dirty&&!await saveForm(true))return;
  const oldZone=activeZone,p=pilesByKey.get(key),r=data.records[key]||{};setSelected(key);
  if(activeZone&&zoneData.membership[key]!==activeZone)activeZone=zoneData.membership[key];
  $('prd-selection-empty').hidden=true;$('prd-form').hidden=false;$('prd-selected-title').textContent=title(p);
  $('prd-info').innerHTML=[['공구',zoneData.membership[p.key]==='unassigned'?'미분류':zoneData.membership[p.key]],['부재명',p.name.join(' / ')||'—'],['타입',p.type.join(' / ')||'—'],['공경 레이어',p.layer]].map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
- $('prd-form-feedback').textContent='';
+ $('prd-form-feedback').textContent=cloud.canEdit()?'':'조회 전용 계정입니다.';controls();
  if(isExpanded())showDetails(true);
  $('prd-selected-warning').textContent=p.warnings.join(' · ');$('prd-selected-warning').hidden=!p.warnings.length;
  for(const k of ['drilled','delivered','installed','note'])$('prd-'+k).value=r[k]||'';
@@ -61,8 +84,9 @@ function renderStatus(){
  setSelected(selected);
  renderZoneDetails(visible);
 }
-function selectZone(id){
- if(!saveForm(true))return;
+async function selectZone(id){
+ if(busy||!data||!cloud.allowed())return;
+ if(dirty&&!await saveForm(true))return;
  if(isExpanded())showDetails(true);
  activeZone=id;setSelected(null);$('prd-form').hidden=true;$('prd-selection-empty').hidden=false;
  $('prd-selection-empty').textContent=id?(id==='unassigned'?'미분류':id)+' 공구의 공을 선택하면 날짜를 입력할 수 있습니다.':'도면 또는 목록에서 공을 선택하세요.';
@@ -108,23 +132,66 @@ function activate(next){
  draw();
 }
 async function openFixedDrawing(){
- $('prd-retry').disabled=true;message('서리풀 PRD 기본 도면을 불러오고 있습니다…');
+ if(!cloud?.allowed()||loading)return;
+ const epoch=cloud.generation;loading=true;$('prd-retry').disabled=true;message('서버 도면을 불러오고 있습니다…');
  try{
-  const response=await fetch('prd-default.json?v=20260921-84');
-  if(!response.ok)throw Error('도면 응답 오류');
-  baseDrawing=P.fixedDrawing(await response.json());
-  let saved=null,readError=false;
-  try{const raw=localStorage.getItem(STORE+'-'+baseDrawing.id);if(raw)saved=JSON.parse(raw);}
-  catch{readError=true;}
-  let next=baseDrawing;
-  if(saved){try{next=P.fixedDrawing(baseDrawing,saved);}catch{readError=true;}}
-  activate(next);
-  message(readError?'저장 기록을 읽지 못했습니다. 기존 기록은 덮어쓰지 않았습니다. 새 기록 입력 전에 저장 상태를 확인해 주세요.':saved?'기본 도면과 저장된 시공 기록을 불러왔습니다.':'기본 도면이 준비되었습니다. 공을 클릭해 시공 일자를 입력하세요.',readError);
- }catch{message('기본 도면을 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요.',true);}
- finally{$('prd-retry').disabled=false;}
+  const result=await cloud.load();if(epoch!==cloud.generation||!cloud.allowed())return;
+  baseDrawing=P.fixedDrawing(result.base);activate(baseDrawing);takeRows(result.rows);renderStatus();loadedUser=cloud.userId;
+  legacy=null;
+  try{const raw=localStorage.getItem(STORE+'-'+baseDrawing.id);if(raw){const saved=P.fixedDrawing(baseDrawing,JSON.parse(raw));if(Object.values(saved.records).some(r=>Object.values(r).some(Boolean)))legacy=saved.records;}}
+  catch{message('기존 브라우저 기록을 읽지 못했습니다. 기존 저장 내용은 그대로 보존했습니다.',true);}
+  controls();$('prd-sync-status').textContent='서버 기록 연결됨';
+ }catch(e){message(cloud.explain(e),true);}
+ finally{loading=false;$('prd-retry').disabled=false;if(epoch!==cloud.generation&&cloud.allowed()&&!data)openFixedDrawing();}
 }
+async function refreshRecords(manual=false){
+ if(busy||loading||!data||!cloud.allowed())return;
+ if(dirty&&(!manual||!confirm('저장하지 않은 입력을 버리고 최신 기록을 불러올까요?')))return;
+ const epoch=cloud.generation;busy=true;controls();
+ try{const rows=await cloud.records();if(epoch!==cloud.generation)return;takeRows(rows);dirty=false;renderStatus();if(selected){const r=data.records[selected]||{};for(const k of ['drilled','delivered','installed','note'])$('prd-'+k).value=r[k]||'';}message('최신 서버 기록을 불러왔습니다.');}
+ catch(e){message(cloud.explain(e),true);}
+ finally{busy=false;controls();}
+}
+async function importLocal(){
+ if(!legacy||busy||!cloud.canEdit())return;
+ if(dirty&&!await saveForm())return;
+ const entries=Object.entries(legacy).filter(([,r])=>Object.values(r).some(Boolean));
+ if(!confirm(`이 브라우저의 기존 기록 ${entries.length}건을 서버로 옮길까요? 서버에 이미 기록이 있는 공은 건너뜁니다.`))return;
+ const epoch=cloud.generation;busy=true;controls();let imported=0,skipped=0;
+ try{
+  const rows=await cloud.records();if(epoch!==cloud.generation||!cloud.allowed())return;takeRows(rows);
+  for(const [key,r] of entries){
+   if(epoch!==cloud.generation||!cloud.canEdit())throw Error('접근 권한이 변경되어 가져오기를 중단했습니다.');
+   if(versions.has(key)){skipped++;continue;}
+   try{const saved=await cloud.save(key,r,0);if(epoch!==cloud.generation)return;data.records[key]=P.record(saved);versions.set(key,saved.version);imported++;}
+   catch(e){if(e.code==='40001'){skipped++;continue;}throw e;}
+   $('prd-sync-status').textContent=`기록 가져오는 중 ${imported+skipped} / ${entries.length}`;
+  }
+  legacy=null;dirty=false;renderStatus();message(`${imported}건을 옮겼습니다. 서버에 기록이 있는 ${skipped}건은 유지했습니다. 브라우저 원본은 보존했습니다.`);
+ }catch(e){message(`${imported}건 저장 후 중단되었습니다. 다시 시도할 수 있습니다. `+cloud.explain(e),true);if(data)renderStatus();}
+ finally{busy=false;controls();$('prd-sync-status').textContent=cloud.allowed()?'서버 기록 연결됨':'';if(selected&&!dirty)select(selected);}
+}
+function clearDrawing(){
+ if(isExpanded())exitExpanded();
+ data=null;baseDrawing=null;loadedUser=null;selected=null;zoneData=null;legacy=null;dirty=false;view=null;wheel=null;drag=null;
+ pileNodes.clear();pilesByKey.clear();searchText.clear();versions.clear();sortedPiles=[];
+ for(const n of [group,labels,zoneShapes,zoneLabels])n.replaceChildren();
+ for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-zone-summary'])$(id).innerHTML='';
+ for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note','prd-search'])$(id).value='';
+ for(const id of ['prd-count','prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
+ $('prd-workspace').hidden=true;$('prd-empty').hidden=false;$('prd-form').hidden=true;message('');
+}
+document.addEventListener('site-auth-change',()=>{
+ if(loadedUser&&loadedUser!==cloud.userId)clearDrawing();
+ if(!cloud.allowed()){if(isExpanded())exitExpanded();controls();return;}
+ if(data){controls();refreshRecords();}else openFixedDrawing();
+});
+$('prd-refresh').addEventListener('click',()=>refreshRecords(true));
+$('prd-import-local').addEventListener('click',importLocal);
+setInterval(()=>{if(!document.hidden&&$('site-prd').classList.contains('on'))refreshRecords();},30000);
+globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy};
 $('prd-retry').addEventListener('click',openFixedDrawing);
-$('prd-form').addEventListener('input',()=>{dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});
+$('prd-form').addEventListener('input',()=>{if(busy||!cloud.canEdit())return;dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});
 $('prd-form').addEventListener('submit',e=>{e.preventDefault();saveForm();});
 $('prd-search').addEventListener('input',renderStatus);$('prd-filter').addEventListener('change',renderStatus);
 $('prd-zone-side').addEventListener('click',async e=>{if(e.target.closest('[data-zone-details]')){if(isExpanded())await exitExpanded();$('prd-zone-title').scrollIntoView({behavior:'smooth',block:'start'});}});
@@ -177,5 +244,5 @@ map.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;pan(
 for(const event of ['pointercancel','lostpointercapture'])map.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null;});
 map.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){if(e.target.dataset.key){e.preventDefault();select(e.target.dataset.key);}else if(e.target.dataset.zone){e.preventDefault();selectZone(e.target.dataset.zone);}}});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-openFixedDrawing();
+controls();if(cloud?.allowed())openFixedDrawing();
 })();
