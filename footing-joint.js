@@ -138,13 +138,13 @@ function jointCheck(p,H,j,joint,values,axes){
  const required=Math.max(0,(tau-existing-compressionCapacity)*1e6/(phi*mu*p.fyd));
  let proposal=null;
  if(required>1e-8&&tau<=cap+1e-8){
-  for(let spacing=300;spacing>=100;spacing-=10){
+  for(let spacing=600;spacing>=100;spacing-=10){
    const provided=R.BARS[p.dowel].area*1e6/(spacing*spacing);
    const lo=development(p,p.dowel,p.fyd,values[j],spacing,p.stages[j].height-p.cover),up=development(p,p.dowel,p.fyd,values[j+1],spacing,p.stages[j+1].height-p.cover);
    if(provided>=required-1e-8&&lo.ok&&up.ok){proposal={spacing,provided,lo,up,length:Math.ceil((lo.required+up.required)/10)*10,capacity:Math.min(cap,existing+compressionCapacity+phi*mu*provided*p.fyd/1e6)};break;}
   }
  }
- const lowerD=development(p,p.dowel,p.fyd,values[j],300,p.stages[j].height-p.cover),upperD=development(p,p.dowel,p.fyd,values[j+1],300,p.stages[j+1].height-p.cover);
+ const lowerD=development(p,p.dowel,p.fyd,values[j],600,p.stages[j].height-p.cover),upperD=development(p,p.dowel,p.fyd,values[j+1],600,p.stages[j+1].height-p.cover);
  const status=tau>cap+1e-8?'cap':required<=1e-8?'existing':proposal?'proposed':!lowerD.ok||!upperD.ok?'anchorage':'spacing';
  return {index:j,joint,fc,mu,tau,stresses,cap,area,existingArea,existing,compressionStress,compressionCapacity,lower,upper,required,proposal,lowerD,upperD,status,
   ok:status==='existing'||status==='proposed'};

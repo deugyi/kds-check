@@ -4,10 +4,10 @@ const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8*Math.max(1,Math.abs(b)),`${a} != 
 const base=()=>({...E.clone(E.defaults),strengthMode:'manual',strengths:{1:[30],2:[30,30]}});
 test('additional dowel quantities count one vertical bar per grid point and use development length',()=>{
  const r=E.calculate({...base(),crossLegs:0}),q=r.quantities,v=q.rows[0];
- assert.equal(q.complete,true);assert.equal(v.status,'ready');assert.equal(v.nx,11);assert.equal(v.ny,11);assert.equal(v.count,121);
- near(v.sx,(3000-2*(80+15.9/2))/10);assert.ok(v.sx<=v.spacing&&v.sy<=v.spacing);
+ assert.equal(q.complete,true);assert.equal(v.status,'ready');assert.equal(v.spacing,430);assert.equal(v.nx,8);assert.equal(v.ny,8);assert.equal(v.count,64);
+ near(v.sx,(3000-2*(80+15.9/2))/7);assert.ok(v.sx<=v.spacing&&v.sy<=v.spacing);
  const ld=E.development(r.p,'D16',500,30,Math.min(v.sx,v.sy),670).required;
- const leg=Math.ceil(ld/10)*10;near(v.length,2*leg);near(v.totalLength,121*2*leg/1000);
+ const leg=Math.ceil(ld/10)*10;near(v.length,2*leg);near(v.totalLength,64*2*leg/1000);
  near(v.kg,v.totalLength*198.6*.00785);near(v.tonf,v.kg/1000);near(q.total.tonf,v.tonf);
  assert.ok(v.lo<=670&&v.up<=670);
 });
@@ -79,8 +79,8 @@ test('mat inputs remain per metre, ignore plan area and are not charged self-wei
 });
 test('biaxial friction demand and extra grid spacing match hand calculation',()=>{
  const r=E.calculate({...base(),mode:'mat',crossLegs:0}).phases.at(-1).interfaces[0];
- near(r.required,Math.hypot(.4,.4)*1e6/(.75*500));assert.equal(r.proposal.spacing,300);
- near(r.proposal.provided,198.6*1e6/300**2);assert.ok(r.proposal.capacity>=r.tau);
+ near(r.required,Math.hypot(.4,.4)*1e6/(.75*500));assert.equal(r.proposal.spacing,360);
+ near(r.proposal.provided,198.6*1e6/360**2);assert.ok(r.proposal.capacity>=r.tau);
 });
 test('rough and smooth interfaces use correct friction coefficient and concrete cap',()=>{
  const a=E.calculate({...base(),mode:'mat',crossLegs:0}).phases.at(-1).interfaces[0];
@@ -149,4 +149,20 @@ test('joint page reports direct punching separately and does not pass eccentric 
  const rho=ph.checks.reduce((a,c)=>a+c.As/(1000*c.d),0)/2;
  near(j.phiV,.75*F.punch(ph.fc,j.d,j.px,j.py,rho).vc);
  assert.match(ph.message,/4.11.7/);
+});
+
+test('low interface demand reaches the 600 mm cap and quantity follows the wider grid',()=>{
+ const p={...base(),mode:'mat',crossLegs:0};
+ p.stages[1].cured.vx=50;p.stages[1].cured.vy=50;
+ const r=E.calculate(p),j=r.phases.at(-1).interfaces[0],q=r.quantities.rows[0];
+ assert.equal(j.proposal.spacing,600);assert.ok(j.proposal.capacity>=j.tau);
+ assert.equal(q.nx,6);assert.equal(q.ny,6);assert.equal(q.count,36);
+ assert.ok(q.sx<=600&&q.sy<=600);assert.ok(q.lo<=670&&q.up<=670);
+ assert.ok(j.proposal.provided>=j.required);
+});
+test('intermediate interface demand chooses the widest adequate 10 mm candidate below 600',()=>{
+ const r=E.calculate({...base(),mode:'mat',crossLegs:0}).phases.at(-1).interfaces[0];
+ const exact=Math.sqrt(198.6*1e6/r.required);
+ assert.equal(r.proposal.spacing,Math.floor(exact/10)*10);
+ assert.ok(198.6*1e6/(r.proposal.spacing+10)**2<r.required);
 });
