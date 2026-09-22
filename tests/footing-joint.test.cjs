@@ -4,10 +4,10 @@ const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8*Math.max(1,Math.abs(b)),`${a} != 
 const base=()=>({...E.clone(E.defaults),strengthMode:'manual',strengths:{1:[30],2:[30,30]}});
 test('additional dowel quantities count one vertical bar per grid point and use development length',()=>{
  const r=E.calculate({...base(),crossLegs:0}),q=r.quantities,v=q.rows[0];
- assert.equal(q.complete,true);assert.equal(v.status,'ready');assert.equal(v.spacing,430);assert.equal(v.nx,8);assert.equal(v.ny,8);assert.equal(v.count,64);
- near(v.sx,(3000-2*(80+15.9/2))/7);assert.ok(v.sx<=v.spacing&&v.sy<=v.spacing);
+ assert.equal(q.complete,true);assert.equal(v.status,'ready');assert.equal(v.spacing,600);assert.equal(v.nx,6);assert.equal(v.ny,6);assert.equal(v.count,36);
+ near(v.sx,(3000-2*(80+15.9/2))/5);assert.ok(v.sx<=v.spacing&&v.sy<=v.spacing);
  const ld=E.development(r.p,'D16',500,30,Math.min(v.sx,v.sy),670).required;
- const leg=Math.ceil(ld/10)*10;near(v.length,2*leg);near(v.totalLength,64*2*leg/1000);
+ const leg=Math.ceil(ld/10)*10;near(v.length,2*leg);near(v.totalLength,36*2*leg/1000);
  near(v.kg,v.totalLength*198.6*.00785);near(v.tonf,v.kg/1000);near(q.total.tonf,v.tonf);
  assert.ok(v.lo<=670&&v.up<=670);
 });
@@ -82,13 +82,13 @@ test('different lift stiffnesses match an independent two-rectangle transformed 
 });
 test('mat inputs remain per metre, ignore plan area and are not charged self-weight twice',()=>{
  const p={...base(),mode:'mat',crossLegs:0};let r=E.calculate(p).phases.at(-1);
- near(r.axes[0].Mu,300);near(r.axes[0].Vu,400);near(r.interfaces[0].tau,Math.hypot(.4,.4));
+ near(r.axes[0].Mu,300);near(r.axes[0].Vu,400);near(r.interfaces[0].tau,.4);
  p.bx=12000;p.by=12000;const big=E.calculate(p).phases.at(-1);near(big.interfaces[0].tau,r.interfaces[0].tau);
 });
 test('biaxial friction demand and extra grid spacing match hand calculation',()=>{
  const r=E.calculate({...base(),mode:'mat',crossLegs:0}).phases.at(-1).interfaces[0];
- near(r.required,Math.hypot(.4,.4)*1e6/(.75*500));assert.equal(r.proposal.spacing,360);
- near(r.proposal.provided,198.6*1e6/360**2);assert.ok(r.proposal.capacity>=r.tau);
+ near(r.required,.4*1e6/(.75*500));assert.equal(r.proposal.spacing,430);
+ near(r.proposal.provided,198.6*1e6/430**2);assert.ok(r.proposal.capacity>=r.tau);
 });
 test('rough and smooth interfaces use correct friction coefficient and concrete cap',()=>{
  const a=E.calculate({...base(),mode:'mat',crossLegs:0}).phases.at(-1).interfaces[0];
@@ -173,4 +173,39 @@ test('intermediate interface demand chooses the widest adequate 10 mm candidate 
  const exact=Math.sqrt(198.6*1e6/r.required);
  assert.equal(r.proposal.spacing,Math.floor(exact/10)*10);
  assert.ok(198.6*1e6/(r.proposal.spacing+10)**2<r.required);
+});
+
+test('soil distance-average shear halves the face demand without reducing vertical checks',()=>{
+ const r=E.calculate({...base(),crossLegs:0}).phases.at(-1);
+ for(const a of r.axes){near(a.Vu,280);near(a.Vavg,140);near(a.Vd,0);}
+ near(r.interfaces[0].tau,.14);near(r.interfaces[0].required,.14*1e6/375);
+ assert.ok(r.interfaces[0].stresses.every(s=>s.source==='distance-average'));
+});
+test('four-pile average integrates both positive inner and negative outer shear areas',()=>{
+ const r=E.calculate({...base(),mode:'pile'}).phases.at(-1),w=43.2,R=r.totalU/4;
+ const area=(.625-.3)*(2*R/2.5-w*(.95+.625)/2)+w*.625**2/2;
+ near(r.axes[0].Vavg,area/.95);
+ assert.ok(r.axes[0].Vavg<r.axes[0].Vu);
+});
+test('asymmetric pile strips use the greater side average and agree with midpoint integration',()=>{
+ const p={...base(),mode:'pile',pileCount:3,Pu:20},out=E.calculate(p),ph=out.phases.at(-1),N=20000;
+ for(const a of ph.axes){
+  const width=a.axis==='X'?out.g.L:out.g.B,face=(a.axis==='X'?p.cx:p.cy)/2000;
+  for(const side of a.sides){
+   const end=face+side.length;let sum=0;
+   for(let i=0;i<N;i++){
+    const x=face+side.length*(i+.5)/N;
+    const V=ph.piles.reduce((s,v)=>s+(side.sign*(a.axis==='X'?v.x:v.y)>x?v.Ru:0),0)/width-ph.wu*(end-x);
+    sum+=Math.abs(V)/N;
+   }
+   assert.ok(Math.abs(sum-side.Vavg)<.005,`${sum} vs ${side.Vavg}`);
+  }
+  near(a.Vavg,Math.max(...a.sides.map(s=>s.Vavg)));
+ }
+});
+test('directional demand takes the larger stress without a vector sum or mat spatial reduction',()=>{
+ const p={...base(),mode:'mat',crossLegs:0};p.stages[1].cured.vx=-300;p.stages[1].cured.vy=400;
+ const r=E.calculate(p).phases.at(-1),j=r.interfaces[0];
+ near(j.stresses[0].tau,.3);near(j.stresses[1].tau,.4);near(j.tau,.4);
+ assert.ok(j.stresses.every(s=>s.source==='input'));near(r.axes[0].Vu,300);near(r.axes[1].Vu,400);
 });

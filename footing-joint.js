@@ -74,12 +74,12 @@ function forces(p,g,k,wet,H,loaded){
  const axes=['X','Y'].map(axis=>{
   const width=axis==='X'?g.L:g.B,face=(axis==='X'?p.cx:p.cy)/2000;
   const d=H>0?steel(p,H,axis).d/1000:0,band=(axis==='X'?g.B:g.L)<width?2*Math.max(g.B,g.L)/(g.B+g.L):1;
-  let Mu=0,MuNeg=0,MuPos=0,Vu=0,Vd=0;const sides=[];
+  let Mu=0,MuNeg=0,MuPos=0,Vu=0,Vd=0,Vavg=0;const sides=[];
   for(const sign of [-1,1]){
    const edge=axis==='X'?(sign>0?g.bounds.right:-g.bounds.left):(sign>0?g.bounds.top:-g.bounds.bottom),l=edge-face;
    const point=v=>sign*(axis==='X'?v.x:v.y);
    if(p.mode==='soil'){
-    const q=Nu/g.A,M=q*l*l/2;Mu=Math.max(Mu,M*band);MuPos=Mu;Vu=Math.max(Vu,q*l);Vd=Math.max(Vd,q*Math.max(0,l-d));sides.push({sign,Mu:M,Vu:q*l});
+    const q=Nu/g.A,M=q*l*l/2;Mu=Math.max(Mu,M*band);MuPos=Mu;Vu=Math.max(Vu,q*l);Vd=Math.max(Vd,q*Math.max(0,l-d));Vavg=Math.max(Vavg,q*l/2);sides.push({sign,Mu:M,Vu:q*l,Vavg:q*l/2,length:l});
    }else{
     const M=x=>piles.reduce((a,v)=>a+v.Ru*Math.max(0,point(v)-x),0)/width-wu*(edge-x)**2/2;
     const cuts=[face,edge,...piles.map(point).filter(x=>x>=face&&x<=edge)].sort((a,b)=>a-b);
@@ -88,12 +88,20 @@ function forces(p,g,k,wet,H,loaded){
     const moments=cuts.slice();for(let i=0;i<cuts.length-1;i++){const a=cuts[i],b=cuts[i+1],va=shear(a,false);if(wu>0){const z=a-va/wu;if(z>a&&z<b)moments.push(z);}}
     for(const x of moments){const m=M(x)*band;if(Math.abs(m)>Math.abs(Mu))Mu=m;MuPos=Math.max(MuPos,m);MuNeg=Math.min(MuNeg,m);}
     for(const x of cuts){Vu=Math.max(Vu,Math.abs(shear(x,false)),Math.abs(shear(x,true)));}
+    // Integrate |V| exactly between reaction jumps. Include zero crossings,
+    // so opposing shear does not cancel; point jumps have zero measure.
+    let integral=0;
+    for(let i=0;i<cuts.length-1;i++){
+     const a=cuts[i],b=cuts[i+1],va=shear(a,false),vb=shear(b,true),aa=Math.abs(va),bb=Math.abs(vb);
+     integral+=(b-a)*(va*vb<0?(aa*aa+bb*bb)/(2*(aa+bb)):(aa+bb)/2);
+    }
+    const mean=integral/l;Vavg=Math.max(Vavg,mean);
     const cut=Math.min(edge,face+d),lv=edge-cut;
     const vd=piles.reduce((a,v)=>a+v.Ru*F.fraction((point(v)-cut)*1000,p.diameter),0)/width-wu*lv;
-    Vd=Math.max(Vd,Math.abs(vd));sides.push({sign,Mu:M(face)*band,Vu:Math.max(...cuts.map(x=>Math.max(Math.abs(shear(x,false)),Math.abs(shear(x,true))))) });
+    Vd=Math.max(Vd,Math.abs(vd));sides.push({sign,Mu:M(face)*band,Vavg:mean,length:l,Vu:Math.max(...cuts.map(x=>Math.max(Math.abs(shear(x,false)),Math.abs(shear(x,true))))) });
    }
   }
-  return {axis,Mu,MuPos,MuNeg,Vu,Vd,sides};
+  return {axis,Mu,MuPos,MuNeg,Vu,Vd,Vavg,sides};
  });
  return {axes,load:share*100,Ns,Nu,W,wu,totalS,totalU,bearing,piles};
 }
@@ -117,8 +125,8 @@ function development(p,bar,fy,fc,spacing,available){
 }
 function jointCheck(p,H,j,joint,values,axes){
  const fc=Math.min(...values),mu=p.surface==='rough'?1:.6,phi=.75;
- const stresses=axes.map(a=>interfaceStress(p,H,joint,values,a.axis,a.Vu,p.mode==='mat'?a.Mu:0));
- const tau=Math.hypot(...stresses.map(a=>a.tau));
+ const stresses=axes.map(a=>({...interfaceStress(p,H,joint,values,a.axis,a.Vavg??a.Vu,0),axis:a.axis,V:a.Vavg??a.Vu,source:a.Vavg==null?'input':'distance-average'}));
+ const tau=Math.max(...stresses.map(a=>a.tau));
  const cap=phi*(p.surface==='rough'?Math.min(.2*fc,3.3+.08*fc,11):Math.min(.2*fc,5.5));
  const lowerFc=Math.min(...values.slice(0,j+1)),upperFc=Math.min(...values.slice(j+1));
  const lower=development(p,p.crossBar,p.fyt,lowerFc,Math.min(p.crossSX,p.crossSY)/Math.max(1,p.crossLegs),joint-p.cover);

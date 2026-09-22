@@ -273,14 +273,14 @@ test('load schedule restores last valid state and escapes project and material t
 test('foundation dowel quantities update, remain independent of preview and never show stale totals',()=>{
  const {nodes:n}=load();assert.match(n.fj_quantities.innerHTML,/추가 다월바 불필요/);
  n.fj_crossLegs.value='0';n.fj_crossLegs.events.input();const q=n.fj_quantities.innerHTML;
- assert.match(q,/64/);assert.match(q,/0.0848 tonf/);assert.match(q,/54.4/);
+ assert.match(q,/36/);assert.match(q,/0.0477 tonf/);assert.match(q,/30.6/);
  n.fj_view.value='0';n.fj_view.events.change();assert.equal(n.fj_quantities.innerHTML,q);
  n.fj_strengthMode.value='manual';n.fj_strengthMode.events.input();assert.match(n.fj_quantities.innerHTML,/산출 보류/);assert.match(n.fj_quantities.innerHTML,/전체 필요 물량이 아닙니다/);
  n.fj_h.value='';n.fj_h.events.input();assert.equal(n.fj_quantities.innerHTML,'');assert.equal(n.fj_results.hidden,true);
  n.fj_h.value='1500';n.fj_strengthMode.value='estimate';n.fj_strengthMode.events.input();assert.equal(n.fj_results.hidden,false);assert.equal(n.fj_quantities.innerHTML,q);
 });
 test('horizontal footing joints initialize, switch foundation modes and clear invalid results',()=>{
- const {nodes}=load();assert.match(nodes.fj_summary.innerHTML,/비균열 환산단면/);assert.doesNotMatch(nodes.fj_basis.innerHTML,/비균열·균열/);assert.equal(nodes.fj_error.hidden,true);assert.match(nodes.fj_diagram.innerHTML,/<svg/);assert.match(nodes.fj_phases.innerHTML,/2차 타설 중/);
+ const {nodes}=load();assert.match(nodes.fj_summary.innerHTML,/비균열 환산단면/);assert.match(nodes.fj_summary.innerHTML,/거리 평균/);assert.match(nodes.fj_joints.innerHTML,/평균 V/);assert.doesNotMatch(nodes.fj_basis.innerHTML,/τu=√/);assert.doesNotMatch(nodes.fj_basis.innerHTML,/비균열·균열/);assert.equal(nodes.fj_error.hidden,true);assert.match(nodes.fj_diagram.innerHTML,/<svg/);assert.match(nodes.fj_phases.innerHTML,/2차 타설 중/);
  nodes.fj_mode.value='pile';nodes.fj_mode.events.input();assert.equal(nodes.fj_bx.value,2500);assert.match(nodes.fj_reactions.innerHTML,/계수반력/);
  nodes.fj_mode.value='mat';nodes.fj_mode.events.input();assert.equal(nodes.fj_axial.hidden,true);assert.equal(nodes.fj_wet_inputs.hidden,false);
  nodes.fj_crossLegs.value='0';nodes.fj_crossLegs.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/D16@/);assert.match(nodes.fj_diagram.innerHTML,/추가 다월바 D16/);
