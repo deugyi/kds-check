@@ -280,7 +280,7 @@ test('foundation dowel quantities update, remain independent of preview and neve
  n.fj_h.value='1500';n.fj_strengthMode.value='estimate';n.fj_strengthMode.events.input();assert.equal(n.fj_results.hidden,false);assert.equal(n.fj_quantities.innerHTML,q);
 });
 test('horizontal footing joints initialize, switch foundation modes and clear invalid results',()=>{
- const {nodes}=load();assert.equal(nodes.fj_error.hidden,true);assert.match(nodes.fj_diagram.innerHTML,/<svg/);assert.match(nodes.fj_phases.innerHTML,/2차 타설 중/);
+ const {nodes}=load();assert.match(nodes.fj_summary.innerHTML,/비균열 환산단면/);assert.doesNotMatch(nodes.fj_basis.innerHTML,/비균열·균열/);assert.equal(nodes.fj_error.hidden,true);assert.match(nodes.fj_diagram.innerHTML,/<svg/);assert.match(nodes.fj_phases.innerHTML,/2차 타설 중/);
  nodes.fj_mode.value='pile';nodes.fj_mode.events.input();assert.equal(nodes.fj_bx.value,2500);assert.match(nodes.fj_reactions.innerHTML,/계수반력/);
  nodes.fj_mode.value='mat';nodes.fj_mode.events.input();assert.equal(nodes.fj_axial.hidden,true);assert.equal(nodes.fj_wet_inputs.hidden,false);
  nodes.fj_crossLegs.value='0';nodes.fj_crossLegs.events.input();assert.match(nodes.fj_joint_summary.innerHTML,/D16@/);assert.match(nodes.fj_diagram.innerHTML,/추가 다월바 D16/);

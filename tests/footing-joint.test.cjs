@@ -65,12 +65,20 @@ test('gross-section interface stress matches 6 V z(H-z)/H^3 in MPa',()=>{
  const p=base(),H=1500,z=500,V=400;
  const r=E.interfaceStress(p,H,z,[30,30],'X',V,300);near(r.gross,6*V*z*(H-z)/H**3);
 });
-test('cracked-section stress matches independent singly-reinforced neutral-axis solution',()=>{
+test('uncracked stress uses the full section regardless of steel or moment sign',()=>{
  const p=base();p.stages[0].height=1000;p.stages[1].height=500;
- const H=1000,db=25.4,As=506.7*1000/150,d=H-80-db/2,n=200000/(8500*Math.cbrt(34));
- const c=(-n*As+Math.sqrt((n*As)**2+2*1000*n*As*d))/1000;
- const I=1000*c**3/3+n*As*(d-c)**2,Q=1000*c*c/2;
- const r=E.interfaceStress(p,H,500,[30],'X',400,300);near(r.cracked,400*Q/I);
+ for(const axis of ['X','Y'])for(const Mu of [-300,0,300]){
+  const r=E.interfaceStress({...p,barX:'D10',barY:'D32',spacing:300},1000,500,[30],axis,-400,Mu);
+  near(r.tau,.6);near(r.gross,r.tau);assert.equal(r.model,'uncracked');assert.equal('cracked' in r,false);
+ }
+});
+test('different lift stiffnesses match an independent two-rectangle transformed section',()=>{
+ const p=base(),H=1500,z=750,V=400,n=Math.cbrt(44/34);
+ // Bottom rectangle Ec30/Ec30=1, top rectangle Ec40/Ec30=n.
+ const A1=1000*750,A2=n*A1,y=(A1*1125+A2*375)/(A1+A2);
+ const I=(1+n)*1000*750**3/12+A1*(1125-y)**2+A2*(375-y)**2;
+ const Q=A2*(y-375),r=E.interfaceStress(p,H,z,[30,40],'X',V,0);
+ near(r.tau,V*Q/I);near(r.gross,r.tau);
 });
 test('mat inputs remain per metre, ignore plan area and are not charged self-weight twice',()=>{
  const p={...base(),mode:'mat',crossLegs:0};let r=E.calculate(p).phases.at(-1);

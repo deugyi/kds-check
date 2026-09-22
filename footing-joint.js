@@ -4,7 +4,7 @@
 (function(root){'use strict';
 const req=typeof module==='object'&&module.exports;
 const R=req?require('./rc-beam.js'):root.RCBeam,S=req?require('./rc-slab-uplift.js'):root.RCSlabUplift;
-const F=req?require('./rc-footing.js'):root.RCFooting,T=req?require('./transfer-beam.js'):root.TransferBeam;
+const F=req?require('./rc-footing.js'):root.RCFooting;
 const Age=req?require('./concrete-age.js'):root.ConcreteAge,Dev=req?require('./rebar-development.js'):root.RebarDevelopment;
 const COLORS=['#2878b5','#df9a33','#3a9b78','#8b6cb5','#c96772'];
 const defaults={mode:'soil',fck:40,fy:500,fyt:500,fyd:500,bx:3000,by:3000,h:1500,cx:600,cy:600,cover:80,
@@ -97,23 +97,17 @@ function forces(p,g,k,wet,H,loaded){
  });
  return {axes,load:share*100,Ns,Nu,W,wu,totalS,totalU,bearing,piles};
 }
+// Gross concrete transformed section only. axis/Mu remain accepted for callers;
+// flexural sign and reinforcement do not change this uncracked section model.
 function interfaceStress(p,H,joint,values,axis,Vu,Mu){
- const st=steel(p,H,axis),ref=Math.min(...values);let y=0;
+ const ref=Math.min(...values);let y=0;
  const concrete=values.map((fc,i)=>{const bottom=H-y;y+=p.stages[i].height;return {top:H-y,bottom,ratio:ec(fc)/ec(ref)};});
- function direction(reverse){
-  const seg=reverse?concrete.map(c=>({top:H-c.bottom,bottom:H-c.top,ratio:c.ratio})):concrete;
-  const layers=reverse?st.layers.map(l=>({...l,d:H-l.d})):st.layers;
-  const cut=reverse?joint:H-joint,A=seg.reduce((a,c)=>a+c.ratio*1000*(c.bottom-c.top),0);
-  const cg=seg.reduce((a,c)=>a+c.ratio*1000*(c.bottom*c.bottom-c.top*c.top)/2,0)/A;
-  const Ig=seg.reduce((a,c)=>a+c.ratio*1000*((c.bottom-cg)**3-(c.top-cg)**3)/3,0);
-  const Qg=Math.abs(seg.reduce((a,c)=>{const b=Math.min(c.bottom,cut);return b>c.top?a+c.ratio*1000*(cg*(b-c.top)-(b*b-c.top*c.top)/2):a;},0));
-  const cr=T.cracked(1000,H,layers,st.db,ref,seg);
-  let Q=seg.reduce((a,c)=>{const b=Math.min(c.bottom,cut,cr.c);return b>c.top?a+c.ratio*1000*(cr.c*(b-c.top)-(b*b-c.top*c.top)/2):a;},0);
-  for(const l of layers)if(l.d<cut)Q+=cr.n*l.count*st.db.area*(cr.c-l.d);
-  const gross=Math.abs(Vu)*Qg/Ig,cracked=cr.I>0?Math.abs(Vu*Q/cr.I):Infinity;
-  return {gross,cracked,tau:Math.max(gross,cracked)}; // kN/m -> kN on 1 m strip; V*1000 / b=V
- }
- const a=direction(Mu<0);if(Mu!==0)return a;const b=direction(true);return {gross:Math.max(a.gross,b.gross),cracked:Math.max(a.cracked,b.cracked),tau:Math.max(a.tau,b.tau)};
+ const cut=H-joint,A=concrete.reduce((a,c)=>a+c.ratio*1000*(c.bottom-c.top),0);
+ const cg=concrete.reduce((a,c)=>a+c.ratio*1000*(c.bottom*c.bottom-c.top*c.top)/2,0)/A;
+ const Ig=concrete.reduce((a,c)=>a+c.ratio*1000*((c.bottom-cg)**3-(c.top-cg)**3)/3,0);
+ const Qg=Math.abs(concrete.reduce((a,c)=>{const b=Math.min(c.bottom,cut);return b>c.top?a+c.ratio*1000*(cg*(b-c.top)-(b*b-c.top*c.top)/2):a;},0));
+ const gross=Math.abs(Vu)*Qg/Ig; // 1 m strip: V*1000 N divided by b=1000 mm
+ return {model:'uncracked',gross,tau:gross};
 }
 function development(p,bar,fy,fc,spacing,available){
  const db=R.BARS[bar].diameter;
