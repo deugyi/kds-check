@@ -7,7 +7,8 @@ let client=null,member=null,user=null,errorText='',checking=false,checkAgain=fal
 const pages=Array.from(document.querySelectorAll('.site-page'));
 for(const page of pages){
  const panel=document.createElement('div');panel.className='site-access card';
- panel.innerHTML='<div class="site-access-heading"><div><h2>서리풀 현장</h2><p class="site-account" aria-live="polite">로그인 상태를 확인하고 있습니다.</p></div><div class="site-auth-actions"><button type="button" data-site-login>Google 계정으로 로그인</button><button type="button" data-site-refresh hidden>접근 권한 확인</button><button type="button" data-site-logout hidden>로그아웃</button></div></div><p class="site-auth-message" role="status"></p><div class="site-admin" hidden><button type="button" data-site-users>사용자 승인·권한 관리</button><div class="site-member-list" hidden></div></div>';
+ panel.innerHTML='<div class="site-access-heading"><div><h2></h2><p class="site-account" aria-live="polite">로그인 상태를 확인하고 있습니다.</p></div><div class="site-auth-actions"><button type="button" data-site-login>Google 계정으로 로그인</button><button type="button" data-site-refresh hidden>접근 권한 확인</button><button type="button" data-site-logout hidden>로그아웃</button></div></div><p class="site-auth-message" role="status"></p><div class="site-admin" hidden><button type="button" data-site-users>사용자 승인·권한 관리</button><div class="site-member-list" hidden></div></div>';
+ panel.querySelector('h2').textContent=page.dataset.siteTitle;
  page.prepend(panel);
  panel.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
