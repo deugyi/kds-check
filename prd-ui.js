@@ -98,9 +98,9 @@ async function selectZone(id){
 function renderZoneDetails(visible){
  const members=sortedPiles.filter(inZone),info=Z.summary(members,data.records,P.status),name=activeZone==='unassigned'?'미분류':activeZone;
  $('prd-zone-title').textContent=(name?name+' 공구':'전체 공구')+' PRD 상세 현황';
- $('prd-zone-side').innerHTML=activeZone?`<h3>${esc(name)} 공구 현황</h3><p><strong>${info.total}공 · 시공률 ${info.percent.toFixed(1)}%</strong></p><p class="prd-muted">천공 ${info.work.drilled} · 반입 ${info.work.delivered} · 시공 ${info.work.installed}공</p><button type="button" data-zone-details>상세 목록 보기</button><hr>`:'';
+ $('prd-zone-side').innerHTML=activeZone?`<h3>${esc(name)} 공구 현황</h3><p><strong>${info.total}공 · 시공률 ${info.percent.toFixed(1)}%</strong></p><p class="prd-muted">천공 ${info.work.drilled} · 반입 ${info.work.delivered} · 타설 ${info.work.installed}공</p><button type="button" data-zone-details>상세 목록 보기</button><hr>`:'';
  $('prd-zone-progress').textContent=`시공률 ${info.percent.toFixed(1)}%`;
- $('prd-zone-summary').innerHTML=[['전체',info.total],['천공 완료',info.work.drilled],['자재 반입',info.work.delivered],['시공 완료',info.work.installed],['확인 필요',info.warnings]].map(([label,n])=>`<div><span>${label}</span><strong>${n}<small> 공</small></strong></div>`).join('');
+ $('prd-zone-summary').innerHTML=[['전체',info.total],['천공 완료',info.work.drilled],['자재 반입',info.work.delivered],['타설 완료',info.work.installed],['확인 필요',info.warnings]].map(([label,n])=>`<div><span>${label}</span><strong>${n}<small> 공</small></strong></div>`).join('');
  const rows=members.filter(visible);
  $('prd-zone-table-count').textContent=`공 번호를 누르면 해당 공으로 이동합니다. ${rows.length} / ${members.length}공 표시`;
  $('prd-zone-rows').innerHTML=rows.map(p=>{const r=data.records[p.key]||{},s=stage(p),z=zoneData.membership[p.key];return `<tr><td><button type="button" data-key="${esc(p.key)}">${esc(title(p))}${p.warnings.length?' ⚠':''}</button></td><td>${esc(z==='unassigned'?'미분류':z)}</td><td>${esc(p.type.join(' / ')||'—')}</td><td><i class="prd-dot" style="background:${s[2]}"></i> ${s[1]}</td><td>${esc(r.drilled||'—')}</td><td>${esc(r.delivered||'—')}</td><td>${esc(r.installed||'—')}</td><td class="prd-note-cell">${esc(r.note||'—')}</td></tr>`;}).join('')||'<tr><td colspan="8">해당 조건의 공이 없습니다.</td></tr>';
