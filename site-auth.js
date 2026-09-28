@@ -55,7 +55,9 @@ async function refresh(){
  const previous=member,previousUser=user?.id;
  try{
   errorText='';const {data,error}=await client.auth.getUser();if(error&&error.name!=='AuthSessionMissingError')throw error;
-  user=data.user;member=null;
+  user=data.user;
+  // Keep the verified role while refreshing the same account; a user change or failure still closes access.
+  if(previousUser!==user?.id||!user)member=null;
   if(user){const r=await client.rpc('site_register');if(r.error)throw r.error;member=r.data;}
  }catch(e){member=null;errorText=explain(e);}
  finally{

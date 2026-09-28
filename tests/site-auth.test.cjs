@@ -2,18 +2,28 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const tick=()=>new Promise(r=>setImmediate(r));
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 async function load(role=null){
- let current=role,offline=false,onAuth,created,oauth,signout=0;const opened=[],events=[],timers=[],store=new Map(),calls=[];
+ let current=role,offline=false,onAuth,created,oauth,signout=0,registerWait=null;const opened=[],events=[],timers=[],store=new Map(),calls=[];
  const make=()=>({hidden:false,textContent:'',innerHTML:'',events:{},dataset:{},addEventListener(k,f){this.events[k]=f;}});
  const panels=[],pages=[...html.matchAll(/<section class="tab site-page" id="([^"]+)" data-site-title="([^"]+)"/g)].map(([,id,siteTitle])=>({id,dataset:{siteTitle},prepend(panel){this.panel=panel;panels.push(panel);},querySelector(){return this.panel;}}));
  const classes=new Set(),body={classList:{toggle:(k,on)=>on?classes.add(k):classes.delete(k)}};
- const client={auth:{getUser:async()=>{if(offline)return {data:{user:null},error:Error('offline')};return {data:{user:current?{id:'user-1',email:'test@example.test'}:null},error:null};},onAuthStateChange:f=>onAuth=f,signInWithOAuth:async opts=>{oauth=opts;return {};},signOut:async()=>{current=null;signout++;return {};}},rpc:async(name,args)=>{calls.push([name,args]);return {data:name==='site_register'?{user_id:'user-1',email:'test@example.test',role:current}:{version:2},error:null};},from:name=>{
+ const client={auth:{getUser:async()=>{if(offline)return {data:{user:null},error:Error('offline')};return {data:{user:current?{id:'user-1',email:'test@example.test'}:null},error:null};},onAuthStateChange:f=>onAuth=f,signInWithOAuth:async opts=>{oauth=opts;return {};},signOut:async()=>{current=null;signout++;return {};}},rpc:async(name,args)=>{calls.push([name,args]);if(name==='site_register'&&registerWait)await registerWait;return {data:name==='site_register'?{user_id:'user-1',email:'test@example.test',role:current}:{version:2},error:null};},from:name=>{
  const chain={select(){return this;},eq(){return this;},order(){return this;},range(){return Promise.resolve({data:[],error:null});},single(){return Promise.resolve({data:{document:{id:'a'.repeat(64)}},error:null});},then(resolve){return Promise.resolve({data:[{user_id:'evil',email:'<img src=x onerror=alert(1)>',role:'pending'}],error:null}).then(resolve);}};return chain;
  }};
  const context=vm.createContext({console,openKDSPage:id=>opened.push(id),SITE_CONFIG:{url:'https://example.supabase.co',key:'public-key',redirect:'https://example.test/app/',drawing:'a'.repeat(64)},supabase:{createClient:(...args)=>{created=args;return client;}},sessionStorage:{setItem:(k,v)=>store.set(k,v),getItem:k=>store.get(k),removeItem:k=>store.delete(k)},confirm:()=>true,setInterval(){},setTimeout:f=>timers.push(f),CustomEvent:class{constructor(type){this.type=type;}},document:{body,querySelectorAll:()=>pages,querySelector:()=>null,createElementNS(){},createElement(){const p=make(),parts=new Map();p.querySelector=s=>{if(!parts.has(s))parts.set(s,make());return parts.get(s);};return p;},addEventListener(){},dispatchEvent:e=>events.push(e.type)}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../site-auth.js'),'utf8'),context);await tick();
  async function click(attribute,panel=panels[0]){const b={hasAttribute:a=>a===attribute,dataset:{}};await panel.events.click({target:{closest:()=>b}});await tick();}
- return {context,panels,pages,store,opened,classes,events,calls,click,get created(){return created;},get oauth(){return oauth;},get signout(){return signout;},async change(next){current=next;await context.SiteCloud.refresh();},async disconnect(){offline=true;await context.SiteCloud.refresh();}};
+ return {context,panels,pages,store,opened,classes,events,calls,click,holdRegistration(){let release;registerWait=new Promise(r=>release=r);return ()=>{registerWait=null;release();};},get created(){return created;},get oauth(){return oauth;},get signout(){return signout;},async change(next){current=next;await context.SiteCloud.refresh();},async disconnect(){offline=true;await context.SiteCloud.refresh();}};
 }
+
+test('same-account role refresh does not interrupt drawing loading; a revoked role closes access on completion',async()=>{
+ const h=await load('admin'),release=h.holdRegistration();
+ const refresh=h.context.SiteCloud.refresh();await tick();
+ assert.equal(h.context.SiteCloud.allowed(),true);
+ await assert.doesNotReject(()=>h.context.SiteCloud.load());
+ release();await refresh;
+ await h.change('blocked');
+ await assert.rejects(()=>h.context.SiteCloud.load(),/ACCESS_REQUIRED/);
+});
 test('anonymous calculator session is public; site controls are locked and PKCE is configured',async()=>{
  const h=await load();assert.equal(h.context.SiteCloud.allowed(),false);assert.equal(h.classes.has('site-authorized'),false);assert.equal(h.created[2].auth.flowType,'pkce');
  await assert.rejects(()=>h.context.SiteCloud.load(),/ACCESS_REQUIRED/);assert.equal(h.calls.length,0);
