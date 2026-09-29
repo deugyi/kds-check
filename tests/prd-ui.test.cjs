@@ -108,6 +108,12 @@ test('remote refresh preserves dirty input; explicit refresh cancellation also k
  await h.$('prd-refresh').events.click();assert.equal(h.$('prd-note').value,'draft');assert.equal(h.ctx.PRDCloudUI.hasUnsaved(),true);
 });
 
+test('unchanged server refresh does not repaint the dashboard',async()=>{
+ const h=await load();h.writes.length=0;
+ await h.$('prd-refresh').events.click();
+ assert.equal(h.writes.filter(([,n])=>n===h.$('prd-dashboard')).length,0);
+});
+
 test('dashboard reflects saved dates and its zone bars reuse the existing drawing selection',async()=>{
  const h=await load(),a=base.drawing.piles[0];
  await h.click(a.key);const initial=h.$('prd-dashboard').innerHTML;

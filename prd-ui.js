@@ -23,7 +23,11 @@ function controls(){
 function takeRows(rows){
  const records={},nextVersions=new Map();
  for(const row of rows){if(!pilesByKey.has(row.pile_key))continue;records[row.pile_key]=P.record(row);nextVersions.set(row.pile_key,row.version);}
- data.records=records;versions=nextVersions;
+ const changed=nextVersions.size!==versions.size||Object.keys(records).some(key=>{
+  const previous=data.records[key];return !previous||nextVersions.get(key)!==versions.get(key)||['drilled','delivered','installed','note'].some(field=>previous[field]!==records[key][field]);
+ });
+ if(changed)data.records=records;
+ versions=nextVersions;
 }
 // Coalesce pointer/wheel bursts into one SVG update per animation frame.
 function viewbox(){if(!frame)frame=requestAnimationFrame(paintView);}
@@ -78,7 +82,9 @@ function attr(n,k,v){v=String(v);if(n.getAttribute(k)!==v)n.setAttribute(k,v);}
 function renderDashboard(){
  const D=globalThis.PRDDashboard,day=D.today();
  if(dashboardRecords===data.records&&dashboardDay===day)return;
+ const tableOpen=$('prd-dashboard').querySelector('.prd-week-table')?.open;
  $('prd-dashboard').innerHTML=D.render(D.summarize(data.drawing.piles,data.records,zoneData,day));
+ if(tableOpen)$('prd-dashboard').querySelector('.prd-week-table').open=true;
  dashboardRecords=data.records;dashboardDay=day;
 }
 function renderStatus(){
