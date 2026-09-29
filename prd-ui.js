@@ -203,7 +203,13 @@ document.addEventListener('site-auth-change',()=>{
 $('prd-refresh').addEventListener('click',()=>refreshRecords(true));
 $('prd-import-local').addEventListener('click',importLocal);
 setInterval(()=>{if(!document.hidden&&$('site-prd').classList.contains('on'))refreshRecords();},30000);
-globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState};
+globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState,exportSnapshot:async()=>{
+ if(!data||!cloud.allowed())throw Error('도면을 불러온 후 다시 시도해 주세요.');
+ if(!await saveForm(true))throw Error('기록을 저장하지 못했습니다. PRD 입력 내용을 확인해 주세요.');
+ if(!data||!cloud.allowed())throw Error('접근 권한을 다시 확인해 주세요.');
+ const filter=$('prd-filter').value;
+ return {piles:sortedPiles.filter(visibility()),records:JSON.parse(JSON.stringify(data.records)),zones:zoneData,scope:activeZone==='unassigned'?'미분류':activeZone||'전체',filter:filter==='issues'?'확인 필요':P.stages.find(s=>s[0]===filter)?.[1]||'전체 상태',asOf:globalThis.PRDDashboard.today()};
+}};
 $('prd-retry').addEventListener('click',openFixedDrawing);
 $('prd-form').addEventListener('input',()=>{if(busy||!cloud.canEdit())return;dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});
 $('prd-form').addEventListener('submit',e=>{e.preventDefault();saveForm();});

@@ -32,7 +32,7 @@ async function load(options={}){
  const mapCard=new Element();mapCard.appendChild($('prd-map'));$('prd-workspace').appendChild($('prd-dashboard-panel'));$('prd-workspace').appendChild(mapCard);$('prd-dashboard-panel').open=true;
  const pages=[$('site-prd'),$('site-north-prd')];
  for(const page of pages){page.id=page===$('site-prd')?'site-prd':'site-north-prd';const select=new Element('select');select.value='prd';const button=page.id==='site-prd'?$('prd-fullscreen'):$('site-north-fullscreen');
- page.selectors['[data-site-trade]']=[select];page.selectors['[data-site-fullscreen]']=[button];
+ page.selectors['[data-site-export]']=[new Element('button')];page.selectors['[data-site-export-status]']=[new Element()];page.selectors['[data-site-trade]']=[select];page.selectors['[data-site-fullscreen]']=[button];
  page.selectors['[data-trade]']=['prd','steel','slab','curtainwall'].map(trade=>{const pane=new Element();pane.dataset.trade=trade;pane.hidden=trade!=='prd';return pane;});}
  function emit(name){for(const fn of docEvents[name]||[])fn();}
  const cloud={allowed:()=>['viewer','editor','admin'].includes(role),canEdit:()=>['editor','admin'].includes(role),get generation(){return generation;},get userId(){return userId;},explain:e=>e.message,
@@ -216,4 +216,17 @@ test('north fullscreen trade changes are independent and access revocation close
  assert.equal(north.classList.contains('site-fullscreen'),false);
  select.value='steel';await select.events.change();assert.equal(select.value,'curtainwall');
  await h.$('site-north-fullscreen').events.click();assert.equal(north.classList.contains('site-fullscreen'),false);
+});
+
+test('export snapshot respects the current zone and status filter and excludes unmatched records',async()=>{
+ const h=await load(),page=h.$('site-prd');await h.zone('A1');
+ const key=Z.build(base.drawing).zones.find(z=>z.id==='A1').keys[0];await h.click(key);
+ h.$('prd-installed').value='2026-09-21';h.$('prd-form').events.input();
+ h.$('prd-filter').value='installed';h.$('prd-filter').events.change();
+ let snapshot;h.ctx.PRDExport={download:async(s,allowed)=>{assert.equal(allowed(),true);snapshot=s;return true;}};
+ await page.querySelector('[data-site-export]').events.click();
+ assert.equal(snapshot.piles.length,1);assert.equal(snapshot.piles[0].key,key);assert.equal(snapshot.scope,'A1');assert.equal(snapshot.filter,'타설 완료');
+ assert.equal(snapshot.records[key].installed,'2026-09-21');assert.match(page.querySelector('[data-site-export-status]').textContent,/1공 다운로드 완료/);
+ const select=page.querySelector('[data-site-trade]');select.value='steel';await select.events.change();assert.equal(page.querySelector('[data-site-export]').disabled,true);
+ await h.logout();await assert.rejects(()=>h.ctx.PRDCloudUI.exportSnapshot());
 });
