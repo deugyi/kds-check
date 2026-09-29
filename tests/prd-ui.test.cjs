@@ -12,7 +12,8 @@ async function load(options={}){
   setAttribute(k,v){this.attrs[k]=String(v);writes.push([k,this]);if(k==='id')nodes.set(v,this);if(k==='class')this.classes=new Set(v.split(' '));if(k.startsWith('data-'))this.dataset[k.slice(5)]=v;}
   getAttribute(k){return this.attrs[k]??null;}
   removeAttribute(k){delete this.attrs[k];}
-  appendChild(n){this.children.push(n);return n;}
+  appendChild(n){return this.insertBefore(n,null);}
+  insertBefore(n,before){if(n.parentNode)n.parentNode.children=n.parentNode.children.filter(c=>c!==n);const i=this.children.indexOf(before);if(i<0)this.children.push(n);else this.children.splice(i,0,n);n.parentNode=this;return n;}
   replaceChildren(){this.children=[];}
   get firstElementChild(){return this.children[0];}
   set textContent(v){this._text=v;writes.push(['text',this]);}get textContent(){return this._text;}
@@ -28,6 +29,7 @@ async function load(options={}){
  }
  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');for(const m of html.matchAll(/id="(prd-[^"]+|site-prd)"/g)){const n=new Element();nodes.set(m[1],n);}
  const $=id=>{assert.ok(nodes.has(id),id);return nodes.get(id);};
+ const mapCard=new Element();mapCard.appendChild($('prd-map'));$('prd-workspace').appendChild($('prd-dashboard-panel'));$('prd-workspace').appendChild(mapCard);$('prd-dashboard-panel').open=true;
  const cloud={allowed:()=>['viewer','editor','admin'].includes(role),canEdit:()=>['editor','admin'].includes(role),get generation(){return generation;},get userId(){return userId;},explain:e=>e.message,
  load:async()=>({base:JSON.parse(JSON.stringify(base)),rows:Object.values(remote)}),records:async()=>Object.values(remote),save:async(key,r,version)=>{
  calls.push({key,r,version});if(failSave)throw Object.assign(Error('RECORD_CONFLICT'),{code:'40001'});if(!cloud.canEdit())throw Object.assign(Error('EDIT_ACCESS_REQUIRED'),{code:'42501'});
@@ -131,4 +133,42 @@ test('import skips existing server records and keeps local source untouched',asy
  const [a,b]=base.drawing.piles,legacy={...base,records:{[a.key]:{note:'old'},[b.key]:{note:'local'}}};
  const h=await load({legacy});h.remote[a.key]={pile_key:a.key,note:'newer',version:3};await h.$('prd-import-local').events.click();
  assert.equal(h.remote[a.key].note,'newer');assert.equal(h.remote[b.key].note,'local');assert.equal(h.calls.length,1);assert.equal(h.calls[0].version,0);
+});
+
+
+test('fullscreen switches graphs and zone/all drawings, preserving view and restoring the dashboard',async()=>{
+ const h=await load(),page=h.$('site-prd'),panel=h.$('prd-dashboard-panel'),map=h.$('prd-map');
+ const full=map.getAttribute('viewBox');panel.open=false;
+ await h.$('prd-fullscreen').events.click();
+ assert.equal(page.classList.contains('prd-fullscreen'),true);
+ assert.equal(panel.parentNode,map.parentNode);
+ h.$('prd-graphs-toggle').events.click();
+ assert.equal(page.classList.contains('prd-fs-graphs'),true);
+ assert.equal(panel.open,true);
+ const bar=h.$('prd-dashboard').children.find(n=>n.dataset.zone==='C4');
+ await h.$('prd-dashboard').events.click({target:bar});h.flush();
+ assert.equal(page.classList.contains('prd-fullscreen'),true);
+ assert.equal(page.classList.contains('prd-fs-graphs'),false);
+ assert.equal(page.classList.contains('prd-fs-details'),false);
+ assert.match(h.$('prd-zone-title').textContent,/C4/);
+ const zoneView=map.getAttribute('viewBox');assert.notEqual(zoneView,full);
+ h.$('prd-graphs-toggle').events.click();h.$('prd-graphs-toggle').events.click();h.flush();
+ assert.equal(map.getAttribute('viewBox'),zoneView);
+ h.$('prd-graphs-toggle').events.click();await h.zone('');
+ assert.equal(page.classList.contains('prd-fs-graphs'),false);
+ assert.equal(map.getAttribute('viewBox'),full);
+ assert.equal((h.$('prd-zone-rows').innerHTML.match(/<tr>/g)||[]).length,790);
+ h.$('prd-graphs-toggle').events.click();await h.$('prd-fullscreen').events.click();
+ assert.equal(page.classList.contains('prd-fullscreen'),false);
+ assert.equal(panel.parentNode,h.$('prd-workspace'));
+ assert.equal(panel.open,false);
+ assert.equal(h.$('prd-graphs-toggle').hidden,true);
+});
+
+test('logout while fullscreen graphs are visible removes records and exits fullscreen',async()=>{
+ const h=await load();await h.$('prd-fullscreen').events.click();h.$('prd-graphs-toggle').events.click();await h.logout();
+ assert.equal(h.$('site-prd').classList.contains('prd-fullscreen'),false);
+ assert.equal(h.$('prd-dashboard').innerHTML,'');
+ assert.equal(h.$('prd-workspace').hidden,true);
+ assert.equal(h.$('prd-dashboard-panel').parentNode,h.$('prd-workspace'));
 });
