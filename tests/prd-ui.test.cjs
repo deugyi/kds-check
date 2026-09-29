@@ -33,7 +33,7 @@ async function load(options={}){
  calls.push({key,r,version});if(failSave)throw Object.assign(Error('RECORD_CONFLICT'),{code:'40001'});if(!cloud.canEdit())throw Object.assign(Error('EDIT_ACCESS_REQUIRED'),{code:'42501'});
  const row={...r,pile_key:key,version:version+1};remote[key]=row;saved={records:Object.fromEntries(Object.entries(remote).map(([k,v])=>[k,v]))};return row;
  }};
- const ctx=vm.createContext({PRD:P,PRDZones:Z,SiteCloud:cloud,console,setInterval(){},confirm:()=>options.confirm!==false,document:{getElementById:$,createElementNS:(_,tag)=>new Element(tag),addEventListener(k,fn){docEvents[k]=fn;},body:new Element()},window:{addEventListener(){}},localStorage:{getItem:()=>options.legacy?JSON.stringify(options.legacy):null,setItem(){throw Error('must not write localStorage');}},requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id)});
+ const ctx=vm.createContext({PRD:P,PRDZones:Z,PRDDashboard:require('../prd-dashboard.js'),SiteCloud:cloud,console,setInterval(){},confirm:()=>options.confirm!==false,document:{getElementById:$,createElementNS:(_,tag)=>new Element(tag),addEventListener(k,fn){docEvents[k]=fn;},body:new Element()},window:{addEventListener(){}},localStorage:{getItem:()=>options.legacy?JSON.stringify(options.legacy):null,setItem(){throw Error('must not write localStorage');}},requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id)});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../prd-ui.js'),'utf8'),ctx);
  await new Promise(resolve=>setImmediate(resolve));
  function flush(){const pending=[...frames.values()];frames.clear();for(const fn of pending)fn();}
@@ -101,11 +101,25 @@ test('viewer can select and inspect, but cannot edit or import',async()=>{
 });
 test('logout clears geometry, record DOM and unsaved fields',async()=>{
  const h=await load();await h.click(base.drawing.piles[0].key);h.$('prd-note').value='private';h.$('prd-form').events.input();await h.logout();
- assert.equal(h.$('prd-geometry').children.length,0);assert.equal(h.$('prd-zone-rows').innerHTML,'');assert.equal(h.$('prd-note').value,'');assert.equal(h.$('prd-workspace').hidden,true);
+ assert.equal(h.$('prd-geometry').children.length,0);assert.equal(h.$('prd-zone-rows').innerHTML,'');assert.equal(h.$('prd-note').value,'');assert.equal(h.$('prd-workspace').hidden,true);assert.equal(h.$('prd-dashboard').innerHTML,'');
 });
 test('remote refresh preserves dirty input; explicit refresh cancellation also keeps it',async()=>{
  const h=await load({confirm:false});await h.click(base.drawing.piles[0].key);h.$('prd-note').value='draft';h.$('prd-form').events.input();
  await h.$('prd-refresh').events.click();assert.equal(h.$('prd-note').value,'draft');assert.equal(h.ctx.PRDCloudUI.hasUnsaved(),true);
+});
+
+test('dashboard reflects saved dates and its zone bars reuse the existing drawing selection',async()=>{
+ const h=await load(),a=base.drawing.piles[0];
+ await h.click(a.key);const initial=h.$('prd-dashboard').innerHTML;
+ h.$('prd-drilled').value='2026-09-01';h.$('prd-installed').value='2026-09-02';h.$('prd-form').events.input();
+ await h.$('prd-form').events.submit({preventDefault(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.notEqual(h.$('prd-dashboard').innerHTML,initial);
+ assert.match(h.$('prd-dashboard').innerHTML,/2026-09-02/);
+ const b=h.$('prd-dashboard').children.find(n=>n.dataset.zone==='A1');
+ await h.$('prd-dashboard').events.click({target:b});
+ assert.equal(h.$('prd-zone-title').textContent,'A1 공구 PRD 상세 현황');
+ assert.equal(h.$('prd-dashboard').innerHTML.includes('남측 전체 기록 기준'),true);
 });
 test('import skips existing server records and keeps local source untouched',async()=>{
  const [a,b]=base.drawing.piles,legacy={...base,records:{[a.key]:{note:'old'},[b.key]:{note:'local'}}};
