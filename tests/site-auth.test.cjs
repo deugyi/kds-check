@@ -43,23 +43,24 @@ test('permission check failure closes site access; logout emits a state change',
  const g=await load('admin');await g.click('data-site-logout');assert.equal(g.signout,1);assert.equal(g.context.SiteCloud.allowed(),false);assert.equal(g.events.at(-1),'site-auth-change');
 });
 
-test('south and north menus and home cards share the same order and all eight pages are gated',async()=>{
+test('south and north unified workspaces are gated and contain four trade panes',async()=>{
  const h=await load();
- const expected=['site-prd','site-steel','site-slab','site-curtainwall','site-north-prd','site-north-steel','site-north-slab','site-north-curtainwall'];
+ const expected=['site-prd','site-north-prd'];
  assert.deepEqual(h.pages.map(p=>p.id),expected);
  assert.deepEqual([...html.matchAll(/data-t="(site-[^"]+)"/g)].map(m=>m[1]),expected);
  assert.deepEqual([...html.matchAll(/data-open="(site-[^"]+)"/g)].map(m=>m[1]),expected);
  for(const [i,page] of h.pages.entries()){
-  assert.equal(h.panels[i].querySelector('h2').textContent,i<4?'서리풀 : 남측':'서리풀 : 북측');
+  assert.equal(h.panels[i].querySelector('h2').textContent,i===0?'서리풀 : 남측':'서리풀 : 북측');
   assert.equal(h.panels[i].querySelector('[data-site-login]').hidden,false);
   const section=html.match(new RegExp('<section[^>]+id="'+page.id+'"[^>]*>([\\s\\S]*?)</section>'))[1];
   assert.ok(section.startsWith('<div class="site-content">'));
+  assert.deepEqual([...section.matchAll(/class="site-trade-pane" data-trade="([^"]+)"/g)].map(m=>m[1]),['prd','steel','slab','curtainwall']);
  }
  assert.match(fs.readFileSync(path.join(__dirname,'../site-auth.css'),'utf8'),/body:not\(\.site-authorized\) \.site-content\{display:none!important\}/);
 });
-test('each north login restores its own page; pending remains denied and logout locks both sides',async()=>{
+test('each site login restores its workspace; pending remains denied and logout locks both sides',async()=>{
  const h=await load();
- for(let i=4;i<8;i++){
+ for(let i=0;i<2;i++){
   await h.click('data-site-login',h.panels[i]);
   assert.equal(h.store.get('kds-site-return'),h.pages[i].id);
   await h.change('pending');
@@ -69,7 +70,7 @@ test('each north login restores its own page; pending remains denied and logout 
  }
  await h.change('viewer');
  for(const panel of h.panels)assert.equal(panel.querySelector('[data-site-login]').hidden,true);
- await h.click('data-site-logout',h.panels[4]);
+ await h.click('data-site-logout',h.panels[1]);
  assert.equal(h.classes.has('site-authorized'),false);
  for(const panel of h.panels)assert.equal(panel.querySelector('[data-site-login]').hidden,false);
 });

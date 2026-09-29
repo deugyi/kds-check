@@ -7,7 +7,7 @@ let frame=0,wheel=null,paintedView=null,sortedPiles=[];
 let dashboardRecords=null,dashboardDay=null;
 const cloud=globalThis.SiteCloud;
 let busy=false,loading=false,loadedUser=null,versions=new Map(),legacy=null;
-const pileNodes=new Map(),pilesByKey=new Map(),searchText=new Map(),collator=new Intl.Collator('ko',{numeric:true});
+const pileNodes=new Map(),pilesByKey=new Map(),collator=new Intl.Collator('ko',{numeric:true});
 const map=$('prd-map'),group=$('prd-geometry'),labels=$('prd-labels'),zoneShapes=$('prd-zone-shapes'),zoneLabels=$('prd-zone-labels');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const title=p=>p.number.join(' / ')||'번호 미연결 · '+p.key;
@@ -77,7 +77,7 @@ async function select(key,focus=false){
  if(oldZone!==activeZone)renderStatus();
 }
 function inZone(p){return !activeZone||zoneData.membership[p.key]===activeZone;}
-function visibility(){const q=$('prd-search').value.trim().toLowerCase(),f=$('prd-filter').value;return p=>inZone(p)&&(!q||searchText.get(p.key).includes(q))&&(!f||(f==='issues'?p.warnings.length:P.status(data.records[p.key])===f));}
+function visibility(){const f=$('prd-filter').value;return p=>inZone(p)&&(!f||(f==='issues'?p.warnings.length:P.status(data.records[p.key])===f));}
 function attr(n,k,v){v=String(v);if(n.getAttribute(k)!==v)n.setAttribute(k,v);}
 function renderDashboard(){
  const D=globalThis.PRDDashboard,day=D.today();
@@ -93,7 +93,7 @@ function renderStatus(){
  const counts=Object.fromEntries(P.stages.map(s=>[s[0],0]));let shown=0;
  for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p);if(inZone(p))counts[s[0]]++;shown+=v?1:0;attr(n,'fill',s[2]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(p.warnings.length?' · 확인 필요':''));const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
  $('prd-stats').innerHTML=P.stages.map(([key,name,color])=>`<span class="prd-stat"><i class="prd-dot" style="background:${color}"></i>${name} <strong>${counts[key]}</strong></span>`).join('');
- $('prd-count').textContent=`${activeZone?(activeZone==='unassigned'?'미분류':activeZone)+' 공구':'전체'} ${data.drawing.piles.filter(inZone).length}공 · 검색/필터 ${shown}공`;
+ $('prd-count').textContent=`${activeZone?(activeZone==='unassigned'?'미분류':activeZone)+' 공구':'전체'} ${data.drawing.piles.filter(inZone).length}공 · 상태 필터 ${shown}공`;
  setSelected(selected);
  renderZoneDetails(visible);renderDashboard();
 }
@@ -103,7 +103,7 @@ async function selectZone(id){
  if(isExpanded()){showGraphs(false);showDetails(false);}
  activeZone=id;setSelected(null);$('prd-form').hidden=true;$('prd-selection-empty').hidden=false;
  $('prd-selection-empty').textContent=id?(id==='unassigned'?'미분류':id)+' 공구의 공을 선택하면 날짜를 입력할 수 있습니다.':'도면 또는 목록에서 공을 선택하세요.';
- $('prd-search').value='';$('prd-filter').value='';
+ $('prd-filter').value='';
  const z=zoneData.zones.find(z=>z.id===id);
  if(z){const xs=z.points.map(p=>p[0]),ys=z.points.map(p=>-p[1]),x=Math.min(...xs),y=Math.min(...ys),w=Math.max(...xs)-x,h=Math.max(...ys)-y,pad=Math.max(w,h)*.08;view=[x-pad,y-pad,w+2*pad,h+2*pad];viewbox();}else fit();
  renderStatus();
@@ -136,10 +136,10 @@ function draw(){
 }
 function activate(next){
  data=next;zoneData=Z.build(data.drawing);activeZone='';selected=null;dirty=false;$('prd-empty').hidden=true;$('prd-workspace').hidden=false;
- pilesByKey.clear();searchText.clear();for(const p of data.drawing.piles){pilesByKey.set(p.key,p);searchText.set(p.key,[title(p),...p.name,...p.type,p.key].join(' ').toLowerCase());}
+ pilesByKey.clear();for(const p of data.drawing.piles){pilesByKey.set(p.key,p);}
  sortedPiles=[...data.drawing.piles].sort((a,b)=>collator.compare(title(a),title(b))||a.key.localeCompare(b.key));
  $('prd-selection-empty').hidden=false;$('prd-form').hidden=true;
- $('prd-search').value='';$('prd-filter').value='';
+ $('prd-filter').value='';
  $('prd-zone-tabs').innerHTML=[['','전체 도면 · '+data.drawing.piles.length+'공'],...zoneData.zones.map(z=>[z.id,z.id+' · '+z.keys.length+'공']),...(zoneData.issues.length?[['unassigned','미분류 · '+zoneData.issues.length+'공']]:[])].map(([id,label])=>`<button type="button" data-zone="${esc(id)}" aria-pressed="${!id}">${esc(label)}</button>`).join('');
  $('prd-import-warning').textContent=[...data.drawing.warnings,...(zoneData.issues.length?[`공구 경계 확인 필요 ${zoneData.issues.length}공: 미분류 목록을 확인하세요.`]:[])].join('\n');$('prd-import-warning').hidden=!$('prd-import-warning').textContent;
  draw();
@@ -188,10 +188,10 @@ function clearDrawing(){
  if(isExpanded())exitExpanded();
  dashboardRecords=null;dashboardDay=null;
  data=null;baseDrawing=null;loadedUser=null;selected=null;zoneData=null;legacy=null;dirty=false;view=null;wheel=null;drag=null;
- pileNodes.clear();pilesByKey.clear();searchText.clear();versions.clear();sortedPiles=[];
+ pileNodes.clear();pilesByKey.clear();versions.clear();sortedPiles=[];
  for(const n of [group,labels,zoneShapes,zoneLabels])n.replaceChildren();
  for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
- for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note','prd-search'])$(id).value='';
+ for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note'])$(id).value='';
  for(const id of ['prd-count','prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
  $('prd-workspace').hidden=true;$('prd-empty').hidden=false;$('prd-form').hidden=true;message('');
 }
@@ -203,18 +203,18 @@ document.addEventListener('site-auth-change',()=>{
 $('prd-refresh').addEventListener('click',()=>refreshRecords(true));
 $('prd-import-local').addEventListener('click',importLocal);
 setInterval(()=>{if(!document.hidden&&$('site-prd').classList.contains('on'))refreshRecords();},30000);
-globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy};
+globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState};
 $('prd-retry').addEventListener('click',openFixedDrawing);
 $('prd-form').addEventListener('input',()=>{if(busy||!cloud.canEdit())return;dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});
 $('prd-form').addEventListener('submit',e=>{e.preventDefault();saveForm();});
-$('prd-search').addEventListener('input',renderStatus);$('prd-filter').addEventListener('change',renderStatus);
+$('prd-filter').addEventListener('change',renderStatus);
 $('prd-zone-side').addEventListener('click',async e=>{if(e.target.closest('[data-zone-details]')){if(isExpanded())await exitExpanded();$('prd-zone-title').scrollIntoView({behavior:'smooth',block:'start'});}});
 $('prd-zone-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-zone]');if(b)selectZone(b.dataset.zone);});
 $('prd-dashboard').addEventListener('click',async e=>{const b=e.target.closest('button[data-zone]');if(!b)return;await selectZone(b.dataset.zone);if(activeZone===b.dataset.zone){if(isExpanded())$('prd-graphs-toggle').focus();else $('prd-zone-tabs').scrollIntoView?.({behavior:'smooth',block:'start'});}});
 $('prd-zone-rows').addEventListener('click',e=>{const b=e.target.closest('button[data-key]');if(b)select(b.dataset.key,true);});
 $('prd-fit').addEventListener('click',fit);$('prd-zoom-in').addEventListener('click',()=>zoom(.7));$('prd-zoom-out').addEventListener('click',()=>zoom(1/.7));$('prd-show-labels').addEventListener('change',viewbox);
 const page=$('site-prd');
-let fullscreenFocus=null,dashboardWasOpen=true;
+let dashboardWasOpen=true;
 function isExpanded(){return page.classList.contains('prd-fullscreen');}
 function showDetails(open){page.classList.toggle('prd-fs-details',open);$('prd-details-toggle').setAttribute('aria-pressed',String(open));$('prd-details-toggle').textContent=open?'상세정보 닫기':'상세정보 열기';}
 function showGraphs(open){
@@ -225,37 +225,15 @@ function showGraphs(open){
  if(open){showDetails(false);$('prd-dashboard-panel').open=true;}
 }
 function expandedState(on){
- if(isExpanded()===on)return;
- page.classList.toggle('prd-fullscreen',on);document.body.classList.toggle('prd-fullscreen-open',on);
- $('prd-fullscreen').textContent=on?'전체 화면 닫기':'전체 화면';$('prd-fullscreen').setAttribute('aria-pressed',String(on));$('prd-details-toggle').hidden=!on;
- $('prd-graphs-toggle').hidden=!on;
+ page.classList.toggle('prd-fullscreen',on);
+ $('prd-details-toggle').hidden=!on;$('prd-graphs-toggle').hidden=!on;
  const panel=$('prd-dashboard-panel');
- if(on){dashboardWasOpen=panel.open;map.parentNode.insertBefore(panel,map);showGraphs(false);showDetails(false);page.setAttribute('role','dialog');page.setAttribute('aria-modal','true');$('prd-fullscreen').focus();}
- else{showGraphs(false);showDetails(false);$('prd-workspace').insertBefore(panel,$('prd-workspace').firstElementChild);panel.open=dashboardWasOpen;page.removeAttribute('role');page.removeAttribute('aria-modal');if(fullscreenFocus?.isConnected)fullscreenFocus.focus({preventScroll:true});}
+ if(on){dashboardWasOpen=panel.open;map.parentNode.insertBefore(panel,map);showGraphs(false);showDetails(false);}
+ else{showGraphs(false);showDetails(false);$('prd-workspace').insertBefore(panel,$('prd-workspace').firstElementChild);panel.open=dashboardWasOpen;}
 }
-async function exitExpanded(){
- if(document.fullscreenElement===page){try{await document.exitFullscreen();}catch{}}
- expandedState(false);
-}
-$('prd-fullscreen').addEventListener('click',async()=>{
- if(isExpanded()){await exitExpanded();return;}
- fullscreenFocus=document.activeElement;expandedState(true);
- if(page.requestFullscreen){try{await page.requestFullscreen();}catch{/* Keep viewport expansion when native fullscreen is unavailable. */}}
-});
+async function exitExpanded(){await globalThis.SiteWorkspace?.exit(page);}
 $('prd-details-toggle').addEventListener('click',()=>showDetails(!page.classList.contains('prd-fs-details')));
 $('prd-graphs-toggle').addEventListener('click',()=>showGraphs(!page.classList.contains('prd-fs-graphs')));
-// Native Escape and browser exits restore the original layout without changing view or records.
-document.addEventListener('fullscreenchange',()=>{if(document.fullscreenElement!==page&&isExpanded())expandedState(false);});
-page.addEventListener('keydown',e=>{
- if(!isExpanded())return;
- if(e.key==='Escape'){e.preventDefault();exitExpanded();}
- if(e.key==='Tab'){
-  const focusable=Array.from(page.querySelectorAll('button,input,select,textarea,[tabindex="0"]')).filter(n=>!n.disabled&&n.getClientRects().length);
-  const first=focusable[0],last=focusable.at(-1);
-  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
-  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
- }
-});
 function point(e){const p=map.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(map.getScreenCTM().inverse());return [q.x,q.y];}
 map.addEventListener('wheel',e=>{if(!view)return;e.preventDefault();if(drag||!e.deltaY)return;wheel={clientX:e.clientX,clientY:e.clientY,factor:(wheel?.factor||1)*(e.deltaY>0?1.15:1/1.15)};viewbox();},{passive:false});
 map.addEventListener('pointerdown',e=>{if(!view||e.button!==0||drag)return;flushView();drag={id:e.pointerId,x:e.clientX,y:e.clientY,matrix:map.getScreenCTM().inverse(),view:[...view],key:e.target.dataset.key,zone:e.target.dataset.zone,moved:false};map.setPointerCapture(e.pointerId);});
