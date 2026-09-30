@@ -16,7 +16,7 @@ for(const page of pages){
    if(b.hasAttribute('data-site-login')){if(!client)throw Error('로그인 연결을 준비하지 못했습니다. 새로고침해 주세요.');try{sessionStorage.setItem('kds-site-return',page.id);}catch{}const {error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:cfg.redirect,queryParams:{prompt:'select_account'}}});if(error)throw error;}
    if(b.hasAttribute('data-site-refresh'))await refresh();
    if(b.hasAttribute('data-site-logout')){
-    if(root.PRDCloudUI?.hasUnsaved()&&!confirm('저장하지 못한 입력이 있습니다. 입력을 버리고 로그아웃할까요?'))return;
+    if((root.PRDCloudUI?.hasUnsaved()||root.SitePlanUI?.hasUnsaved())&&!confirm('저장하지 못한 입력이 있습니다. 입력을 버리고 로그아웃할까요?'))return;
     const {error}=await client.auth.signOut({scope:'local'});if(error)throw error;await refresh();
    }
    if(b.hasAttribute('data-site-users'))await showUsers(panel);
@@ -30,7 +30,7 @@ for(const page of pages){
 }
 function explain(e){
  const text=String(e?.message||e);
- if(text.includes('RECORD_CONFLICT'))return '다른 사용자가 이 공의 기록을 변경했습니다. 입력 내용은 유지했습니다. 최신 기록을 확인한 후 다시 입력해 주세요.';
+ if(text.includes('RECORD_CONFLICT'))return '다른 사용자가 이 항목의 기록을 변경했습니다. 입력 내용은 유지했습니다. 최신 기록을 확인한 후 다시 입력해 주세요.';
  if(/GOOGLE_VERIFICATION_REQUIRED|ACCOUNT_EMAIL_CHANGED/.test(text))return '확인된 구글 계정으로 다시 로그인해 주세요.';
  if(/42501|permission|EDIT_ACCESS_REQUIRED|ADMIN_REQUIRED/i.test(text)||e?.code==='42501')return '이 작업을 할 권한이 없습니다. 접근 권한을 다시 확인해 주세요.';
  if(/provider.*not.*enabled|unsupported.*provider/i.test(text))return '구글 로그인 연결 설정이 아직 완료되지 않았습니다.';
@@ -85,6 +85,22 @@ root.SiteCloud={allowed,canEdit,explain,refresh,get generation(){return generati
   const r=await client.from('site_drawings').select('document').eq('id',cfg.drawing).single();if(r.error)throw r.error;
   return {base:r.data.document,rows:await records()};
  },records,
+ async planRecords(){
+  if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
+  const rows=[];
+  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_trade_records').select('*').eq('drawing_id',cfg.planDrawing).order('trade').order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
+  return rows;
+ },
+ async loadPlan(){
+  if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
+  const r=await client.from('site_drawings').select('document').eq('id',cfg.planDrawing).single();if(r.error)throw r.error;
+  return {document:r.data.document,rows:await this.planRecords()};
+ },
+ async saveTrade(trade,key,value,version){
+  if(!canEdit())throw Error('EDIT_ACCESS_REQUIRED');
+  const r=await client.rpc('site_save_trade',{drawing:cfg.planDrawing,trade_name:trade,item:key,expected_version:version,member_label:value.label,member_spec:value.spec,delivered_date:value.delivered||null,completed_date:value.completed||null,memo:value.note});
+  if(r.error)throw r.error;return r.data;
+ },
  async save(key,value,version){
   if(!canEdit())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.rpc('site_save_prd',{drawing:cfg.drawing,pile:key,expected_version:version,drilled_date:value.drilled||null,delivered_date:value.delivered||null,installed_date:value.installed||null,memo:value.note});

@@ -56,5 +56,5 @@ async function download(snapshot,stillAllowed){
  const link=document.createElement('a');link.href=url;link.download=`서리풀_남측_PRD_${snapshot.scope}_${snapshot.asOf}.xlsx`;document.body.appendChild(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),60000);return true;
 }
-root.PRDExport={build,download};if(typeof module!=='undefined')module.exports=root.PRDExport;
+root.PRDExport={build,download,loadLibrary};if(typeof module!=='undefined')module.exports=root.PRDExport;
 })(globalThis);

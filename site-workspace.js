@@ -6,7 +6,7 @@ const states=new Map(pages.map(page=>[page,{trade:'prd',switching:false,focus:nu
 const expanded=page=>page.classList.contains('site-fullscreen');
 function exportControls(page){
  const button=page.querySelector('[data-site-export]');
- button.disabled=page.id!=='site-prd'||states.get(page).trade!=='prd';
+ button.disabled=page.id!=='site-prd'||!['prd','steel','slab'].includes(states.get(page).trade);
  button.title=button.disabled?'등록된 시공 현황이 없습니다.':'현재 공구와 상태 필터에 해당하는 저장 기록 다운로드';
  page.querySelector('[data-site-export-status]').textContent='';
 }
@@ -33,9 +33,10 @@ async function selectTrade(page,trade){
  const epoch=root.SiteCloud.generation;state.switching=true;select.disabled=true;
  try{
   if(page.id==='site-prd'&&state.trade==='prd'&&!await root.PRDCloudUI.beforeTradeChange())return false;
+  if(page.id==='site-prd'&&['steel','slab'].includes(state.trade)&&!await root.SitePlanUI.beforeTradeChange(state.trade))return false;
   if(!root.SiteCloud.allowed()||epoch!==root.SiteCloud.generation)return false;
   for(const pane of panes)pane.hidden=pane.dataset.trade!==trade;
-  state.trade=trade;return true;
+  state.trade=trade;if(page.id==='site-prd'&&['steel','slab'].includes(trade))root.SitePlanUI.activate(trade);return true;
  }finally{select.value=state.trade;select.disabled=false;state.switching=false;exportControls(page);}
 }
 for(const page of pages){
@@ -47,11 +48,11 @@ for(const page of pages){
   if(state.switching||exportButton.disabled||!root.SiteCloud?.allowed())return;
   const epoch=root.SiteCloud.generation;state.switching=true;select.disabled=true;exportButton.disabled=true;exportStatus.textContent='엑셀 파일을 만들고 있습니다…';
   try{
-   const snapshot=await root.PRDCloudUI.exportSnapshot();
-   const saved=await root.PRDExport.download(snapshot,()=>root.SiteCloud.allowed()&&epoch===root.SiteCloud.generation);
-   exportStatus.textContent=saved?`${snapshot.scope} · ${snapshot.piles.length}공 다운로드 완료`:'접근 권한이 변경되어 다운로드를 중단했습니다.';
+   const isPRD=state.trade==='prd',snapshot=await(isPRD?root.PRDCloudUI.exportSnapshot():root.SitePlanUI.exportSnapshot(state.trade));
+   const saved=await(isPRD?root.PRDExport:root.SitePlanExport).download(snapshot,()=>root.SiteCloud.allowed()&&epoch===root.SiteCloud.generation);
+   exportStatus.textContent=saved?`${snapshot.scope} · ${isPRD?snapshot.piles.length+'공':snapshot.items.length+'개'} 다운로드 완료`:'접근 권한이 변경되어 다운로드를 중단했습니다.';
   }catch(e){exportStatus.textContent=e.message||'다운로드에 실패했습니다. 다시 시도해 주세요.';}
-  finally{state.switching=false;select.disabled=false;exportButton.disabled=page.id!=='site-prd'||state.trade!=='prd';}
+  finally{state.switching=false;select.disabled=false;exportButton.disabled=page.id!=='site-prd'||!['prd','steel','slab'].includes(state.trade);}
  });
  select.addEventListener('change',()=>selectTrade(page,select.value));
  button.addEventListener('click',async()=>{

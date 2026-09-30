@@ -42,6 +42,7 @@ async function load(options={}){
  }};
  const ctx=vm.createContext({PRD:P,PRDZones:Z,PRDDashboard:require('../prd-dashboard.js'),SiteCloud:cloud,console,setInterval(){},confirm:()=>options.confirm!==false,document:{getElementById:$,createElementNS:(_,tag)=>new Element(tag),addEventListener(k,fn){(docEvents[k]??=[]).push(fn);},querySelectorAll:s=>s==='.site-page'?pages:[],body:new Element()},window:{addEventListener(){}},localStorage:{getItem:()=>options.legacy?JSON.stringify(options.legacy):null,setItem(){throw Error('must not write localStorage');}},requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id)});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../prd-ui.js'),'utf8'),ctx);
+ ctx.SitePlanUI={activate:async()=>{},beforeTradeChange:async()=>true};
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../site-workspace.js'),'utf8'),ctx);
  await new Promise(resolve=>setImmediate(resolve));
  function flush(){const pending=[...frames.values()];frames.clear();for(const fn of pending)fn();}
@@ -227,6 +228,14 @@ test('export snapshot respects the current zone and status filter and excludes u
  await page.querySelector('[data-site-export]').events.click();
  assert.equal(snapshot.piles.length,1);assert.equal(snapshot.piles[0].key,key);assert.equal(snapshot.scope,'A1');assert.equal(snapshot.filter,'타설 완료');
  assert.equal(snapshot.records[key].installed,'2026-09-21');assert.match(page.querySelector('[data-site-export-status]').textContent,/1공 다운로드 완료/);
- const select=page.querySelector('[data-site-trade]');select.value='steel';await select.events.change();assert.equal(page.querySelector('[data-site-export]').disabled,true);
+ const select=page.querySelector('[data-site-trade]');select.value='steel';await select.events.change();assert.equal(page.querySelector('[data-site-export]').disabled,false);
  await h.logout();await assert.rejects(()=>h.ctx.PRDCloudUI.exportSnapshot());
+});
+
+test('failed steel/slab save preserves the active trade and fullscreen',async()=>{
+ const h=await load(),page=h.$('site-prd'),select=page.querySelector('[data-site-trade]');
+ select.value='steel';await select.events.change();await h.$('prd-fullscreen').events.click();
+ h.ctx.SitePlanUI.beforeTradeChange=async trade=>{assert.equal(trade,'steel');return false;};
+ select.value='slab';await select.events.change();assert.equal(select.value,'steel');assert.equal(page.classList.contains('site-fullscreen'),true);
+ h.ctx.SitePlanUI.beforeTradeChange=async()=>true;select.value='slab';await select.events.change();assert.equal(select.value,'slab');
 });

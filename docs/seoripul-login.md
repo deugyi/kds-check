@@ -1,6 +1,6 @@
 # 서리풀 현장 로그인·서버 기록
 
-계산기는 공개이며 현장 3개 메뉴만 Google 로그인과 관리자 승인을 요구한다. Supabase의 행 수준 보안(RLS)이 도면/기록 접근을 제한한다. 프런트엔드 버튼 숨김만으로 보호하지 않는다.
+계산기는 공개이며 남측·북측의 시공 현황 페이지는 Google 로그인과 관리자 승인을 요구한다. Supabase의 행 수준 보안(RLS)이 도면/기록 접근을 제한한다. 프런트엔드 버튼 숨김만으로 보호하지 않는다.
 
 ## 설치
 
@@ -37,3 +37,9 @@
 - PostgreSQL 권한 검증: npm의 `@electric-sql/pglite` 0.5.8을 설치하거나 `PGLITE_MODULE`에 모듈 경로를 지정하고 `node --test supabase/security.test.cjs` 실행. Supabase auth 테이블의 최소 대체 스키마를 만들고 실제 PostgreSQL에서 SQL/RLS/역할/충돌/입력 검사를 실행한다. 실제 Google OAuth 왕복 검증을 대체하지 않는다.
 
 근거: [Supabase Google 로그인](https://supabase.com/docs/guides/auth/social-login/auth-google), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow).
+
+## 철골보·슬래브 서버 기록 (2026-10-01)
+
+기존 설치 이후 `supabase/site-trades.sql`을 한 번 적용한다. viewer는 도면·기록 조회, editor/admin은 알려진 도면선·영역 키에 대한 저장을 허용한다. 익명·승인 대기·이용 중지 계정은 신규 기록을 읽거나 저장할 수 없다. 테이블 직접 쓰기는 모든 클라이언트 역할에서 금지하며 `site_save_trade`만 사용한다. 서버에서 실제 Google 사용자·승인 역할·도면 키·예상 버전·날짜 순서를 다시 검사한다.
+
+공개 API 함수는 SECURITY INVOKER이며 쓰기 구현은 공개 API에 노출되지 않는 private 스키마의 함수로 위임한다. private 함수도 동일한 사용자/역할 검사를 실행한다. private 감사 테이블은 RLS를 켜고 클라이언트 정책/직접 권한을 제공하지 않는 것이 의도된 설정이다. 기존 PRD와 신규 기록의 감사 내용을 보존하며 프런트엔드 복구 과정에서 삭제하지 않는다.
