@@ -12,6 +12,22 @@ body:not(.site-authorized) .site-content{display:none!important}
 .site-access table{width:100%;border-collapse:collapse}
 .site-access th,.site-access td{padding:9px;text-align:left;border-bottom:1px solid var(--line)}
 .site-access select{min-width:120px}
+body.site-authorized .site-access{margin:0!important;padding:0!important;border:0;background:transparent;box-shadow:none;position:relative;flex:none;font-size:13px}
+body.site-authorized .site-login-info{display:none}
+.site-account-menu{position:relative}
+.site-account-menu summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:9px 12px;border:1px solid var(--line);border-radius:6px;color:var(--accent);background:var(--panel);white-space:nowrap;font-size:13px}
+.site-account-menu summary::-webkit-details-marker{display:none}
+.site-account-menu summary svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6}
+.site-account-menu[open] summary{background:var(--code);border-color:var(--accent)}
+.site-account-menu summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.site-account-popover{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:min(330px,calc(100vw - 28px));padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:0 8px 28px #0002;color:var(--ink);font-size:13px}
+.site-account-popover .site-account{margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.site-account-popover .site-auth-actions{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.site-account-popover .site-admin{margin-top:0}
+.site-account-popover button{margin-left:0!important;text-align:left;font-size:12px}
+.site-account-popover [data-site-users]{width:100%}
+.site-account-menu:has(.site-member-list:not([hidden])) .site-account-popover{width:min(600px,calc(100vw - 28px))}
+.site-account-popover .site-members-scroll{max-height:55vh}
 #site-prd.prd-fullscreen>.site-access{display:none}
 #prd-sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 #prd-sync button{font-size:12px}
