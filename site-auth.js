@@ -47,7 +47,7 @@ function render(){
   panel.querySelector('.site-login-status').textContent=panel.querySelector('.site-account').textContent;
   const menu=panel.querySelector('.site-account-menu');menu.hidden=!user;if(!user)menu.open=false;
   panel.querySelector('.site-account-label').textContent=member?.role==='admin'?'관리자 메뉴':'계정 메뉴';
-  const toolbar=page.querySelector('.site-workspace-toolbar');if(toolbar?.appendChild){if(allowed())toolbar.appendChild(panel);else page.prepend(panel);}
+  const toolbar=page.querySelector('.site-workspace-toolbar');if(toolbar?.appendChild){if(allowed()){if(panel.parentNode!==toolbar)toolbar.appendChild(panel);}else if(panel.parentNode!==page)page.prepend(panel);}
   panel.querySelector('[data-site-login]').hidden=!!user;
   panel.querySelector('[data-site-logout]').hidden=!user;
   panel.querySelector('[data-site-refresh]').hidden=!user;
