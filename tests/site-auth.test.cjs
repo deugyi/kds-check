@@ -29,10 +29,17 @@ test('anonymous calculator session is public; site controls are locked and PKCE 
  await assert.rejects(()=>h.context.SiteCloud.load(),/ACCESS_REQUIRED/);assert.equal(h.calls.length,0);
  await h.click('data-site-login');assert.equal(h.oauth.provider,'google');assert.equal(h.oauth.options.redirectTo,'https://example.test/app/');
 });
-test('pending and blocked remain locked; viewer can read but cannot save',async()=>{
+test('pending and blocked remain locked; ordinary user can read but cannot save PRD',async()=>{
  const h=await load('pending');assert.equal(h.context.SiteCloud.allowed(),false);assert.match(h.panels[0].querySelector('.site-auth-message').textContent,/관리자 승인/);
  await h.change('blocked');assert.equal(h.classes.has('site-authorized'),false);
  await h.change('viewer');assert.equal(h.classes.has('site-authorized'),true);assert.equal(h.context.SiteCloud.canEdit(),false);await assert.rejects(()=>h.context.SiteCloud.save('a',{},0),/ACCESS_REQUIRED/);
+});
+
+test('approved ordinary user may save steel and slab dates, while unapproved accounts remain denied',async()=>{
+ const h=await load('viewer');assert.equal(h.context.SiteCloud.canEditTrade(),true);assert.equal(h.context.SiteCloud.canEdit(),false);
+ const value={label:'B-1',spec:'H',delivered:'',completed:'2026-10-02',note:'memo'};
+ for(const trade of ['steel','slab']){await h.context.SiteCloud.saveTrade(trade,'item',value,3);assert.equal(h.calls.at(-1)[0],'site_save_trade');assert.equal(h.calls.at(-1)[1].trade_name,trade);assert.equal(h.calls.at(-1)[1].expected_version,3);}
+ for(const role of ['pending','blocked',null]){await h.change(role);assert.equal(h.context.SiteCloud.canEditTrade(),false);await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','item',value,3),/ACCESS_REQUIRED/);}
 });
 test('admin panel escapes member text; editor cannot see the account list',async()=>{
  const h=await load('admin');await h.click('data-site-users');const list=h.panels[0].querySelector('.site-member-list');assert.match(list.innerHTML,/&lt;img/);assert.doesNotMatch(list.innerHTML,/<img/);

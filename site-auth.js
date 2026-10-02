@@ -2,7 +2,7 @@
 'use strict';
 if(!document.createElementNS)return;
 const cfg=root.SITE_CONFIG,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const roles={pending:'승인 대기',viewer:'조회 전용',editor:'기록 입력',admin:'관리자',blocked:'이용 중지'};
+const roles={pending:'승인 대기',viewer:'일반 사용자',editor:'기록 입력',admin:'관리자',blocked:'이용 중지'};
 let client=null,member=null,user=null,errorText='',checking=false,checkAgain=false,generation=0;
 const pages=Array.from(document.querySelectorAll('.site-page'));
 for(const page of pages){
@@ -40,6 +40,7 @@ function explain(e){
 }
 function allowed(){return !!member&&['viewer','editor','admin'].includes(member.role);}
 function canEdit(){return !!member&&['editor','admin'].includes(member.role);}
+function canEditTrade(){return allowed();}
 function isAdmin(){return member?.role==='admin';}
 function render(){
  document.body.classList.toggle('site-authorized',allowed());
@@ -86,7 +87,7 @@ async function records(){
  const r=await client.from('site_prd_records').select('*').eq('drawing_id',cfg.drawing).order('pile_key').range(0,4999);
  if(r.error)throw r.error;return r.data;
 }
-root.SiteCloud={allowed,canEdit,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
+root.SiteCloud={allowed,canEdit,canEditTrade,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
  async load(){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.from('site_drawings').select('document').eq('id',cfg.drawing).single();if(r.error)throw r.error;
@@ -117,7 +118,7 @@ root.SiteCloud={allowed,canEdit,isAdmin,explain,refresh,get generation(){return 
   if(r.error)throw r.error;return r.data;
  },
  async saveTrade(trade,key,value,version){
-  if(!canEdit())throw Error('EDIT_ACCESS_REQUIRED');
+  if(!canEditTrade())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.rpc('site_save_trade',{drawing:cfg.planDrawing,trade_name:trade,item:key,expected_version:version,member_label:value.label,member_spec:value.spec,delivered_date:value.delivered||null,completed_date:value.completed||null,memo:value.note});
   if(r.error)throw r.error;return r.data;
  },

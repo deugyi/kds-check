@@ -9,6 +9,12 @@ function exportControls(page){
  if(drawingTools)drawingTools.hidden=states.get(page).trade!=='prd';
  const overviewTools=page.querySelector('[data-overview-tools]');
  if(overviewTools)overviewTools.hidden=states.get(page).trade!=='overview';
+ const prdSync=page.querySelector('[data-prd-sync]');
+ if(prdSync)prdSync.hidden=states.get(page).trade!=='prd';
+ const planTools=page.querySelector('[data-plan-tools]');
+ if(planTools)planTools.hidden=!['steel','slab'].includes(states.get(page).trade);
+ const planStatus=page.querySelector('[data-plan-sync-status]');
+ if(planStatus)planStatus.textContent='';
  const button=page.querySelector('[data-site-export]');
  button.disabled=page.id!=='site-prd'||!['prd','steel','slab','overview'].includes(states.get(page).trade);
  button.title=button.disabled?'등록된 시공 현황이 없습니다.':'현재 공구와 상태 필터에 해당하는 저장 기록 다운로드';

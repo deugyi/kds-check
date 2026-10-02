@@ -34,4 +34,4 @@ body.site-authorized .site-login-info{display:none}
 #prd-sync-status{color:var(--dim);font-size:12px}
 
 #site-prd.prd-fullscreen>.site-content{display:flex;flex-direction:column;flex:1;min-height:0}
-#site-prd.prd-fullscreen #prd-sync{display:none}
+#site-prd.prd-fullscreen .site-workspace-toolbar #prd-sync:not([hidden]){display:flex}
