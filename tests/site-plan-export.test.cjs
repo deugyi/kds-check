@@ -14,8 +14,12 @@ test('steel XLSX preserves input labels, literal notes, dates and duplicate pair
  assert.equal(detail.getCell('I4').value,records.a.note);assert.equal(detail.getCell('I4').formula,undefined);
  assert.equal(summary.getCell('B4').value,2);assert.equal(summary.getCell('E4').value,.5);assert.equal(review.rowCount,4);assert.equal(review.getCell('B4').value,'부재 A');assert.equal(review.getCell('D4').value,5);
 });
-test('slab XLSX reports area and casting date with blank delivery and no duplicate lines',async()=>{
- const b=E.build(ExcelJS,{trade:'slab',items:[{key:'s',display:'슬래브 0001',zone:'C1',area:8.5}],records:{s:{completed:'2026-10-01'}},scope:'C1',asOf:'2026-10-01',duplicatePairs:[]});
+test('slab XLSX preserves three types and construction dates including legacy casting records',async()=>{
+ const b=E.build(ExcelJS,{trade:'slab',items:['s','d','c','t'].map(key=>({key,display:'슬래브 '+key,zone:'C1',area:8.5})),records:{s:{completed:'2026-10-01'},d:{slab_kind:'deck',decked:'2026-09-28',reinforced:'2026-09-29',completed:'2026-10-01',note:'=literal'},c:{slab_kind:'conventional',reinforced:'2026-09-30'},t:{slab_kind:'temporary'}},scope:'C1',asOf:'2026-10-01',duplicatePairs:[]});
  const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());
- assert.equal(round.getWorksheet('시공 기록').getCell('E4').value,8.5);assert.equal(round.getWorksheet('시공 기록').getCell('G4').value,null);assert.equal(round.getWorksheet('시공 기록').getCell('H4').value.toISOString(),'2026-10-01T00:00:00.000Z');assert.equal(round.getWorksheet('중복선 검토').rowCount,3);
+ const detail=round.getWorksheet('시공 기록');assert.equal(detail.getCell('E4').value,8.5);assert.equal(detail.getCell('G4').value,'미지정');assert.equal(detail.getCell('H4').value,null);assert.equal(detail.getCell('J4').value.toISOString(),'2026-10-01T00:00:00.000Z');
+ assert.deepEqual(['G3','H3','I3','J3','K3'].map(k=>detail.getCell(k).value),['슬래브 종류','데크 판개일','철근 설치일','타설일','메모']);
+ assert.deepEqual(['G5','G6','G7'].map(k=>detail.getCell(k).value),['데크슬래브','재래식 슬래브','가설 슬래브']);
+ for(const [column,date] of [['H','2026-09-28'],['I','2026-09-29'],['J','2026-10-01']]){assert.equal(detail.getCell(column+'5').value.toISOString(),date+'T00:00:00.000Z');assert.equal(detail.getCell(column+'5').numFmt,'yyyy-mm-dd');}
+ assert.equal(detail.getCell('H6').value,null);assert.equal(detail.getCell('K5').value,'=literal');assert.equal(detail.getCell('K5').formula,undefined);assert.equal(round.getWorksheet('중복선 검토').rowCount,3);
 });

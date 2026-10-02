@@ -29,3 +29,9 @@
 .plan-stats th{text-align:left;font-weight:400;color:#526571;padding-right:16px}
 .plan-stats td{text-align:right;font-weight:600;color:var(--ink)}
 @media(max-width:600px){.site-page .plan-toolbar{padding:8px;gap:6px}.site-page .plan-drawing-title{flex-basis:100%;line-height:24px}.site-page .plan-options-row{column-gap:12px}.plan-map-info{top:10px;right:10px;min-width:155px;padding:6px 8px}.plan-legend{font-size:10px;gap:5px}.plan-legend>strong,.plan-stats caption{font-size:10px}.plan-legend+.plan-stats{margin-top:7px;padding-top:6px}.plan-stats caption{padding-bottom:5px}.plan-stats th,.plan-stats td{font-size:10px;padding:2px 0;line-height:1.2}}
+
+.plan-detail select{width:100%;margin-top:6px}
+.plan-slab-legend i{height:10px;border:1px solid #abc0cd}
+.plan-slab-legend .slab-type-deck{background:#dcebf6}.plan-slab-legend .slab-type-conventional{background:#ede7dc}.plan-slab-legend .slab-type-temporary{background:#e7e0f0}
+.plan-slab-legend .slab-stage-deck{height:3px;background:#367cb2;border:0}.plan-slab-legend .slab-stage-rebar{height:3px;background:#8064b5;border:0}.plan-slab-legend .plan-legend-completed{height:3px;border:0}
+.plan-map-info:has(.plan-slab-legend){max-height:calc(100% - 28px);overflow:auto;pointer-events:auto}

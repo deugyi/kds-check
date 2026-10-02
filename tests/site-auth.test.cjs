@@ -38,7 +38,9 @@ test('pending and blocked remain locked; ordinary user can read but cannot save 
 test('approved ordinary user may save steel and slab dates, while unapproved accounts remain denied',async()=>{
  const h=await load('viewer');assert.equal(h.context.SiteCloud.canEditTrade(),true);assert.equal(h.context.SiteCloud.canEdit(),false);
  const value={label:'B-1',spec:'H',delivered:'',completed:'2026-10-02',note:'memo'};
- for(const trade of ['steel','slab']){await h.context.SiteCloud.saveTrade(trade,'item',value,3);assert.equal(h.calls.at(-1)[0],'site_save_trade');assert.equal(h.calls.at(-1)[1].trade_name,trade);assert.equal(h.calls.at(-1)[1].expected_version,3);}
+ await h.context.SiteCloud.saveTrade('steel','item',value,3);assert.equal(h.calls.at(-1)[0],'site_save_trade');assert.equal(h.calls.at(-1)[1].trade_name,'steel');assert.equal(h.calls.at(-1)[1].expected_version,3);
+ await h.context.SiteCloud.saveTrade('slab','item',{...value,slab_kind:'deck',decked:'2026-09-29',reinforced:'2026-10-01'},3);
+ assert.equal(h.calls.at(-1)[0],'site_save_slab_record');assert.deepEqual(JSON.parse(JSON.stringify(h.calls.at(-1)[1])),{item:'item',expected_version:3,member_label:'B-1',member_spec:'H',slab_type:'deck',deck_date:'2026-09-29',rebar_date:'2026-10-01',cast_date:'2026-10-02',memo:'memo'});
  for(const role of ['pending','blocked',null]){await h.change(role);assert.equal(h.context.SiteCloud.canEditTrade(),false);await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','item',value,3),/ACCESS_REQUIRED/);}
 });
 test('admin panel escapes member text; editor cannot see the account list',async()=>{
