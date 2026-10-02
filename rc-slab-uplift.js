@@ -6,7 +6,8 @@
 (function(root){
 'use strict';
 const R=typeof module!=='undefined'&&module.exports?require('./rc-beam.js'):root.RCBeam;
-const BARS=['D10','D13','D16','D19','D22','D25'];
+const MIXED_BARS={'D10+D13':['D10','D13'],'D13+D16':['D13','D16']};
+const BARS=['D10','D10+D13','D13','D13+D16','D16','D19','D22','D25'];
 const SPACINGS=[100,125,150,175,200,250,300];
 // KDS 14 20 70 표 4.1-1. Column order follows the standard end-span cases.
 const END_CASES=[
@@ -77,9 +78,16 @@ function capacity(p,d,As){
   return {c,a,et,ey,etl,emin,phi,Mn,phiMn:phi*Mn,ductile:et>=emin-1e-12};
 }
 function arrangement(p,bar,spacing,face){
-  const area=R.BARS[bar].area,db=R.BARS[bar].diameter;
+  const bars=MIXED_BARS[bar]||[bar];
+  if(!bars.every(b=>R.BARS[b]))throw Error('지원하는 철근 규격을 선택해 주세요.');
+  // Mixed bars alternate 1:1 in the same mat. Spacing is between adjacent
+  // bars; each diameter repeats at 2s, so do not count both at spacing s.
+  const area=bars.reduce((sum,b)=>sum+R.BARS[b].area,0)/bars.length;
+  // Use the shallower centroid of the larger bar for the entire mat. This
+  // retains the single-depth section model and does not overstate its depth.
+  const db=Math.max(...bars.map(b=>R.BARS[b].diameter));
   const cover=face==='top'?p.coverTop:p.coverBottom;
-  return {bar,spacing,db,As:1000/spacing*area,d:p.h-cover-db/2,cover};
+  return {bar,bars:[...bars],mixed:bars.length>1,spacing,db,As:1000/spacing*area,d:p.h-cover-db/2,cover};
 }
 function check(p,Mu,face,bar,spacing){
   const a=arrangement(p,bar,spacing,face);

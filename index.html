@@ -659,11 +659,11 @@ body:has(.site-page.on)>footer{display:none}
     </div><p class="beam-muted">D = 슬래브 자중 + 무근 콘크리트 하중. 양압력은 위로, D·L은 아래로 작용합니다. 상향 조합은 1.6H − 0.9D, 하향 조합은 1.2D + 1.6L입니다.</p></div>
 
     <div class="card"><h2>4. 배근</h2><div class="grid beam-inputs">
-      <label><b>철근 규격</b><select id="s_bar"><option>D10</option><option selected>D13</option><option>D16</option><option>D19</option><option>D22</option><option>D25</option></select></label>
+      <label><b>철근 규격</b><select id="s_bar"><option>D10</option><option>D10+D13</option><option selected>D13</option><option>D13+D16</option><option>D16</option><option>D19</option><option>D22</option><option>D25</option></select></label>
       <label><b>철근 간격 (mm)</b><input id="s_spacing" type="number" min="50" step="25" value="200"></label>
       <label><b>상부 피복 (mm)</b><input id="s_cover_top" type="number" min="0" step="5" value="50"></label>
       <label><b>하부 피복 (mm)</b><input id="s_cover_bottom" type="number" min="0" step="5" value="50"></label>
-    </div><p class="beam-muted">입력한 규격·간격을 전 위험단면에 동일하게 적용해 검토하고, 단면별로 성립하는 최대 간격을 따로 제안합니다.</p></div>
+    </div><p id="s_mixed_note" class="beam-muted" hidden>혼합 배근은 같은 면에 두 규격을 1:1로 번갈아 배치합니다. 입력 간격은 인접 철근 사이 거리이며 같은 규격은 그 두 배 간격으로 반복됩니다.</p><p class="beam-muted">입력한 규격·간격을 전 위험단면에 동일하게 적용해 검토하고, 단면별로 성립하는 최대 간격을 따로 제안합니다.</p></div>
 
     <div class="card"><h2>5. 경간 조건</h2><div class="grid beam-inputs">
       <label><b>검토 경간 위치</b><select id="s_span_type"><option value="interior" selected>내부 경간</option><option value="end">단부 경간</option></select></label>
@@ -1077,8 +1077,8 @@ var SectionPicker=(function(){
 <script src="rc-beam-ui.js?v=20260911-15"></script>
 <script src="rc-column.js?v=20260911-15"></script>
 <script src="rc-column-ui.js?v=20260911-15"></script>
-<script src="rc-slab-uplift.js?v=20260911-15"></script>
-<script src="rc-slab-uplift-ui.js?v=20260912-45"></script>
+<script src="rc-slab-uplift.js?v=20261002-98"></script>
+<script src="rc-slab-uplift-ui.js?v=20261002-98"></script>
 <script src="composite-beam.js?v=20260914-53"></script>
 <script src="composite-beam-ui.js?v=20260914-61"></script>
 <script src="concrete-age.js?v=20260911-15"></script>

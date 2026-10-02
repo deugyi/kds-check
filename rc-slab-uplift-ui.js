@@ -156,6 +156,7 @@ function renderSections(p,o){
     `<dl class="beam-values"><div><dt>입력 배근</dt><dd>${p.bar} @ ${fmt(p.spacing,0)} mm</dd></div>`+
     `<div><dt>단면 최소철근량 (수축·온도)</dt><dd>${fmt(o.AsMin,0)} mm²/m · ρ ${fmt(100*o.minimumRatio,3)}%</dd></div>`+
     `<div><dt>위험단면 최대 철근간격</dt><dd>${fmt(o.maxSpacing,0)} mm</dd></div></dl>`+
+    (p.bar.includes('+')?`<p class="beam-muted">${p.bar.split('+').join('과 ')}을 같은 면에 번갈아 배치합니다. 인접 철근 @${fmt(p.spacing,0)}, 각 규격 @${fmt(2*p.spacing,0)} mm입니다. 철근량은 두 규격 단면적의 평균으로 계산하며, 유효깊이 d는 큰 철근의 중심을 기준으로 적용합니다.</p>`:'')+
     `<p class="beam-muted">행을 클릭하면 위 평면도에서 해당 설계대가 강조됩니다. 제안 배근은 시공성을 위해 <b>같은 설계대의 상·하부 간격을 통일</b>했습니다. 두 면 중 무거운 쪽이 간격을 정하며, 그 간격에서 양쪽 모두 φMn ≥ Mu와 최대간격을 만족하고 합계가 단면 최소철근도 넘습니다. 단부 경간처럼 지지부 단면이 둘이면 각 인장면에서 Mu가 큰 쪽을 적용합니다. 정착·이음·단부 연장길이는 별도입니다.</p>`+
     `<h3 class="beam-subheading">단면 최소철근 — 상부근 + 하부근 (입력 배근 기준)</h3>`+
     `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>설계대</th><th>상부 As (mm²/m)</th><th>하부 As (mm²/m)</th><th>합계</th><th>ρ</th><th>판정</th></tr></thead><tbody>${mins}</tbody></table></div>`+
@@ -190,6 +191,7 @@ function select(dir,strip){
 function update(){
   get('s_error').hidden=true;
   get('s_end_field').hidden=get('s_span_type').value!=='end';
+  get('s_mixed_note').hidden=!get('s_bar').value.includes('+');
   try{
     const p=read(),o=RCSlabUplift.calculate(p);
     current={p,o};

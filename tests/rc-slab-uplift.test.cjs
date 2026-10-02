@@ -166,4 +166,57 @@ test('invalid geometry, materials and arrangement are rejected',()=>{
   assert.throws(()=>S.calculate({...base,fck:100}));
   assert.throws(()=>S.calculate({...base,spanType:'middle'}));
   assert.throws(()=>S.calculate({...base,endCase:9}));
+  assert.throws(()=>S.calculate({...base,bar:'D10+D16'}));
+});
+
+test('alternating mixed bars count each diameter at twice the adjacent spacing',()=>{
+  for(const [bar,expectedAs,diameter] of [['D10+D13',495.075,12.7],['D13+D16',813.25,15.9]]){
+    const o=S.calculate({...base,bar});
+    for(const d of o.directions)for(const r of d.rows){
+      near(r.check.As,expectedAs);
+      near(r.check.d,400-(r.face==='top'?40:75)-diameter/2);
+      assert.equal(r.check.mixed,true);
+    }
+    const narrow=S.check(base,1,'top',bar,100);
+    near(narrow.As,expectedAs*2);
+    near(S.check(base,1,'top',bar,250).As,expectedAs*.8);
+  }
+});
+
+test('mixed-bar capacity uses the shallower centroid and is bounded by the single-bar alternatives',()=>{
+  const k=R.concrete(base.fck),stress=.85*k.eta*base.fck;
+  for(const [bar,small,large,area1,area2,db1,db2] of [
+    ['D10+D13','D10','D13',71.33,126.7,9.53,12.7],
+    ['D13+D16','D13','D16',126.7,198.6,12.7,15.9]
+  ])for(const face of ['top','bottom']){
+    const c=S.check(base,1,face,bar,200),cover=face==='top'?40:75;
+    const As=2.5*(area1+area2),a=As*500/(stress*1000),d=400-cover-db2/2;
+    const reference=.85*As*500*(d-a/2)/1e6;
+    near(c.phiMn,reference);
+    assert.ok(c.phiMn>S.check(base,1,face,small,200).phiMn);
+    assert.ok(c.phiMn<S.check(base,1,face,large,200).phiMn);
+    // Independent two-centroid arithmetic: both components yield in this case.
+    const exactYielded=.85*2.5*500*(area1*(400-cover-db1/2-a/2)+area2*(400-cover-db2/2-a/2))/1e6;
+    assert.ok(c.phiMn<exactYielded,'the common shallower centroid does not inflate mixed capacity');
+  }
+});
+
+test('mixed reinforcement sizes both faces and the section minimum under both load directions',()=>{
+  for(const bar of ['D10+D13','D13+D16'])for(const spanType of ['interior','end']){
+    const p={...base,bar,spanType,hw:1.5,loadCase:'both',liveLoad:3};
+    const o=S.calculate(p);
+    assert.equal(o.combinations.length,2);
+    for(const d of o.directions)for(const strip of ['column','middle']){
+      const rows=d.rows.filter(r=>r.strip===strip),[top,bottom]=rows.map(r=>r.suggestion);
+      assert.ok(top&&bottom);
+      assert.equal(top.spacing,bottom.spacing);
+      assert.ok(top.phiMn>=rows[0].Mu&&bottom.phiMn>=rows[1].Mu);
+      assert.equal(S.sectionMinimum(p,top.As,bottom.As).ok,true);
+      for(const s of S.SPACINGS.filter(s=>s>top.spacing)){
+        const a=S.check(p,rows[0].Mu,'top',bar,s),b=S.check(p,rows[1].Mu,'bottom',bar,s);
+        assert.ok(!a.ok||!b.ok||!S.sectionMinimum(p,a.As,b.As).ok);
+      }
+    }
+    assert.ok(S.calculate({...p,hw:20}).directions.every(d=>d.rows.every(r=>r.suggestion===null)));
+  }
 });

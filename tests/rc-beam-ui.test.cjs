@@ -113,6 +113,28 @@ test('RH plus tee initializes and restores the existing single-RH search',()=>{
   assert.equal(nodes.br_tee_fields.hidden,true);assert.equal(nodes.br_assembly_details.hidden,true);
   assert.match(nodes.br_compare.innerHTML,/H-588×300×12×20/);
 });
+
+test('uplift slab mixed bars update steel, drawing and suggestions and recover after invalid input',()=>{
+  const {nodes,context}=load();
+  const refresh=()=>vm.runInContext(fs.readFileSync(path.join(root,'rc-slab-uplift-ui.js'),'utf8'),context);
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const options=html.match(/<select id="s_bar">([\s\S]*?)<\/select>/)[1];
+  for(const bar of ['D10+D13','D13+D16']){
+    assert.ok(options.includes(`<option>${bar}</option>`));
+    nodes.s_bar.value=bar;refresh();
+    assert.equal(nodes.s_error.hidden,true);
+    assert.equal(nodes.s_mixed_note.hidden,false);
+    assert.match(nodes.s_sections.innerHTML,/각 규격 @400 mm/);
+    assert.ok(nodes.s_sections.innerHTML.includes(bar));
+    assert.ok(nodes.s_diagram.innerHTML.includes(bar+'@'));
+    assert.match(nodes.s_sections.innerHTML,bar==='D10+D13'?/495/:/813/);
+  }
+  nodes.s_spacing.value='';refresh();
+  assert.equal(nodes.s_results.hidden,true);assert.equal(nodes.s_sections.innerHTML,'');
+  nodes.s_spacing.value='200';nodes.s_bar.value='D13';refresh();
+  assert.equal(nodes.s_results.hidden,false);assert.equal(nodes.s_mixed_note.hidden,true);
+  assert.doesNotMatch(nodes.s_sections.innerHTML,/각 규격 @/);
+});
 test('RH plus tee clears stale results after missing cut height and recovers',()=>{
   const {nodes}=load();nodes.br_cutMode.value='custom';nodes.br_cutHeight.value='';nodes.t8.events.input();
   assert.match(nodes.br_error.textContent,/절단 높이/);assert.equal(nodes.br_rows.innerHTML,'');assert.equal(nodes.br_assembly_details.hidden,true);
