@@ -180,3 +180,7 @@ body.prd-fullscreen-open{overflow:hidden}
 @media(max-width:1400px){.site-workspace-toolbar .prd-toolbar{order:5;flex-basis:100%;padding-top:10px;border-top:1px solid var(--line)}}
 @media(max-width:600px){.site-workspace-toolbar .prd-toolbar{gap:6px}.site-workspace-toolbar .prd-toolbar button{padding:7px 9px}}
 @media(max-width:850px){.site-workspace-toolbar .overview-tools{order:5;flex-basis:100%;justify-content:space-between;padding-top:10px;border-top:1px solid var(--line)}.site-workspace-toolbar .overview-tools>span{flex:1;min-width:180px}}
+
+.site-page .site-workspace-toolbar [data-plan-tools]{gap:7px}
+.site-page .site-workspace-toolbar [data-plan-tools] button{height:36px;min-height:36px;box-sizing:border-box;margin:0;padding:6px 10px;font-size:13px;line-height:normal}
+.site-workspace-toolbar [data-plan-sync-status]{flex-basis:100%}
