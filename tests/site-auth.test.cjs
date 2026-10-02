@@ -38,6 +38,12 @@ test('admin panel escapes member text; editor cannot see the account list',async
  const h=await load('admin');await h.click('data-site-users');const list=h.panels[0].querySelector('.site-member-list');assert.match(list.innerHTML,/&lt;img/);assert.doesNotMatch(list.innerHTML,/<img/);
  await h.change('editor');assert.equal(list.innerHTML,'');assert.equal(h.panels[0].querySelector('.site-admin').hidden,true);assert.equal(h.context.SiteCloud.canEdit(),true);
 });
+
+test('member hiding is administrator-only and calls the versioned server action',async()=>{
+ const h=await load('editor');assert.equal(h.context.SiteCloud.isAdmin(),false);await assert.rejects(()=>h.context.SiteCloud.setMemberHidden('beam',true,0),/ADMIN_REQUIRED/);assert.equal(h.calls.some(([name])=>name==='site_set_member_visibility'),false);
+ await h.change('admin');assert.equal(h.context.SiteCloud.isAdmin(),true);await h.context.SiteCloud.setMemberHidden('beam',true,7);assert.equal(h.calls.at(-1)[0],'site_set_member_visibility');assert.equal(h.calls.at(-1)[1].expected_version,7);assert.equal(h.calls.at(-1)[1].hide_member,true);await h.context.SiteCloud.planState();
+ await h.change('viewer');await assert.rejects(()=>h.context.SiteCloud.setMemberHidden('beam',false,8),/ADMIN_REQUIRED/);
+});
 test('permission check failure closes site access; logout emits a state change',async()=>{
  const h=await load('editor');await h.disconnect();assert.equal(h.context.SiteCloud.allowed(),false);assert.equal(h.classes.has('site-authorized'),false);assert.match(h.panels[0].querySelector('.site-auth-message').textContent,/서버 연결/);
  const g=await load('admin');await g.click('data-site-logout');assert.equal(g.signout,1);assert.equal(g.context.SiteCloud.allowed(),false);assert.equal(g.events.at(-1),'site-auth-change');

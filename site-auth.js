@@ -40,6 +40,7 @@ function explain(e){
 }
 function allowed(){return !!member&&['viewer','editor','admin'].includes(member.role);}
 function canEdit(){return !!member&&['editor','admin'].includes(member.role);}
+function isAdmin(){return member?.role==='admin';}
 function render(){
  document.body.classList.toggle('site-authorized',allowed());
  for(const page of pages){const panel=page.querySelector('.site-access');
@@ -85,7 +86,7 @@ async function records(){
  const r=await client.from('site_prd_records').select('*').eq('drawing_id',cfg.drawing).order('pile_key').range(0,4999);
  if(r.error)throw r.error;return r.data;
 }
-root.SiteCloud={allowed,canEdit,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
+root.SiteCloud={allowed,canEdit,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
  async load(){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.from('site_drawings').select('document').eq('id',cfg.drawing).single();if(r.error)throw r.error;
@@ -100,7 +101,20 @@ root.SiteCloud={allowed,canEdit,explain,refresh,get generation(){return generati
  async loadPlan(){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.from('site_drawings').select('document').eq('id',cfg.planDrawing).single();if(r.error)throw r.error;
-  return {document:r.data.document,rows:await this.planRecords()};
+  const state=await this.planState();return {document:r.data.document,rows:state.records,visibility:state.visibility};
+ },
+ async planVisibility(){
+  if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
+  const rows=[];
+  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_member_visibility').select('item_key,hidden,version').eq('drawing_id',cfg.planDrawing).order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
+  return Object.fromEntries(rows.map(r=>[r.item_key,r]));
+ },
+ async planState(){const [records,visibility]=await Promise.all([this.planRecords(),this.planVisibility()]);return {records,visibility};
+ },
+ async setMemberHidden(key,hidden,version){
+  if(!isAdmin())throw Error('ADMIN_REQUIRED');
+  const r=await client.rpc('site_set_member_visibility',{drawing:cfg.planDrawing,item:key,expected_version:version,hide_member:hidden});
+  if(r.error)throw r.error;return r.data;
  },
  async saveTrade(trade,key,value,version){
   if(!canEdit())throw Error('EDIT_ACCESS_REQUIRED');

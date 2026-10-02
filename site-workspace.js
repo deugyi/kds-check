@@ -5,6 +5,8 @@ const pages=Array.from(document.querySelectorAll('.site-page'));
 const states=new Map(pages.map(page=>[page,{trade:'prd',switching:false,focus:null}]));
 const expanded=page=>page.classList.contains('site-fullscreen');
 function exportControls(page){
+ const drawingTools=page.querySelector('[data-prd-tools]');
+ if(drawingTools)drawingTools.hidden=states.get(page).trade!=='prd';
  const button=page.querySelector('[data-site-export]');
  button.disabled=page.id!=='site-prd'||!['prd','steel','slab','overview'].includes(states.get(page).trade);
  button.title=button.disabled?'등록된 시공 현황이 없습니다.':'현재 공구와 상태 필터에 해당하는 저장 기록 다운로드';
