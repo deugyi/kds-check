@@ -43,7 +43,7 @@ test('permission check failure closes site access; logout emits a state change',
  const g=await load('admin');await g.click('data-site-logout');assert.equal(g.signout,1);assert.equal(g.context.SiteCloud.allowed(),false);assert.equal(g.events.at(-1),'site-auth-change');
 });
 
-test('south and north unified workspaces are gated and contain four trade panes',async()=>{
+test('south and north unified workspaces gate the overview and four trade panes',async()=>{
  const h=await load();
  const expected=['site-prd','site-north-prd'];
  assert.deepEqual(h.pages.map(p=>p.id),expected);
@@ -54,7 +54,7 @@ test('south and north unified workspaces are gated and contain four trade panes'
   assert.equal(h.panels[i].querySelector('[data-site-login]').hidden,false);
   const section=html.match(new RegExp('<section[^>]+id="'+page.id+'"[^>]*>([\\s\\S]*?)</section>'))[1];
   assert.ok(section.startsWith('<div class="site-content">'));
-  assert.deepEqual([...section.matchAll(/class="site-trade-pane" data-trade="([^"]+)"/g)].map(m=>m[1]),['prd','steel','slab','curtainwall']);
+  assert.deepEqual([...section.matchAll(/class="site-trade-pane" data-trade="([^"]+)"/g)].map(m=>m[1]),['overview','prd','steel','slab','curtainwall']);
  }
  assert.match(fs.readFileSync(path.join(__dirname,'../site-auth.css'),'utf8'),/body:not\(\.site-authorized\) \.site-content\{display:none!important\}/);
 });

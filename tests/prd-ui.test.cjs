@@ -33,7 +33,7 @@ async function load(options={}){
  const pages=[$('site-prd'),$('site-north-prd')];
  for(const page of pages){page.id=page===$('site-prd')?'site-prd':'site-north-prd';const select=new Element('select');select.value='prd';const button=page.id==='site-prd'?$('prd-fullscreen'):$('site-north-fullscreen');
  page.selectors['[data-site-export]']=[new Element('button')];page.selectors['[data-site-export-status]']=[new Element()];page.selectors['[data-site-trade]']=[select];page.selectors['[data-site-fullscreen]']=[button];
- page.selectors['[data-trade]']=['prd','steel','slab','curtainwall'].map(trade=>{const pane=new Element();pane.dataset.trade=trade;pane.hidden=trade!=='prd';return pane;});}
+ page.selectors['[data-trade]']=['overview','prd','steel','slab','curtainwall'].map(trade=>{const pane=new Element();pane.dataset.trade=trade;pane.hidden=trade!=='prd';return pane;});}
  function emit(name){for(const fn of docEvents[name]||[])fn();}
  const cloud={allowed:()=>['viewer','editor','admin'].includes(role),canEdit:()=>['editor','admin'].includes(role),get generation(){return generation;},get userId(){return userId;},explain:e=>e.message,
  load:async()=>({base:JSON.parse(JSON.stringify(base)),rows:Object.values(remote)}),records:async()=>Object.values(remote),save:async(key,r,version)=>{
@@ -184,7 +184,7 @@ test('trade switching keeps fullscreen and the PRD zone, view, graph and records
  const h=await load(),page=h.$('site-prd'),select=page.querySelector('[data-site-trade]');
  await h.zone('C4');const box=h.$('prd-map').getAttribute('viewBox');
  await h.$('prd-fullscreen').events.click();h.$('prd-graphs-toggle').events.click();
- for(const trade of ['steel','slab','curtainwall','prd']){
+ for(const trade of ['steel','slab','curtainwall','overview','prd']){
   select.value=trade;await select.events.change();
   assert.equal(page.classList.contains('site-fullscreen'),true);
   assert.equal(page.querySelectorAll('[data-trade]').filter(p=>!p.hidden)[0].dataset.trade,trade);

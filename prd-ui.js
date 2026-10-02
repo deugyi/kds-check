@@ -6,7 +6,7 @@ let data=null,selected=null,view=null,full=null,drag=null,dirty=false,baseDrawin
 let frame=0,wheel=null,paintedView=null,sortedPiles=[];
 let dashboardRecords=null,dashboardDay=null;
 const cloud=globalThis.SiteCloud;
-let busy=false,loading=false,loadedUser=null,versions=new Map(),legacy=null;
+let busy=false,loading=false,loadedUser=null,versions=new Map(),legacy=null,pendingDrawing=null;
 const pileNodes=new Map(),pilesByKey=new Map(),collator=new Intl.Collator('ko',{numeric:true});
 const map=$('prd-map'),group=$('prd-geometry'),labels=$('prd-labels'),zoneShapes=$('prd-zone-shapes'),zoneLabels=$('prd-zone-labels');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -144,7 +144,8 @@ function activate(next){
  $('prd-import-warning').textContent=[...data.drawing.warnings,...(zoneData.issues.length?[`공구 경계 확인 필요 ${zoneData.issues.length}공: 미분류 목록을 확인하세요.`]:[])].join('\n');$('prd-import-warning').hidden=!$('prd-import-warning').textContent;
  draw();
 }
-async function openFixedDrawing(){
+function openFixedDrawing(){if(pendingDrawing)return pendingDrawing;const task=loadFixedDrawing();pendingDrawing=task;task.finally(()=>{if(pendingDrawing===task)pendingDrawing=null;});return task;}
+async function loadFixedDrawing(){
  if(!cloud?.allowed()||loading)return;
  const epoch=cloud.generation;loading=true;$('prd-retry').disabled=true;message('서버 도면을 불러오고 있습니다…');
  try{
@@ -155,7 +156,7 @@ async function openFixedDrawing(){
   catch{message('기존 브라우저 기록을 읽지 못했습니다. 기존 저장 내용은 그대로 보존했습니다.',true);}
   controls();$('prd-sync-status').textContent='서버 기록 연결됨';
  }catch(e){message(cloud.explain(e),true);}
- finally{loading=false;$('prd-retry').disabled=false;if(epoch!==cloud.generation&&cloud.allowed()&&!data)openFixedDrawing();}
+ finally{loading=false;$('prd-retry').disabled=false;if(epoch!==cloud.generation&&cloud.allowed()&&!data){pendingDrawing=null;openFixedDrawing();}}
 }
 async function refreshRecords(manual=false){
  if(busy||loading||!data||!cloud.allowed())return;
@@ -203,7 +204,7 @@ document.addEventListener('site-auth-change',()=>{
 $('prd-refresh').addEventListener('click',()=>refreshRecords(true));
 $('prd-import-local').addEventListener('click',importLocal);
 setInterval(()=>{if(!document.hidden&&$('site-prd').classList.contains('on'))refreshRecords();},30000);
-globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState,exportSnapshot:async()=>{
+globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState,overviewSnapshot:async()=>{if(!data)await openFixedDrawing();if(!data||!cloud.allowed())throw Error('도면을 불러온 후 다시 시도해 주세요.');return {items:data.drawing.piles.map(v=>({key:v.key,zone:zoneData.membership[v.key]||'unassigned'})),zoneIds:zoneData.zones.map(z=>z.id)};},exportSnapshot:async()=>{
  if(!data||!cloud.allowed())throw Error('도면을 불러온 후 다시 시도해 주세요.');
  if(!await saveForm(true))throw Error('기록을 저장하지 못했습니다. PRD 입력 내용을 확인해 주세요.');
  if(!data||!cloud.allowed())throw Error('접근 권한을 다시 확인해 주세요.');
