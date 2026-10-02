@@ -170,5 +170,9 @@ body.prd-fullscreen-open{overflow:hidden}
 .site-workspace-toolbar .prd-toolbar label{gap:5px;font-size:12px}
 .site-workspace-toolbar .prd-toolbar input{margin:0}
 .site-workspace-toolbar .prd-toolbar #prd-filter{width:auto;max-width:150px}
+.site-workspace-toolbar .overview-tools{margin:0;gap:10px;flex-wrap:wrap;min-width:0}
+.site-workspace-toolbar .overview-tools>span{max-width:none;line-height:1.5}
+.site-workspace-toolbar .overview-tools button{margin-left:0;white-space:nowrap}
 @media(max-width:1400px){.site-workspace-toolbar .prd-toolbar{order:5;flex-basis:100%;padding-top:10px;border-top:1px solid var(--line)}}
 @media(max-width:600px){.site-workspace-toolbar .prd-toolbar{gap:6px}.site-workspace-toolbar .prd-toolbar button{padding:7px 9px}}
+@media(max-width:850px){.site-workspace-toolbar .overview-tools{order:5;flex-basis:100%;justify-content:space-between;padding-top:10px;border-top:1px solid var(--line)}.site-workspace-toolbar .overview-tools>span{flex:1;min-width:180px}}

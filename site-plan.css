@@ -7,3 +7,4 @@
 .plan-hidden-list button{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}
 .plan-visibility-action{margin-top:14px;color:#96365e!important;border-color:#dab5c5!important}
 .plan-admin-message{font-size:12px;margin:0;padding:0 14px;line-height:1.6}
+.plan-legend{display:flex;align-items:center;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--dim)}.plan-legend>span{display:flex;align-items:center;gap:7px;white-space:nowrap}.plan-legend i{display:inline-block;width:25px;border-radius:3px}.plan-legend-pending{height:1px;background:#738c9d}.plan-legend-completed{height:4px;background:#009b60}
