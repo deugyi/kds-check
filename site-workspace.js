@@ -51,6 +51,7 @@ async function selectTrade(page,trade){
  }finally{select.value=state.trade;select.disabled=false;state.switching=false;exportControls(page);}
 }
 for(const page of pages){
+ if(root.MutationObserver)for(const status of page.querySelectorAll('[role="status"]')){if(!status.closest('.site-workspace-toolbar'))continue;const update=()=>status.title=status.textContent;update();new root.MutationObserver(update).observe(status,{childList:true,subtree:true,characterData:true});}
  const select=page.querySelector('[data-site-trade]'),button=page.querySelector('[data-site-fullscreen]');
  const exportButton=page.querySelector('[data-site-export]'),exportStatus=page.querySelector('[data-site-export-status]');
  exportControls(page);

@@ -1,0 +1,44 @@
+/* Consistent controls and responsive groups for both construction workspaces. */
+.site-page .site-workspace-toolbar{container:site-toolbar / inline-size;position:relative;gap:10px;padding:10px 12px;flex-wrap:wrap;align-items:center}
+.site-workspace-heading,.site-workspace-tools,.site-workspace-actions{display:flex;align-items:center;gap:8px;min-width:0}
+.site-workspace-heading{flex:none;gap:12px}
+.site-workspace-heading>strong{flex:none;white-space:nowrap;color:var(--accent);font-size:15px}
+.site-page .site-workspace-toolbar label{gap:6px;font-size:12px;color:var(--dim);line-height:18px}
+.site-page .site-workspace-toolbar select{width:124px;height:36px;min-height:36px;box-sizing:border-box;padding:0 10px;font-size:13px;line-height:18px;margin:0}
+.site-page .site-workspace-toolbar [data-plan-floor]{width:104px}
+.site-page .site-workspace-toolbar button,.site-page .site-workspace-toolbar .site-account-menu>summary{display:inline-flex;align-items:center;justify-content:center;height:36px;min-height:36px;box-sizing:border-box;margin:0;padding:0 10px;font-size:13px;line-height:18px;border-radius:6px;white-space:nowrap;flex:none}
+.site-workspace-tools{flex:1 1 auto;gap:6px}
+.site-page .site-workspace-tools .prd-toolbar,.site-page .site-workspace-tools .plan-sync-tools,.site-page .site-workspace-tools .overview-tools,.site-page .site-workspace-tools #prd-sync{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex-basis:auto;min-width:0;margin:0;padding:0;border:0;order:0}
+.site-page .site-workspace-tools .plan-sync-tools,.site-page .site-workspace-tools .overview-tools{flex:1;overflow:hidden;padding:3px;margin:-3px}
+.site-page .site-workspace-tools .prd-toolbar button,.site-page .site-workspace-tools #prd-sync button,.site-page .site-workspace-tools .plan-sync-tools button{height:36px;min-height:36px;padding:0 10px;font-size:13px;line-height:18px}
+.site-page .site-workspace-toolbar button:is([data-plan-action="in"],[data-plan-action="out"],#prd-zoom-in,#prd-zoom-out){width:36px;padding:0}
+.site-page .site-workspace-tools [role="status"],.site-page .site-workspace-actions [data-site-export-status]{flex:0 1 auto;flex-basis:auto;min-width:0;max-width:150px;font-size:11px;line-height:18px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-page .site-workspace-tools [role="status"]:empty,.site-page .site-workspace-actions [data-site-export-status]:empty{display:none}
+.site-workspace-actions{flex:none;margin-left:auto}
+.site-page .site-workspace-toolbar>.site-access{flex:none}
+.site-page .site-workspace-toolbar .site-access-heading{gap:0;flex-wrap:nowrap}
+.site-page .site-workspace-toolbar .site-auth-message{display:none}
+.site-page .site-workspace-toolbar .site-account-menu>summary{gap:6px}
+.site-page .site-workspace-toolbar .site-account-menu>summary svg{width:17px;height:17px}
+.site-page .site-workspace-toolbar .site-account-popover button{height:auto;min-height:36px;white-space:normal;justify-content:flex-start}
+.site-page .site-workspace-toolbar .site-account-popover select{height:auto;min-height:36px;width:auto}
+.site-page .site-workspace-tools .prd-toolbar label{flex:none;gap:5px;color:var(--ink)}
+.site-page .site-workspace-tools input[type="checkbox"]{width:14px;height:14px;margin:0}
+.site-page .site-workspace-tools #prd-filter{width:128px;max-width:none}
+@container site-toolbar (max-width:1280px){
+ .site-workspace-tools{order:2;flex-basis:100%;padding-top:9px;border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+ .site-page .site-workspace-tools .prd-toolbar,.site-page .site-workspace-tools .plan-sync-tools,.site-page .site-workspace-tools .overview-tools,.site-page .site-workspace-tools #prd-sync{flex:none;overflow:visible;margin:0;padding:0}
+ .site-page .site-workspace-tools [role="status"]{max-width:240px}
+ .site-workspace-tools:not(:has(>[data-prd-tools]:not([hidden]),>[data-plan-tools]:not([hidden]),>[data-overview-tools]:not([hidden]))){display:none}
+}
+@container site-toolbar (max-width:760px){
+ .site-workspace-heading{flex:1 1 auto;flex-wrap:wrap;gap:8px}
+ .site-workspace-heading>strong{flex-basis:100%;padding-right:140px}
+ .site-page .site-workspace-toolbar>.site-access{position:absolute;right:12px;top:10px}
+ .site-workspace-actions{order:1}
+}
+@container site-toolbar (max-width:520px){
+ .site-workspace-heading{flex-basis:100%}
+ .site-workspace-actions{margin-left:0;flex:1 1 100%;max-width:100%}
+ .site-workspace-tools{padding-top:8px}
+}
