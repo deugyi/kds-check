@@ -2,7 +2,7 @@
 'use strict';
 if(!document.createElementNS)return;
 const pages=Array.from(document.querySelectorAll('.site-page'));
-const states=new Map(pages.map(page=>[page,{trade:'prd',switching:false,focus:null}]));
+const states=new Map(pages.map(page=>[page,{trade:page.querySelector('[data-site-trade]').value,switching:false,focus:null}]));
 const expanded=page=>page.classList.contains('site-fullscreen');
 function exportControls(page,preserveStatus=false){
  const drawingTools=page.querySelector('[data-prd-tools]');
@@ -40,7 +40,7 @@ async function selectTrade(page,trade){
  const panes=Array.from(page.querySelectorAll('[data-trade]'));
  if(!state||!panes.some(p=>p.dataset.trade===trade))return false;
  if(state.switching||!root.SiteCloud?.allowed()){select.value=state.trade;return false;}
- if(state.trade===trade)return true;
+ if(state.trade===trade){if(trade==='overview')root.SiteOverviewUI?.activate(page);return true;}
  const epoch=root.SiteCloud.generation;state.switching=true;select.disabled=true;
  try{
   if(page.id==='site-prd'&&state.trade==='prd'&&!await root.PRDCloudUI.beforeTradeChange())return false;

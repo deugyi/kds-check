@@ -7,6 +7,9 @@ root.openKDSPage=async function(id){
   // Old trade links resolve to the unified site workspace.
   const legacy=/^(site(?:-north)?)-(steel|slab|curtainwall)$/.exec(id);
   if(legacy){id=legacy[1]+'-prd';if(root.SiteWorkspace&&!await root.SiteWorkspace.selectTrade(byId(id),legacy[2]))return;}
+  else if(/^site(?:-north)?-prd$/.test(id)&&root.SiteWorkspace&&root.SiteCloud?.allowed()){
+    if(!await root.SiteWorkspace.selectTrade(byId(id),'overview'))return;
+  }
   const item=items.find(b=>b.dataset.t===id);
   if(id!=='home'&&!item)return;
   document.querySelectorAll('section.tab').forEach(s=>s.classList.toggle('on',s.id===id));
