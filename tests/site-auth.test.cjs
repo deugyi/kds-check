@@ -1,19 +1,34 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const tick=()=>new Promise(r=>setImmediate(r));
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-async function load(role=null){
- let current=role,offline=false,onAuth,created,oauth,signout=0,registerWait=null;const opened=[],events=[],timers=[],store=new Map(),calls=[];
+async function load(role=null,config={}){
+ let current=role,offline=false,onAuth,created,oauth,signout=0,registerWait=null;const opened=[],events=[],timers=[],store=new Map(),calls=[],queries=[];
  const make=()=>({hidden:false,textContent:'',innerHTML:'',events:{},dataset:{},addEventListener(k,f){this.events[k]=f;}});
  const panels=[],pages=[...html.matchAll(/<section class="tab site-page" id="([^"]+)" data-site-title="([^"]+)"/g)].map(([,id,siteTitle])=>({id,dataset:{siteTitle},prepend(panel){this.panel=panel;panels.push(panel);},querySelector(){return this.panel;}}));
  const classes=new Set(),body={classList:{toggle:(k,on)=>on?classes.add(k):classes.delete(k)}};
  const client={auth:{getUser:async()=>{if(offline)return {data:{user:null},error:Error('offline')};return {data:{user:current?{id:'user-1',email:'test@example.test'}:null},error:null};},onAuthStateChange:f=>onAuth=f,signInWithOAuth:async opts=>{oauth=opts;return {};},signOut:async()=>{current=null;signout++;return {};}},rpc:async(name,args)=>{calls.push([name,args]);if(name==='site_register'&&registerWait)await registerWait;return {data:name==='site_register'?{user_id:'user-1',email:'test@example.test',role:current}:{version:2},error:null};},from:name=>{
- const chain={select(){return this;},eq(){return this;},order(){return this;},range(){return Promise.resolve({data:[],error:null});},single(){return Promise.resolve({data:{document:{id:'a'.repeat(64)}},error:null});},then(resolve){return Promise.resolve({data:[{user_id:'evil',email:'<img src=x onerror=alert(1)>',role:'pending'}],error:null}).then(resolve);}};return chain;
+ const chain={select(){return this;},eq(key,value){queries.push([name,key,value]);return this;},order(){return this;},range(){return Promise.resolve({data:[],error:null});},single(){return Promise.resolve({data:{document:{id:'a'.repeat(64)}},error:null});},then(resolve){return Promise.resolve({data:[{user_id:'evil',email:'<img src=x onerror=alert(1)>',role:'pending'}],error:null}).then(resolve);}};return chain;
  }};
- const context=vm.createContext({console,openKDSPage:id=>opened.push(id),SITE_CONFIG:{url:'https://example.supabase.co',key:'public-key',redirect:'https://example.test/app/',drawing:'a'.repeat(64)},supabase:{createClient:(...args)=>{created=args;return client;}},sessionStorage:{setItem:(k,v)=>store.set(k,v),getItem:k=>store.get(k),removeItem:k=>store.delete(k)},confirm:()=>true,setInterval(){},setTimeout:f=>timers.push(f),CustomEvent:class{constructor(type){this.type=type;}},document:{body,querySelectorAll:()=>pages,querySelector:()=>null,createElementNS(){},createElement(){const p=make(),parts=new Map();p.querySelector=s=>{if(!parts.has(s))parts.set(s,make());return parts.get(s);};return p;},addEventListener(){},dispatchEvent:e=>events.push(e.type)}});
+ const context=vm.createContext({console,openKDSPage:id=>opened.push(id),SITE_CONFIG:{url:'https://example.supabase.co',key:'public-key',redirect:'https://example.test/app/',drawing:'a'.repeat(64),...config},supabase:{createClient:(...args)=>{created=args;return client;}},sessionStorage:{setItem:(k,v)=>store.set(k,v),getItem:k=>store.get(k),removeItem:k=>store.delete(k)},confirm:()=>true,setInterval(){},setTimeout:f=>timers.push(f),CustomEvent:class{constructor(type){this.type=type;}},document:{body,querySelectorAll:()=>pages,querySelector:()=>null,createElementNS(){},createElement(){const p=make(),parts=new Map();p.querySelector=s=>{if(!parts.has(s))parts.set(s,make());return parts.get(s);};return p;},addEventListener(){},dispatchEvent:e=>events.push(e.type)}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../site-auth.js'),'utf8'),context);await tick();
  async function click(attribute,panel=panels[0]){const b={hasAttribute:a=>a===attribute,dataset:{}};await panel.events.click({target:{closest:()=>b}});await tick();}
- return {context,panels,pages,store,opened,classes,events,calls,click,holdRegistration(){let release;registerWait=new Promise(r=>release=r);return ()=>{registerWait=null;release();};},get created(){return created;},get oauth(){return oauth;},get signout(){return signout;},async change(next){current=next;await context.SiteCloud.refresh();},async disconnect(){offline=true;await context.SiteCloud.refresh();}};
+ return {context,panels,pages,store,opened,classes,events,calls,queries,click,holdRegistration(){let release;registerWait=new Promise(r=>release=r);return ()=>{registerWait=null;release();};},get created(){return created;},get oauth(){return oauth;},get signout(){return signout;},async change(next){current=next;await context.SiteCloud.refresh();},async disconnect(){offline=true;await context.SiteCloud.refresh();}};
 }
+
+test('floor reads and writes target the selected drawing and reject an unconfigured floor',async()=>{
+ const b1='b'.repeat(64),b2='c'.repeat(64),h=await load('admin',{planDrawing:b1,planFloors:[{id:'B1',drawing:b1},{id:'B2',drawing:b2}]});
+ await h.context.SiteCloud.loadPlan(b2);
+ assert.deepEqual(h.queries.filter(([table])=>table==='site_drawings'),[['site_drawings','id',b2]]);
+ for(const table of ['site_trade_records','site_member_visibility'])assert.ok(h.queries.some(q=>q[0]===table&&q[1]==='drawing_id'&&q[2]===b2));
+ await h.context.SiteCloud.saveTrade('steel','B2-member',{label:'',spec:'',delivered:'',completed:'2026-10-03',note:''},0,b2);
+ assert.equal(h.calls.at(-1)[1].drawing,b2);
+ await h.context.SiteCloud.setMemberHidden('B2-member',true,0,b2);assert.equal(h.calls.at(-1)[1].drawing,b2);
+ await h.context.SiteCloud.planState();assert.ok(h.queries.some(q=>q[1]==='drawing_id'&&q[2]===b1));
+ const reads=h.queries.length,writes=h.calls.length;
+ await assert.rejects(()=>h.context.SiteCloud.loadPlan('unconfigured'),/UNKNOWN_FLOOR/);
+ await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','member',{label:'',spec:'',note:''},0,'unconfigured'),/UNKNOWN_FLOOR/);
+ assert.equal(h.queries.length,reads);assert.equal(h.calls.length,writes);
+});
 
 test('same-account role refresh does not interrupt drawing loading; a revoked role closes access on completion',async()=>{
  const h=await load('admin'),release=h.holdRegistration();

@@ -2,6 +2,11 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const ExcelJS=require('../vendor/exceljs-4.4.0.min.js');
 global.PRDZones=require('../prd-zones.js');global.SitePlan=require('../site-plan.js');
 const E=require('../site-plan-export.js');
+test('selected floor appears in exported workbook titles',async()=>{
+ const b=E.build(ExcelJS,{trade:'steel',floor:'지하2층',items:[],records:{},scope:'전체',asOf:'2026-10-03',duplicatePairs:[]});
+ const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());
+ for(const name of ['공구별 집계','시공 기록'])assert.equal(round.getWorksheet(name).getCell('A1').value,'서리풀 : 남측 · 지하2층 · 철골보');
+});
 test('steel XLSX preserves input labels, literal notes, dates and duplicate pairs',async()=>{
  const items=[{key:'a',display:'보 0001',zone:'A1',a:[0,0],b:[3000,0],duplicate_group:'D001'},{key:'b',display:'거더 0002',zone:'A1',a:[0,5],b:[3000,5],duplicate_group:'D001'}];
  const records={a:{label:'부재 A',spec:'H-400',delivered:'2026-09-21',completed:'2026-09-22',note:'=HYPERLINK("x","한글")'}};

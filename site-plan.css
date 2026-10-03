@@ -35,3 +35,5 @@
 .plan-slab-legend .slab-type-deck{background:#dcebf6}.plan-slab-legend .slab-type-conventional{background:#ede7dc}.plan-slab-legend .slab-type-temporary{background:#e7e0f0}
 .plan-slab-legend .slab-stage-deck{height:3px;background:#367cb2;border:0}.plan-slab-legend .slab-stage-rebar{height:3px;background:#8064b5;border:0}.plan-slab-legend .plan-legend-completed{height:3px;border:0}
 .plan-map-info:has(.plan-slab-legend){max-height:calc(100% - 28px);overflow:auto;pointer-events:auto}
+
+.site-workspace-toolbar [data-plan-floor]{width:112px;height:36px;min-height:36px;box-sizing:border-box;padding:6px 10px;font-size:13px}

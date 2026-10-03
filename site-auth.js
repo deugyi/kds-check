@@ -2,6 +2,8 @@
 'use strict';
 if(!document.createElementNS)return;
 const cfg=root.SITE_CONFIG,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const planFloors=cfg?.planFloors||[{id:'B1',name:'지하1층',drawing:cfg?.planDrawing}];
+function planId(id=cfg.planDrawing){if(!planFloors.some(f=>f.drawing===id))throw Error('UNKNOWN_FLOOR');return id;}
 const roles={pending:'승인 대기',viewer:'일반 사용자',editor:'기록 입력',admin:'관리자',blocked:'이용 중지'};
 let client=null,member=null,user=null,errorText='',checking=false,checkAgain=false,generation=0;
 const pages=Array.from(document.querySelectorAll('.site-page'));
@@ -87,39 +89,39 @@ async function records(){
  const r=await client.from('site_prd_records').select('*').eq('drawing_id',cfg.drawing).order('pile_key').range(0,4999);
  if(r.error)throw r.error;return r.data;
 }
-root.SiteCloud={allowed,canEdit,canEditTrade,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
+root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
  async load(){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.from('site_drawings').select('document').eq('id',cfg.drawing).single();if(r.error)throw r.error;
   return {base:r.data.document,rows:await records()};
  },records,
- async planRecords(){
+ async planRecords(drawingId=cfg.planDrawing){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const rows=[];
-  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_trade_records').select('*').eq('drawing_id',cfg.planDrawing).order('trade').order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
+  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_trade_records').select('*').eq('drawing_id',planId(drawingId)).order('trade').order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
   return rows;
  },
- async loadPlan(){
+ async loadPlan(drawingId=cfg.planDrawing){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
-  const r=await client.from('site_drawings').select('document').eq('id',cfg.planDrawing).single();if(r.error)throw r.error;
-  const state=await this.planState();return {document:r.data.document,rows:state.records,visibility:state.visibility};
+  const r=await client.from('site_drawings').select('document').eq('id',planId(drawingId)).single();if(r.error)throw r.error;
+  const state=await this.planState(drawingId);return {document:r.data.document,rows:state.records,visibility:state.visibility};
  },
- async planVisibility(){
+ async planVisibility(drawingId=cfg.planDrawing){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const rows=[];
-  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_member_visibility').select('item_key,hidden,version').eq('drawing_id',cfg.planDrawing).order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
+  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_member_visibility').select('item_key,hidden,version').eq('drawing_id',planId(drawingId)).order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
   return Object.fromEntries(rows.map(r=>[r.item_key,r]));
  },
- async planState(){const [records,visibility]=await Promise.all([this.planRecords(),this.planVisibility()]);return {records,visibility};
+ async planState(drawingId=cfg.planDrawing){const [records,visibility]=await Promise.all([this.planRecords(drawingId),this.planVisibility(drawingId)]);return {records,visibility};
  },
- async setMemberHidden(key,hidden,version){
+ async setMemberHidden(key,hidden,version,drawingId=cfg.planDrawing){
   if(!isAdmin())throw Error('ADMIN_REQUIRED');
-  const r=await client.rpc('site_set_member_visibility',{drawing:cfg.planDrawing,item:key,expected_version:version,hide_member:hidden});
+  const r=await client.rpc('site_set_member_visibility',{drawing:planId(drawingId),item:key,expected_version:version,hide_member:hidden});
   if(r.error)throw r.error;return r.data;
  },
- async saveTrade(trade,key,value,version){
+ async saveTrade(trade,key,value,version,drawingId=cfg.planDrawing){
   if(!canEditTrade())throw Error('EDIT_ACCESS_REQUIRED');
-  const r=trade==='slab'?await client.rpc('site_save_slab_record',{drawing:cfg.planDrawing,item:key,expected_version:version,member_label:value.label,member_spec:value.spec,slab_type:value.slab_kind||'',deck_date:value.decked||null,rebar_date:value.reinforced||null,cast_date:value.completed||null,memo:value.note}):await client.rpc('site_save_trade',{drawing:cfg.planDrawing,trade_name:trade,item:key,expected_version:version,member_label:value.label,member_spec:value.spec,delivered_date:value.delivered||null,completed_date:value.completed||null,memo:value.note});
+  const r=trade==='slab'?await client.rpc('site_save_slab_record',{drawing:planId(drawingId),item:key,expected_version:version,member_label:value.label,member_spec:value.spec,slab_type:value.slab_kind||'',deck_date:value.decked||null,rebar_date:value.reinforced||null,cast_date:value.completed||null,memo:value.note}):await client.rpc('site_save_trade',{drawing:planId(drawingId),trade_name:trade,item:key,expected_version:version,member_label:value.label,member_spec:value.spec,delivered_date:value.delivered||null,completed_date:value.completed||null,memo:value.note});
   if(r.error)throw r.error;return r.data;
  },
  async save(key,value,version){
