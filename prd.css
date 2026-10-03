@@ -37,13 +37,14 @@
 .prd-toolbar label input{width:auto}
 #prd-map{display:block;width:100%;height:580px;min-height:360px;background:var(--bg);touch-action:none;cursor:grab}
 #prd-map .prd-pile{cursor:pointer;stroke:var(--panel);stroke-width:1;vector-effect:non-scaling-stroke}
-#prd-map .prd-pile:focus{outline:none;stroke:var(--ink);stroke-width:3}
-#prd-map .prd-selected{stroke:var(--ink);stroke-width:3}
-#prd-map .prd-issue{stroke:#b96617;stroke-width:1.5;stroke-dasharray:3 2}
+#prd-map .prd-pile[data-stage="installed"]{stroke:#064e3b;stroke-width:2.5}
+#prd-map .prd-pile.prd-issue{stroke:#b96617;stroke-width:1.5;stroke-dasharray:3 2}
+#prd-map .prd-pile:focus,#prd-map .prd-pile.prd-selected{outline:none;stroke:var(--ink);stroke-width:3.5;stroke-dasharray:none}
 #prd-map text{fill:var(--ink);pointer-events:none;font-family:inherit}
 .prd-stats{display:flex;flex-wrap:wrap;gap:10px 20px;padding:12px 0}
 .prd-stat{display:flex;align-items:center;gap:6px;font-size:13px}
 .prd-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.prd-dot[data-stage="installed"]{width:12px;height:12px;border:2px solid #064e3b;box-sizing:border-box}
 #prd-detail label{font-size:14px;gap:5px;margin:12px 0;color:var(--ink)}
 #prd-detail{align-self:start;position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto}
 #prd-zone-side hr{border:0;border-top:1px solid var(--line);margin:16px 0}

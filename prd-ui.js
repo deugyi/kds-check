@@ -91,8 +91,8 @@ function renderStatus(){
  if(!data)return;
  const visible=visibility();
  const counts=Object.fromEntries(P.stages.map(s=>[s[0],0]));let shown=0;
- for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p);if(inZone(p))counts[s[0]]++;shown+=v?1:0;attr(n,'fill',s[2]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(p.warnings.length?' · 확인 필요':''));const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
- $('prd-stats').innerHTML=P.stages.map(([key,name,color])=>`<span class="prd-stat"><i class="prd-dot" style="background:${color}"></i>${name} <strong>${counts[key]}</strong></span>`).join('');
+ for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p);if(inZone(p))counts[s[0]]++;shown+=v?1:0;attr(n,'fill',s[2]);attr(n,'data-stage',s[0]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(p.warnings.length?' · 확인 필요':''));const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
+ $('prd-stats').innerHTML=P.stages.map(([key,name,color])=>`<span class="prd-stat"><i class="prd-dot" data-stage="${key}" style="background:${color}"></i>${name} <strong>${counts[key]}</strong></span>`).join('');
  $('prd-count').textContent=`${activeZone?(activeZone==='unassigned'?'미분류':activeZone)+' 공구':'전체'} ${data.drawing.piles.filter(inZone).length}공 · 상태 필터 ${shown}공`;
  setSelected(selected);
  renderZoneDetails(visible);renderDashboard();
@@ -116,7 +116,7 @@ function renderZoneDetails(visible){
  $('prd-zone-summary').innerHTML=[['전체',info.total],['천공 완료',info.work.drilled],['자재 반입',info.work.delivered],['타설 완료',info.work.installed],['확인 필요',info.warnings]].map(([label,n])=>`<div><span>${label}</span><strong>${n}<small> 공</small></strong></div>`).join('');
  const rows=members.filter(visible);
  $('prd-zone-table-count').textContent=`공 번호를 누르면 해당 공으로 이동합니다. ${rows.length} / ${members.length}공 표시`;
- $('prd-zone-rows').innerHTML=rows.map(p=>{const r=data.records[p.key]||{},s=stage(p),z=zoneData.membership[p.key];return `<tr><td><button type="button" data-key="${esc(p.key)}">${esc(title(p))}${p.warnings.length?' ⚠':''}</button></td><td>${esc(z==='unassigned'?'미분류':z)}</td><td>${esc(p.type.join(' / ')||'—')}</td><td><i class="prd-dot" style="background:${s[2]}"></i> ${s[1]}</td><td>${esc(r.drilled||'—')}</td><td>${esc(r.delivered||'—')}</td><td>${esc(r.installed||'—')}</td><td class="prd-note-cell">${esc(r.note||'—')}</td></tr>`;}).join('')||'<tr><td colspan="8">해당 조건의 공이 없습니다.</td></tr>';
+ $('prd-zone-rows').innerHTML=rows.map(p=>{const r=data.records[p.key]||{},s=stage(p),z=zoneData.membership[p.key];return `<tr><td><button type="button" data-key="${esc(p.key)}">${esc(title(p))}${p.warnings.length?' ⚠':''}</button></td><td>${esc(z==='unassigned'?'미분류':z)}</td><td>${esc(p.type.join(' / ')||'—')}</td><td><i class="prd-dot" data-stage="${s[0]}" style="background:${s[2]}"></i> ${s[1]}</td><td>${esc(r.drilled||'—')}</td><td>${esc(r.delivered||'—')}</td><td>${esc(r.installed||'—')}</td><td class="prd-note-cell">${esc(r.note||'—')}</td></tr>`;}).join('')||'<tr><td colspan="8">해당 조건의 공이 없습니다.</td></tr>';
  for(const b of $('prd-zone-tabs').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.zone===activeZone));
  for(const n of zoneShapes.querySelectorAll('[data-zone]')){const on=n.dataset.zone===activeZone;n.classList.toggle('prd-zone-active',on);n.setAttribute('aria-pressed',String(on));}
  for(const n of zoneLabels.querySelectorAll('[data-zone]'))n.classList.toggle('prd-zone-active',n.dataset.zone===activeZone);
