@@ -46,3 +46,11 @@
 
 .plan-slab-help{margin:12px 0;padding:12px;border:1px solid #c9d5dd;border-radius:6px;background:#f4f8fb;font-size:12px;line-height:1.6}
 .plan-slab-help summary{color:var(--accent);font-weight:600;cursor:pointer}.plan-slab-help ol{margin:8px 0;padding-left:20px}.plan-slab-help p{margin:8px 0 0;color:#526571}
+
+.plan-editor-dock{position:absolute;left:14px;bottom:14px;z-index:3;max-width:calc(100% - 28px);padding:12px 14px;background:rgba(255,255,255,.97);border:1px solid #df914f;border-radius:8px;box-shadow:0 3px 15px #283f5420;font-size:12px;box-sizing:border-box}
+.plan-editor-dock>strong{font-size:13px;color:#8b4211}.plan-editor-dock p{margin:6px 0 9px}.plan-editor-dock small{display:block;margin-top:8px;color:#526571}
+.plan-editor-actions,.plan-slab-selected-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.plan-editor-actions button,.plan-slab-selected-actions button,.plan-options-row [data-action="slab-new"]{height:36px;box-sizing:border-box;padding:6px 10px;white-space:nowrap}
+.plan-editor-actions label{display:flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap}.plan-editor-actions input{width:auto;margin:0}
+.plan-slab-selected-actions{margin:12px 0}.plan-slab-hidden{margin-top:12px;font-size:12px}.plan-slab-hidden summary{cursor:pointer;color:var(--accent)}.plan-slab-hidden-list{display:grid;gap:6px;margin-top:8px}
+.plan-slab-hidden-list button{text-align:left}.plan-viewport:has(.plan-editor-dock:not([hidden])) .plan-map{cursor:crosshair}
+@media(max-width:600px){.plan-editor-dock{left:8px;bottom:8px;max-width:calc(100% - 16px);padding:8px}.plan-editor-actions button{height:32px;padding:4px 7px;font-size:11px}.plan-editor-dock small{display:none}}

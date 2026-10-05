@@ -19,14 +19,16 @@ test('floor reads and writes target the selected drawing and reject an unconfigu
  const b1='b'.repeat(64),b2='c'.repeat(64),h=await load('admin',{planDrawing:b1,planFloors:[{id:'B1',drawing:b1},{id:'B2',drawing:b2}]});
  await h.context.SiteCloud.loadPlan(b2);
  assert.deepEqual(h.queries.filter(([table])=>table==='site_drawings'),[['site_drawings','id',b2]]);
- for(const table of ['site_trade_records','site_member_visibility'])assert.ok(h.queries.some(q=>q[0]===table&&q[1]==='drawing_id'&&q[2]===b2));
+ for(const table of ['site_trade_records','site_member_visibility','site_slab_regions'])assert.ok(h.queries.some(q=>q[0]===table&&q[1]==='drawing_id'&&q[2]===b2));
  await h.context.SiteCloud.saveTrade('steel','B2-member',{label:'',spec:'',delivered:'',completed:'2026-10-03',note:''},0,b2);
  assert.equal(h.calls.at(-1)[1].drawing,b2);
  await h.context.SiteCloud.setMemberHidden('B2-member',true,0,b2);assert.equal(h.calls.at(-1)[1].drawing,b2);
+ await h.context.SiteCloud.saveSlabRegion('panel',{points:[[0,0],[1000,0],[1000,1000]],holes:[]},false,2,b2);assert.equal(h.calls.at(-1)[0],'site_save_slab_region');assert.equal(h.calls.at(-1)[1].drawing,b2);assert.equal(h.calls.at(-1)[1].expected_version,2);
  await h.context.SiteCloud.planState();assert.ok(h.queries.some(q=>q[1]==='drawing_id'&&q[2]===b1));
  const reads=h.queries.length,writes=h.calls.length;
  await assert.rejects(()=>h.context.SiteCloud.loadPlan('unconfigured'),/UNKNOWN_FLOOR/);
  await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','member',{label:'',spec:'',note:''},0,'unconfigured'),/UNKNOWN_FLOOR/);
+ await assert.rejects(()=>h.context.SiteCloud.saveSlabRegion('panel',{},false,0,'unconfigured'),/UNKNOWN_FLOOR/);
  assert.equal(h.queries.length,reads);assert.equal(h.calls.length,writes);
 });
 
@@ -56,7 +58,8 @@ test('approved ordinary user may save steel and slab dates, while unapproved acc
  await h.context.SiteCloud.saveTrade('steel','item',value,3);assert.equal(h.calls.at(-1)[0],'site_save_trade');assert.equal(h.calls.at(-1)[1].trade_name,'steel');assert.equal(h.calls.at(-1)[1].expected_version,3);
  await h.context.SiteCloud.saveTrade('slab','item',{...value,slab_kind:'deck',decked:'2026-09-29',reinforced:'2026-10-01'},3);
  assert.equal(h.calls.at(-1)[0],'site_save_slab_record');assert.deepEqual(JSON.parse(JSON.stringify(h.calls.at(-1)[1])),{item:'item',expected_version:3,member_label:'B-1',member_spec:'H',slab_type:'deck',deck_date:'2026-09-29',rebar_date:'2026-10-01',cast_date:'2026-10-02',memo:'memo'});
- for(const role of ['pending','blocked',null]){await h.change(role);assert.equal(h.context.SiteCloud.canEditTrade(),false);await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','item',value,3),/ACCESS_REQUIRED/);}
+ await h.context.SiteCloud.saveSlabRegion('panel',{},false,0);assert.equal(h.calls.at(-1)[0],'site_save_slab_region');
+ for(const role of ['pending','blocked',null]){await h.change(role);assert.equal(h.context.SiteCloud.canEditTrade(),false);await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','item',value,3),/ACCESS_REQUIRED/);await assert.rejects(()=>h.context.SiteCloud.saveSlabRegion('panel',{},false,0),/ACCESS_REQUIRED/);await assert.rejects(()=>h.context.SiteCloud.planSlabRegions(),/ACCESS_REQUIRED/);}
 });
 test('admin panel escapes member text; editor cannot see the account list',async()=>{
  const h=await load('admin');await h.click('data-site-users');const list=h.panels[0].querySelector('.site-member-list');assert.match(list.innerHTML,/&lt;img/);assert.doesNotMatch(list.innerHTML,/<img/);

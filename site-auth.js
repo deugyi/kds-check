@@ -33,6 +33,9 @@ for(const page of pages){
 }
 document.addEventListener('click',e=>{for(const page of pages){const menu=page.querySelector('.site-account-menu');if(menu?.open&&!menu.contains(e.target))menu.open=false;}});
 function explain(e){
+ if(String(e?.message||e).includes('REGION_CONFLICT'))return '다른 사용자가 이 경계를 변경했습니다. 편집을 취소하고 최신 기록을 불러온 뒤 다시 수정해 주세요.';
+ if(String(e?.message||e).includes('INVALID_GEOMETRY'))return '경계점이 겹치거나 교차하는지 확인해 주세요.';
+ if(String(e?.message||e).includes('OUTSIDE_DRAWING'))return '현장 존의 외곽 범위 안에 경계를 그려 주세요.';
  const text=String(e?.message||e);
  if(text.includes('RECORD_CONFLICT'))return '다른 사용자가 이 항목의 기록을 변경했습니다. 입력 내용은 유지했습니다. 최신 기록을 확인한 후 다시 입력해 주세요.';
  if(/GOOGLE_VERIFICATION_REQUIRED|ACCOUNT_EMAIL_CHANGED/.test(text))return '확인된 구글 계정으로 다시 로그인해 주세요.';
@@ -104,7 +107,7 @@ root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,
  async loadPlan(drawingId=cfg.planDrawing){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
   const r=await client.from('site_drawings').select('document').eq('id',planId(drawingId)).single();if(r.error)throw r.error;
-  const state=await this.planState(drawingId);return {document:r.data.document,rows:state.records,visibility:state.visibility};
+  const state=await this.planState(drawingId);return {document:r.data.document,rows:state.records,visibility:state.visibility,regions:state.regions};
  },
  async planVisibility(drawingId=cfg.planDrawing){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');
@@ -112,7 +115,14 @@ root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,
   for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_member_visibility').select('item_key,hidden,version').eq('drawing_id',planId(drawingId)).order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}
   return Object.fromEntries(rows.map(r=>[r.item_key,r]));
  },
- async planState(drawingId=cfg.planDrawing){const [records,visibility]=await Promise.all([this.planRecords(drawingId),this.planVisibility(drawingId)]);return {records,visibility};
+ async planSlabRegions(drawingId=cfg.planDrawing){
+  if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');const rows=[];
+  for(let offset=0;offset<10000;offset+=1000){const r=await client.from('site_slab_regions').select('*').eq('drawing_id',planId(drawingId)).order('item_key').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)break;}return rows;
+ },
+ async saveSlabRegion(key,geometry,hidden,version,drawingId=cfg.planDrawing){
+  if(!canEditTrade())throw Error('EDIT_ACCESS_REQUIRED');const r=await client.rpc('site_save_slab_region',{drawing:planId(drawingId),item:key,expected_version:version,boundary:geometry,hide_region:hidden});if(r.error)throw r.error;return r.data;
+ },
+ async planState(drawingId=cfg.planDrawing){const [records,visibility,regions]=await Promise.all([this.planRecords(drawingId),this.planVisibility(drawingId),this.planSlabRegions(drawingId)]);return {records,visibility,regions};
  },
  async setMemberHidden(key,hidden,version,drawingId=cfg.planDrawing){
   if(!isAdmin())throw Error('ADMIN_REQUIRED');
