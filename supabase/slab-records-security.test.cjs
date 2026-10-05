@@ -11,7 +11,7 @@ test('slab stages preserve existing data and enforce approval, dates, versioning
   async function login(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role '+(id?'authenticated':'anon'));if(id)await db.query('select site_register()');}
   await login(owner);
   await db.query("select site_save_trade($1,'slab','legacy',0,'old','150 mm',null,'2026-10-02','keep')",[drawing]);
-  await db.exec('reset role');await db.exec(fs.readFileSync(path.join(__dirname,'site-slab-records.sql'),'utf8'));
+  await db.exec('reset role');await db.exec(fs.readFileSync(path.join(__dirname,'site-slab-records.sql'),'utf8'));await db.exec(fs.readFileSync(path.join(__dirname,'site-slab-openings.sql'),'utf8'));
   const old=(await db.query("select * from site_trade_records where item_key='legacy'")).rows[0];
   assert.equal(old.label,'old');assert.equal(old.version,1);assert.equal(old.slab_kind,'');assert.equal(old.decked,null);assert.ok(old.completed);
   const save=(item='panel',version=0,kind='deck',deck='2026-09-29',rebar='2026-10-01',cast='2026-10-02')=>db.query('select * from site_save_slab_record($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[drawing,item,version,'TEST','150 mm',kind,deck,rebar,cast,'memo']);
@@ -28,13 +28,13 @@ test('slab stages preserve existing data and enforce approval, dates, versioning
   await save('panel',1,'conventional',null,'2026-10-01','2026-10-02');
   await save('panel',2,'temporary',null,null,null);
   await db.query("select site_save_trade($1,'slab','panel',3,'legacy-client','spec',null,'2026-10-03','note')",[drawing]);
-  assert.equal((await db.query("select slab_kind from site_trade_records where item_key='panel'")).rows[0].slab_kind,'temporary');
+  assert.equal((await db.query("select slab_kind from site_trade_records where item_key='panel'")).rows[0].slab_kind,'temporary');const opening=(await save('panel',4,'opening',null,null,'2026-10-03')).rows[0];assert.equal(opening.slab_kind,'opening');assert.equal(opening.version,5);assert.ok(opening.completed);
   const steel=(await db.query("select * from site_save_trade($1,'steel','beam',0,'beam','H',null,'2026-10-02','')",[drawing])).rows[0];
   assert.equal(steel.slab_kind,'');assert.equal(steel.decked,null);assert.equal(steel.reinforced,null);
   await assert.rejects(()=>db.query("update site_trade_records set version=100"),/permission denied/);
   await assert.rejects(()=>db.query('select * from seoripul_private.trade_record_audit'),/permission denied/);
   await login(owner);await db.query("select site_set_role($1,'blocked')",[viewer]);await login(viewer);
   await assert.rejects(()=>save('panel',4),/ACCESS_REQUIRED/);assert.equal((await db.query('select * from site_trade_records')).rows.length,0);
-  await db.exec('reset role');const audit=(await db.query('select count(*)::int n from seoripul_private.trade_record_audit')).rows[0];assert.equal(audit.n,6);
+  await db.exec('reset role');const audit=(await db.query('select count(*)::int n from seoripul_private.trade_record_audit')).rows[0];assert.equal(audit.n,7);
  }finally{await db.close();}
 });

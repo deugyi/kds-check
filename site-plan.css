@@ -37,3 +37,9 @@
 .plan-map-info:has(.plan-slab-legend){max-height:calc(100% - 28px);overflow:auto;pointer-events:auto}
 
 .site-workspace-toolbar [data-plan-floor]{width:112px;height:36px;min-height:36px;box-sizing:border-box;padding:6px 10px;font-size:13px}
+
+.plan-slab-legend .slab-type-opening{background:#fff;border:1px dashed #687b89}
+
+.plan-zone-bar.plan-area-bar{grid-template-columns:45px minmax(80px,1fr) 230px 65px}
+.plan-area-bar>span:nth-last-child(2){white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.plan-zone-bar.plan-area-bar{grid-template-columns:30px minmax(80px,1fr) 60px}.plan-area-bar>span:nth-last-child(2){grid-column:2;grid-row:2;text-align:left}.plan-area-bar>span:last-child{grid-column:3;grid-row:1}}
