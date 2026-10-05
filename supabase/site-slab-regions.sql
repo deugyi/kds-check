@@ -96,7 +96,11 @@ begin
  if not exists(select 1 from jsonb_array_elements(coalesce(doc->'slabs','[]'::jsonb)) v where v->>'key'=item)
  and old_row.version is null and item!~'^USER-SLAB-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then raise exception 'UNKNOWN_MEMBER';end if;
  if coalesce(old_row.version,0)<>expected_version then raise exception 'REGION_CONFLICT' using errcode='40001';end if;
- perform seoripul_private.validate_slab_geometry(boundary);
+ -- Unchanged imported geometry may exceed editor limits; hiding/restoring it must remain possible.
+ if boundary is null or not exists(select 1 from jsonb_array_elements(coalesce(doc->'slabs','[]'::jsonb)) v
+ where v->>'key'=item and boundary=jsonb_build_object('points',v->'points','holes',coalesce(v->'holes','[]'::jsonb))) then
+  perform seoripul_private.validate_slab_geometry(boundary);
+ end if;
  select array[min((p->>0)::float8),min((p->>1)::float8),max((p->>0)::float8),max((p->>1)::float8)] into box
  from jsonb_array_elements(doc->'zones') z,jsonb_array_elements(z->'points') p;
  if box[1] is null or exists(select 1 from jsonb_array_elements(jsonb_build_array(boundary->'points')||(boundary->'holes')) r,

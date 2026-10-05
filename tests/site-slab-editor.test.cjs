@@ -28,3 +28,8 @@ test('geometry overrides keep keys and records, custom regions join exports and 
  const hidden=E.apply(base,regions.map(r=>({...r,hidden:true})));assert.equal(hidden.slabs.length,0);assert.equal(A.summarize(hidden.zones,hidden.slabs,records).area.total,0);
  assert.equal(E.apply({...base,slabs:[],slabsReady:false},regions).slabsReady,true);
 });
+
+test('large unchanged imported boundaries can be hidden and restored without entering editor validation',()=>{
+ const points=Array.from({length:201},(_,i)=>[5000+2000*Math.cos(i*2*Math.PI/201),5000+2000*Math.sin(i*2*Math.PI/201)]),d={...base,slabs:[{key:'complex',points,holes:[],review:true}]},r={item_key:'complex',geometry:{points,holes:[]},hidden:false,version:2};
+ assert.equal(E.apply(d,[{...r,hidden:true}]).slabs.length,0);assert.equal(E.apply(d,[r]).slabs[0].points.length,201);assert.equal(E.apply(d,[r]).slabs[0].review,true);
+});

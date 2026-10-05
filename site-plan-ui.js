@@ -49,6 +49,7 @@ function editorControls(s,working){
 async function startEditor(s,mode){
  if(s.trade!=='slab'||!drawing||s.busy||s.editor||!cloud.canEditTrade()||!await save(s,true))return;
  const v=mode==='new'?null:lookup(s,s.selected);if(mode!=='new'&&!v)return;
+ if(mode==='edit'&&(v.points.length>200||(v.holes||[]).length>20||[v.points,...(v.holes||[])].reduce((n,r)=>n+r.length,0)>600)){message(s,'이 영역은 경계가 복잡합니다. 경계 다시 그리기로 구획해 주세요.',true);return;}
  s.editor={mode,key:v?.key||'USER-SLAB-'+root.crypto.randomUUID(),version:slabRegions.find(r=>r.item_key===v?.key)?.version||0,geometry:mode==='edit'?structuredClone({points:v.points,holes:v.holes||[]}):{points:[],holes:[]},history:[],vertex:null,moving:null,hover:null};
  s.drag=null;s.graphs=false;s.details=true;s.pane.querySelector('[data-editor-title]').textContent=mode==='edit'?'경계 수정 · 점을 끌어 이동하세요':mode==='redraw'?'경계 다시 그리기 · 기존 시공 기록 유지':'새 영역 그리기 · 기본값 오프닝';
  editorMessage(s,mode==='edit'?'경계선 클릭: 점 추가 · 점 선택 후 삭제 · 경계 저장으로 적용':'꼭짓점을 순서대로 클릭하고 경계 저장을 누르세요.'+(mode==='redraw'&&v.holes?.length?' 내부 구멍도 새 경계로 대체됩니다.':''));show(s);s.canvas.focus();
