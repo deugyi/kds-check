@@ -54,3 +54,5 @@
 .plan-slab-selected-actions{margin:12px 0}.plan-slab-hidden{margin-top:12px;font-size:12px}.plan-slab-hidden summary{cursor:pointer;color:var(--accent)}.plan-slab-hidden-list{display:grid;gap:6px;margin-top:8px}
 .plan-slab-hidden-list button{text-align:left}.plan-viewport:has(.plan-editor-dock:not([hidden])) .plan-map{cursor:crosshair}
 @media(max-width:600px){.plan-editor-dock{left:8px;bottom:8px;max-width:calc(100% - 16px);padding:8px}.plan-editor-actions button{height:32px;padding:4px 7px;font-size:11px}.plan-editor-dock small{display:none}}
+
+.plan-map-toast{position:absolute;left:14px;bottom:14px;z-index:4;display:flex;align-items:center;gap:12px;max-width:calc(100% - 28px);box-sizing:border-box;padding:12px 14px;border:1px solid #c9d5dd;border-radius:7px;background:#fffffff5;box-shadow:0 3px 15px #283f5420;color:#28495e;font-size:13px}.plan-map-toast[hidden]{display:none}.plan-map-toast button{flex:none;border:0;background:transparent;color:#526571;font-size:22px;cursor:pointer;padding:0 4px}

@@ -24,11 +24,13 @@ test('floor reads and writes target the selected drawing and reject an unconfigu
  assert.equal(h.calls.at(-1)[1].drawing,b2);
  await h.context.SiteCloud.setMemberHidden('B2-member',true,0,b2);assert.equal(h.calls.at(-1)[1].drawing,b2);
  await h.context.SiteCloud.saveSlabRegion('panel',{points:[[0,0],[1000,0],[1000,1000]],holes:[]},false,2,b2);assert.equal(h.calls.at(-1)[0],'site_save_slab_region');assert.equal(h.calls.at(-1)[1].drawing,b2);assert.equal(h.calls.at(-1)[1].expected_version,2);
+ await h.context.SiteCloud.saveSlabRegions([{item_key:'panel',geometry:{},hidden:false,expected_version:2}],{panel:2},b2);assert.equal(h.calls.at(-1)[0],'site_save_slab_regions');assert.equal(h.calls.at(-1)[1].drawing,b2);assert.equal(h.calls.at(-1)[1].expected_state.panel,2);
  await h.context.SiteCloud.planState();assert.ok(h.queries.some(q=>q[1]==='drawing_id'&&q[2]===b1));
  const reads=h.queries.length,writes=h.calls.length;
  await assert.rejects(()=>h.context.SiteCloud.loadPlan('unconfigured'),/UNKNOWN_FLOOR/);
  await assert.rejects(()=>h.context.SiteCloud.saveTrade('steel','member',{label:'',spec:'',note:''},0,'unconfigured'),/UNKNOWN_FLOOR/);
  await assert.rejects(()=>h.context.SiteCloud.saveSlabRegion('panel',{},false,0,'unconfigured'),/UNKNOWN_FLOOR/);
+ await assert.rejects(()=>h.context.SiteCloud.saveSlabRegions([],{},'unconfigured'),/UNKNOWN_FLOOR/);
  assert.equal(h.queries.length,reads);assert.equal(h.calls.length,writes);
 });
 

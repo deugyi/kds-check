@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const clip=root.polygonClipping||(typeof require==='function'?require('./vendor/polygon-clipping-0.15.7.min.js'):null);
-const polygon=item=>[item.points,...(item.holes||[])];
+const polygon=item=>item.parts?item.parts.map(p=>[p.points,...(p.holes||[])]):[item.points,...(item.holes||[])];
 const kind=record=>record?.slab_kind||'opening';
 function ringArea(ring){if(!ring?.length)return 0;const [x,y]=ring[0];let sum=0;for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];sum+=(a[0]-x)*(b[1]-y)-(b[0]-x)*(a[1]-y);}return Math.abs(sum)/2;}
 function area(multi){return multi.reduce((sum,p)=>sum+ringArea(p[0])-p.slice(1).reduce((n,h)=>n+ringArea(h),0),0)/1e6;}

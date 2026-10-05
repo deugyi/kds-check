@@ -13,7 +13,7 @@ test('reject crossed boundaries, duplicate points, invalid numbers and invalid h
  const valid=E.validate({points:rect(0,0,5000,5000),holes:[rect(1000,1000,2000,2000)]});assert.equal(A.area([[valid.points,...valid.holes]]),21);
 });
 test('snap to beam endpoints, intersections, beam lines and zone edges, excluding hidden beams',()=>{
- const d=G.prepare(base);
+ const d=G.prepare({...base,slabs:[]});
  assert.deepEqual(E.snap([1010,3010],d,{},50).point,[1000,3000]);
  assert.equal(E.snap([3010,3010],d,{},50).label,'보 교점');
  assert.deepEqual(E.snap([2200,3010],d,{},50).point,[2200,3000]);
@@ -32,4 +32,25 @@ test('geometry overrides keep keys and records, custom regions join exports and 
 test('large unchanged imported boundaries can be hidden and restored without entering editor validation',()=>{
  const points=Array.from({length:201},(_,i)=>[5000+2000*Math.cos(i*2*Math.PI/201),5000+2000*Math.sin(i*2*Math.PI/201)]),d={...base,slabs:[{key:'complex',points,holes:[],review:true}]},r={item_key:'complex',geometry:{points,holes:[]},hidden:false,version:2};
  assert.equal(E.apply(d,[{...r,hidden:true}]).slabs.length,0);assert.equal(E.apply(d,[r]).slabs[0].points.length,201);assert.equal(E.apply(d,[r]).slabs[0].review,true);
+});
+
+test('new area priority partitions neighbours into pieces and holes while preserving union area and records',()=>{
+ const old={key:'old',points:rect(1000,1000,8000,8000),holes:[],area:64,zone:'A1'},d=G.prepare({...base,slabs:[old]}),records={old:{slab_kind:'deck',completed:'2026-10-06',note:'keep'},new:{slab_kind:'conventional'}};
+ const plan=E.partition(d,'new',{points:rect(4000,0,2000,10000),holes:[]},[{item_key:'old',version:7}],records);
+ assert.equal(plan.trimmed,1);assert.equal(plan.removed,0);assert.equal(plan.changes[1].geometry.parts.length,2);assert.equal(plan.changes[1].expected_version,7);assert.deepEqual(plan.expected,{old:7});
+ const updated=G.prepare(E.apply({...base,slabs:[old]},plan.changes));assert.equal(updated.slabMap.get('old').area,48);assert.equal(updated.slabMap.get('new').area,20);
+ assert.equal(A.summarize(updated.zones,updated.slabs,records).area.total,68);assert.equal(A.summarize(updated.zones,updated.slabs,records).area.completed,48);
+ assert.equal(G.hits(updated,'slab',[2000,2000],0)[0].key,'old');assert.equal(G.hits(updated,'slab',[7000,2000],0)[0].key,'old');assert.equal(G.hits(updated,'slab',[5000,2000],0).some(v=>v.key==='old'),false);
+ assert.equal(records.old.note,'keep');const cut=E.partition(d,'new',{points:rect(3000,3000,2000,2000),holes:[]},[],records);assert.equal(cut.changes[1].geometry.parts[0].holes.length,1);assert.equal(A.area(E.multi(cut.changes[1].geometry)),60);
+ assert.equal(E.partition(d,'new',{points:rect(0,0,10000,10000),holes:[]},[],records).changes[1].hidden,true);
+});
+test('shared boundary snapping preserves exact coordinates; hidden and unconfirmed alternatives do not partition actual regions',()=>{
+ const x=3000.123456789,old={key:'old',points:rect(1000,1000,x-1000,2000),holes:[]},review={key:'review',points:rect(5000,1000,2000,2000),holes:[],review:true};const d=G.prepare({...base,slabs:[old,review]});
+ assert.deepEqual(E.snap([x+.02,1700],d,{},20).point,[x,1700]);assert.equal(E.snap([x+.02,1700],d,{vertical:{hidden:true}},20,'old').label,'자유점');
+ const next={points:rect(4000,0,4000,4000),holes:[]};assert.equal(E.partition(d,'new',next).changes.length,1);assert.equal(E.partition(d,'new',next,[],{review:{slab_kind:'deck'}}).changes.length,2);
+ const adjacent=E.partition(d,'new',{points:rect(x,1000,2000,2000),holes:[]});assert.equal(adjacent.trimmed,0);assert.equal(adjacent.overlap,0);
+ const hidden=G.prepare(E.apply({...base,slabs:[old]},[{item_key:'old',geometry:E.geometry(old),hidden:true}]));assert.equal(E.partition(hidden,'new',{points:rect(0,0,10000,10000),holes:[]}).changes.length,1);
+});
+test('new shape is clipped to the true zone outline rather than its bounding rectangle',()=>{
+ const d=G.prepare({...base,zones:[{id:'A1',points:[[0,0],[10000,0],[0,10000]]}],slabs:[]});const plan=E.partition(d,'new',{points:rect(4000,4000,4000,4000),holes:[]});assert.equal(A.area(E.multi(plan.geometry)),2);assert.throws(()=>E.partition(d,'new',{points:rect(8000,8000,1000,1000),holes:[]}),/존 안/);
 });

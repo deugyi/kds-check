@@ -122,6 +122,9 @@ root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,
  async saveSlabRegion(key,geometry,hidden,version,drawingId=cfg.planDrawing){
   if(!canEditTrade())throw Error('EDIT_ACCESS_REQUIRED');const r=await client.rpc('site_save_slab_region',{drawing:planId(drawingId),item:key,expected_version:version,boundary:geometry,hide_region:hidden});if(r.error)throw r.error;return r.data;
  },
+ async saveSlabRegions(changes,expected,drawingId=cfg.planDrawing){
+  if(!canEditTrade())throw Error('EDIT_ACCESS_REQUIRED');const r=await client.rpc('site_save_slab_regions',{drawing:planId(drawingId),changes,expected_state:expected});if(r.error)throw r.error;return r.data;
+ },
  async planState(drawingId=cfg.planDrawing){const [records,visibility,regions]=await Promise.all([this.planRecords(drawingId),this.planVisibility(drawingId),this.planSlabRegions(drawingId)]);return {records,visibility,regions};
  },
  async setMemberHidden(key,hidden,version,drawingId=cfg.planDrawing){

@@ -3,7 +3,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 test('approved users edit versioned slab boundaries; invalid shapes, stale edits and unauthorized access are rejected',async()=>{
  const db=new PGlite();try{
   await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create table auth.identities(user_id uuid,provider text,identity_data jsonb);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth,public to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;`);
-  for(const file of ['seoripul.sql','site-trades.sql','site-trades-approved.sql','site-slab-records.sql','site-slab-openings.sql','site-slab-regions.sql'])await db.exec(fs.readFileSync(path.join(__dirname,file),'utf8'));
+  for(const file of ['seoripul.sql','site-trades.sql','site-trades-approved.sql','site-slab-records.sql','site-slab-openings.sql','site-slab-regions.sql','site-slab-partition.sql'])await db.exec(fs.readFileSync(path.join(__dirname,file),'utf8'));
   const owner='00000000-0000-0000-0000-000000000001',viewer='00000000-0000-0000-0000-000000000002',drawing='b'.repeat(64),other='c'.repeat(64),key='USER-SLAB-00000000-0000-4000-8000-000000000001';
   for(const [id,email] of [[owner,'owner@example.test'],[viewer,'viewer@example.test']]){await db.query('insert into auth.users values($1,$2,now())',[id,email]);await db.query("insert into auth.identities values($1,'google',$2)",[id,JSON.stringify({email,email_verified:true})]);}
   await db.query("insert into seoripul_private.settings values(true,'owner@example.test')");
@@ -36,5 +36,21 @@ test('approved users edit versioned slab boundaries; invalid shapes, stale edits
   await assert.rejects(()=>db.query("select seoripul_private.validate_slab_geometry('{}')"),/permission denied/);
   await login(owner);await db.query("select site_set_role($1,'blocked')",[viewer]);await login(viewer);await assert.rejects(()=>save('panel',2),/ACCESS_REQUIRED/);assert.equal((await db.query('select * from site_slab_regions')).rows.length,0);
   await db.exec('reset role');assert.equal((await db.query('select count(*)::int n from seoripul_private.slab_region_audit')).rows[0].n,8);assert.equal((await db.query("select document->'drawing'->'slabs'->0->'points' points from site_drawings where id=$1",[drawing])).rows[0].points[1][0],3000);
+  await login(owner);
+  const key2='USER-SLAB-00000000-0000-4000-8000-000000000002';
+  const state=async()=>Object.fromEntries((await db.query('select item_key,version from site_slab_regions where drawing_id=$1 order by item_key',[drawing])).rows.map(r=>[r.item_key,r.version]));
+  const change=(item,g,version=0,hide=false)=>({item_key:item,geometry:g,expected_version:version,hidden:hide});
+  const batch=(changes,expected,id=drawing)=>db.query('select * from site_save_slab_regions($1,$2,$3)',[id,JSON.stringify(changes),JSON.stringify(expected)]);
+  const expected=await state(),bad={points:[[0,0],[3000,3000],[0,3000],[3000,0]],holes:[]};
+  await assert.rejects(async()=>batch([change(key2,geometry),change('panel',bad,2)],expected),/INVALID_GEOMETRY/);assert.deepEqual(await state(),expected);
+  const pieces=[{points:[[1000,1000],[2000,1000],[2000,3000],[1000,3000]],holes:[]},{points:[[2500,1000],[3000,1000],[3000,3000],[2500,3000]],holes:[]}];
+  const multipart={...pieces[0],parts:pieces};const saved=(await batch([change(key2,geometry),change('panel',multipart,2)],expected)).rows;assert.equal(saved.length,2);assert.equal(saved.find(r=>r.item_key==='panel').geometry.parts.length,2);
+  assert.equal((await db.query("select * from site_trade_records where item_key='panel'")).rows[0].completed.toISOString().slice(0,10),'2026-10-06');
+  const stale=await state();await save('panel',3,multipart);await assert.rejects(async()=>batch([change(key2,geometry,1)],stale),/REGION_STATE_CONFLICT/);
+  await assert.rejects(async()=>batch([change(key2,geometry,1),change(key2,geometry,1)],await state()),/INVALID_GEOMETRY/);
+  await assert.rejects(async()=>batch([change('panel',{...multipart,parts:[{...pieces[0],points:[[0,0],[0,0],[1000,1000]]}]},4)],await state()),/INVALID_GEOMETRY/);
+  const batchKept=(await db.query("select * from site_trade_records where item_key='panel'")).rows[0];assert.equal(batchKept.version,1);assert.equal(batchKept.note,'keep');
+  await login(null);await assert.rejects(async()=>batch([change(key2,geometry,1)],{}),/permission denied/);
+  await login(viewer);await assert.rejects(async()=>batch([change(key2,geometry,1)],{}),/ACCESS_REQUIRED/);
  }finally{await db.close();}
 });
