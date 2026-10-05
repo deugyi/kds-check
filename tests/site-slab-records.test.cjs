@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 global.PRDZones=require('../prd-zones.js');const G=require('../site-plan.js');
 test('slab types and dates preserve legacy casting records and optional stages',()=>{
  const old=G.record({label:'old',completed:'2026-10-02'},'slab');
- assert.equal(old.slab_kind,'');assert.equal(old.decked,'');assert.equal(old.reinforced,'');assert.equal(old.completed,'2026-10-02');
+ assert.equal(old.slab_kind,'opening');assert.equal(old.decked,'');assert.equal(old.reinforced,'');assert.equal(old.completed,'2026-10-02');
  const value={slab_kind:'deck',decked:'2026-09-29',reinforced:'2026-10-01',completed:'2026-10-02'};
  assert.equal(G.record(value,'slab').decked,'2026-09-29');
  for(const invalid of [{...value,reinforced:'2026-09-28'},{...value,completed:'2026-09-30'},{slab_kind:'deck',decked:'2026-10-02',completed:'2026-10-01'}])assert.throws(()=>G.record(invalid,'slab'),/순서/);

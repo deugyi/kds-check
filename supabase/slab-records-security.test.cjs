@@ -28,13 +28,13 @@ test('slab stages preserve existing data and enforce approval, dates, versioning
   await save('panel',1,'conventional',null,'2026-10-01','2026-10-02');
   await save('panel',2,'temporary',null,null,null);
   await db.query("select site_save_trade($1,'slab','panel',3,'legacy-client','spec',null,'2026-10-03','note')",[drawing]);
-  assert.equal((await db.query("select slab_kind from site_trade_records where item_key='panel'")).rows[0].slab_kind,'temporary');const opening=(await save('panel',4,'opening',null,null,'2026-10-03')).rows[0];assert.equal(opening.slab_kind,'opening');assert.equal(opening.version,5);assert.ok(opening.completed);
+  assert.equal((await db.query("select slab_kind from site_trade_records where item_key='panel'")).rows[0].slab_kind,'temporary');const opening=(await save('panel',4,'opening',null,null,'2026-10-03')).rows[0];assert.equal(opening.slab_kind,'opening');assert.equal(opening.version,5);assert.ok(opening.completed);const reset=(await db.query("select * from site_save_slab_record($1,'panel',5,'','','opening',null,null,null,'')",[drawing])).rows[0];assert.equal(reset.version,6);assert.equal(reset.slab_kind,'opening');for(const field of ['label','spec','note'])assert.equal(reset[field],'');for(const field of ['completed','decked','reinforced'])assert.equal(reset[field],null);await assert.rejects(()=>save('panel',5),/RECORD_CONFLICT/);
   const steel=(await db.query("select * from site_save_trade($1,'steel','beam',0,'beam','H',null,'2026-10-02','')",[drawing])).rows[0];
   assert.equal(steel.slab_kind,'');assert.equal(steel.decked,null);assert.equal(steel.reinforced,null);
   await assert.rejects(()=>db.query("update site_trade_records set version=100"),/permission denied/);
   await assert.rejects(()=>db.query('select * from seoripul_private.trade_record_audit'),/permission denied/);
   await login(owner);await db.query("select site_set_role($1,'blocked')",[viewer]);await login(viewer);
   await assert.rejects(()=>save('panel',4),/ACCESS_REQUIRED/);assert.equal((await db.query('select * from site_trade_records')).rows.length,0);
-  await db.exec('reset role');const audit=(await db.query('select count(*)::int n from seoripul_private.trade_record_audit')).rows[0];assert.equal(audit.n,7);
+  await db.exec('reset role');const audit=(await db.query('select count(*)::int n from seoripul_private.trade_record_audit')).rows[0];assert.equal(audit.n,8);
  }finally{await db.close();}
 });

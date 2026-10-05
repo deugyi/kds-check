@@ -45,8 +45,14 @@ test('steel hide and restore updates slab background; admin show-hidden mode sta
  h.steel.hidden=true;h.slab.hidden=false;h.page.querySelector('[data-site-trade]').value='slab';await h.context.SitePlanUI.activate('slab');canvas.context.calls.length=0;h.flush();assert.equal(canvas.context.calls.some(x=>x[0]===4000&&x[1]===1500),true);
 });
 test('opening save preserves dates, disables date editing and updates area export independently of candidate count',async()=>{
- const h=harness();h.records.d1.push({trade:'slab',item_key:'panel',completed:'2026-10-03',version:1});h.steel.hidden=true;h.slab.hidden=false;h.page.querySelector('[data-site-trade]').value='slab';await h.context.SitePlanUI.activate('slab');await h.pickSlab();
+ const h=harness();h.records.d1.push({trade:'slab',item_key:'panel',slab_kind:'deck',completed:'2026-10-03',version:1});h.steel.hidden=true;h.slab.hidden=false;h.page.querySelector('[data-site-trade]').value='slab';await h.context.SitePlanUI.activate('slab');await h.pickSlab();
  const form=h.slab.querySelector('form'),kind=form.elements.namedItem('slab_kind'),cast=form.elements.namedItem('completed');assert.equal(cast.value,'2026-10-03');kind.value='opening';form.events.input();assert.equal(cast.disabled,true);assert.equal(h.slab.querySelector('[data-slab-opening-note]').hidden,false);
- const snap=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(snap.records.panel.slab_kind,'opening');assert.equal(snap.records.panel.completed,'2026-10-03');assert.equal(snap.area.gross,100);assert.equal(snap.area.opening,4);assert.equal(snap.area.total,96);assert.equal(snap.area.completed,0);assert.equal(snap.area.percent,0);
- kind.value='deck';form.events.input();assert.equal(cast.disabled,false);const restored=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(restored.area.opening,0);assert.equal(restored.area.completed,4);assert.equal(restored.area.percent,4);
+ const snap=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(snap.records.panel.slab_kind,'opening');assert.equal(snap.records.panel.completed,'2026-10-03');assert.equal(snap.area.gross,100);assert.equal(snap.area.opening,100);assert.equal(snap.area.total,0);assert.equal(snap.area.completed,0);assert.equal(snap.area.percent,null);
+ kind.value='deck';form.events.input();assert.equal(cast.disabled,false);const restored=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(restored.area.opening,96);assert.equal(restored.area.total,4);assert.equal(restored.area.completed,4);assert.equal(restored.area.percent,100);
+});
+
+test('untouched regions open with the opening default and dates locked until a slab type is chosen',async()=>{
+ const h=harness();h.steel.hidden=true;h.slab.hidden=false;h.page.querySelector('[data-site-trade]').value='slab';await h.context.SitePlanUI.activate('slab');await h.pickSlab();const form=h.slab.querySelector('form');
+ assert.equal(form.elements.namedItem('slab_kind').value,'opening');assert.equal(form.elements.namedItem('completed').disabled,true);assert.match(h.slab.innerHTML,/영역 지정 방법/);assert.match(h.slab.innerHTML,/경계를 합치거나 다시 그리는 기능은 아직 없습니다/);
+ form.elements.namedItem('slab_kind').value='deck';form.events.input();assert.equal(form.elements.namedItem('completed').disabled,false);const snap=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(snap.area.total,4);assert.equal(snap.area.completed,0);assert.equal(snap.area.percent,0);
 });
