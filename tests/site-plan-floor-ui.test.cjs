@@ -25,14 +25,14 @@ test('slab catalog selection saves a specification without changing kind, dates,
  const catalog=[{code:'S1',thickness_mm:180,type:'T1',attributes:[{label:'상부 주근',value:'<img src=x>'}]}],h=harness(catalog);
  await h.activate();await h.pickSlab();const form=h.slab.querySelector('form'),field=n=>form.elements.namedItem(n),select=h.slab.querySelector('[data-slab-catalog]');
  assert.equal(field('slab_kind').value,'opening');field('label').value='keep area name';field('note').value='keep note';
- select.value='S1';select.events.change();assert.equal(field('spec').value,'S1 · 두께 180 mm · T1');assert.equal(field('slab_kind').value,'opening');
+ select.value='S1';form.events.input({target:select});assert.equal(select.value,'S1');select.events.change();assert.equal(field('spec').value,'S1 · 두께 180 mm · T1');assert.equal(field('slab_kind').value,'opening');
  assert.equal(field('completed').value,'');assert.equal(field('label').value,'keep area name');h.flush();
- const details=h.slab.querySelector('[data-slab-catalog-details]');assert.equal(details.hidden,false);assert.match(details.querySelector('dl').innerHTML,/&lt;img src=x&gt;/);
+ assert.doesNotMatch(h.slab.innerHTML,/슬래브 사양|부재표 상세|data-slab-catalog-details/);assert.match(h.slab.innerHTML,/<input type="hidden" name="spec">/);
  const snap=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(snap.records.panel.spec,field('spec').value);assert.equal(snap.records.panel.note,'keep note');assert.equal(snap.slabCatalog.length,1);assert.equal(h.regions.d1.length,0);
- field('spec').value='custom text';form.events.input();assert.equal(select.value,'');assert.equal(details.hidden,true);
+ field('spec').value='custom text';form.events.input();assert.equal(select.value,'__existing__');assert.match(select.innerHTML,/기존 입력 · custom text/);
  await h.context.SitePlanUI.selectFloor('B2');assert.equal(h.slab.querySelector('[data-slab-catalog-control]').hidden,true);assert.doesNotMatch(select.innerHTML,/S1/);
- await h.context.SitePlanUI.selectFloor('B1');await h.pickSlab();assert.equal(field('spec').value,'custom text');assert.equal(select.value,'');
- h.logout();assert.doesNotMatch(select.innerHTML,/S1/);assert.equal(details.querySelector('dl').innerHTML,'');assert.equal(details.hidden,true);
+ await h.context.SitePlanUI.selectFloor('B1');await h.pickSlab();assert.equal(field('spec').value,'custom text');assert.equal(select.value,'__existing__');select.value='';select.events.change();assert.equal(field('spec').value,'');assert.equal(select.value,'');
+ h.logout();assert.doesNotMatch(select.innerHTML,/S1/);assert.doesNotMatch(select.innerHTML,/custom text/);
 });
 test('floor switch saves source edits before replacing geometry; destination records and export stay isolated',async()=>{
  const h=harness();await h.activate();await h.pick();h.edit('label','B1 member');await h.context.SitePlanUI.selectFloor('B2');
