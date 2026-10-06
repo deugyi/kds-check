@@ -10,7 +10,7 @@ function harness(catalog=[]){
   querySelector(s){if(!this.selectors.has(s))this.selectors.set(s,new Element());return this.selectors.get(s);}
   querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','completed','note','slab_kind','decked','reinforced'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
   reset(){for(const e of this.querySelectorAll('input,select,textarea,button'))e.value='';}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
-  getContext(){if(!this.context){const data={calls:[],transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
+  getContext(){if(!this.context){const data={calls:[],fills:[],fill(){this.fills.push(this.fillStyle);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
  }
  const page=new Element(),steel=page.querySelector('[data-trade="steel"]'),slab=page.querySelector('[data-trade="slab"]');slab.hidden=true;page.querySelector('[data-site-trade]').value='steel';page.querySelector('[data-plan-floor]').value='B1';
  const drawing={floor:'지하1층',bounds:[0,0,10000,10000],perimeter:[[0,0],[10000,0],[10000,10000],[0,10000]],zones:[{id:'A1',points:[[0,0],[10000,0],[10000,10000],[0,10000]]}],members:[{key:'same',a:[1000,1500],b:[4000,1500],kind:'beam',zone:'A1'}],slabs:[{key:'panel',zone:'A1',points:[[6000,1000],[8000,1000],[8000,3000],[6000,3000]],holes:[],area:4}],columns:[],background:[],duplicatePairs:[],duplicateGroups:[],openEnds:[]};
@@ -112,4 +112,13 @@ test('fully covered region retains its record; restore cannot reintroduce overla
  const h=harness();h.records.d1.push({trade:'slab',item_key:'panel',slab_kind:'deck',completed:'2026-10-03',version:1});await slabActive(h);await slabAction(h,'slab-new');for(const p of [[5500,500],[8500,500],[8500,3500],[5500,3500]])await slabPoint(h,...p);await slabAction(h,'slab-commit');assert.equal(h.regions.d1.find(r=>r.item_key==='panel').hidden,true);
  const before=structuredClone(h.regions.d1);await slabAction(h,'slab-restore',{region:'panel'});assert.match(h.slab.querySelector('.plan-form-message').textContent,/겹칩니다/);assert.deepEqual(h.regions.d1,before);assert.equal(h.records.d1[0].completed,'2026-10-03');
  await slabAction(h,'slab-new');for(const p of [[5000,1000],[7000,1000],[7000,3000],[5000,3000]])await slabPoint(h,...p);h.failSave();await slabAction(h,'slab-commit');assert.deepEqual(h.regions.d1,before);assert.equal(h.context.SitePlanUI.hasUnsaved(),true);
+});
+
+test('slab canvas uses construction stages and kinds even when its member table supplies a different colour',async()=>{
+ const h=harness([{code:'S1',thickness_mm:180,type:'T1',color:'#abcdef'}]);h.steel.hidden=true;h.slab.hidden=false;h.page.querySelector('[data-site-trade]').value='slab';
+ h.records.d1.push({trade:'slab',item_key:'panel',slab_kind:'deck',spec:'S1',version:1});await h.context.SitePlanUI.activate('slab');
+ const ctx=h.slab.querySelector('canvas').context;for(const dates of [{}, {decked:'2026-10-04'}, {decked:'2026-10-04',reinforced:'2026-10-05'}, {completed:'2026-10-06'}]){
+  h.records.d1[0]={trade:'slab',item_key:'panel',slab_kind:'deck',spec:'S1',version:1,...dates};await h.context.SitePlanUI.exportSnapshot('slab');ctx.fills.length=0;h.flush();assert.ok(ctx.fills.includes(G.slabStyle(h.records.d1[0]).fill));assert.ok(!ctx.fills.includes('#abcdef'));
+ }
+ assert.equal(h.slab.querySelector('[data-slab-catalog-legend]').hidden,true);assert.match(h.slab.innerHTML,/슬래브 종류별 미착수와 타설 완료 색상/);
 });

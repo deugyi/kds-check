@@ -32,13 +32,10 @@
 
 .plan-detail select{width:100%;margin-top:6px}
 .plan-slab-legend i{height:10px;border:1px solid #abc0cd}
-.plan-slab-legend .slab-type-deck{background:#dcebf6}.plan-slab-legend .slab-type-conventional{background:#ede7dc}.plan-slab-legend .slab-type-temporary{background:#e7e0f0}
-.plan-slab-legend .slab-stage-deck{height:3px;background:#367cb2;border:0}.plan-slab-legend .slab-stage-rebar{height:3px;background:#8064b5;border:0}.plan-slab-legend .plan-legend-completed{height:3px;border:0}
 .plan-map-info:has(.plan-slab-legend){max-height:calc(100% - 28px);overflow:auto;pointer-events:auto}
 
 .site-workspace-toolbar [data-plan-floor]{width:112px;height:36px;min-height:36px;box-sizing:border-box;padding:6px 10px;font-size:13px}
 
-.plan-slab-legend .slab-type-opening{background:#fff;border:1px dashed #687b89}
 
 .plan-zone-bar.plan-area-bar{grid-template-columns:45px minmax(80px,1fr) 230px 65px}
 .plan-area-bar>span:nth-last-child(2){white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
@@ -58,3 +55,5 @@
 .plan-map-toast{position:absolute;left:14px;bottom:14px;z-index:4;display:flex;align-items:center;gap:12px;max-width:calc(100% - 28px);box-sizing:border-box;padding:12px 14px;border:1px solid #c9d5dd;border-radius:7px;background:#fffffff5;box-shadow:0 3px 15px #283f5420;color:#28495e;font-size:13px}.plan-map-toast[hidden]{display:none}.plan-map-toast button{flex:none;border:0;background:transparent;color:#526571;font-size:22px;cursor:pointer;padding:0 4px}
 
 .plan-catalog-regions{margin:12px 0;font-size:12px}.plan-catalog-regions summary{cursor:pointer;color:var(--accent)}.plan-catalog-regions button{display:block;width:100%;margin:6px 0;text-align:left}
+
+.plan-slab-legend table{margin:3px 0;border-collapse:collapse;width:100%;font-size:11px}.plan-slab-legend th,.plan-slab-legend td{background:transparent;border:0;padding:5px 3px;font-size:11px;text-align:center;white-space:nowrap}.plan-slab-legend th:first-child{text-align:left;padding-left:0}.plan-slab-legend thead th{font-weight:600;border-bottom:1px solid #dce4e9}.plan-slab-legend tbody th{font-weight:400}.plan-slab-legend tbody i{width:25px;height:12px}.plan-slab-legend>span:last-child i{border-style:dashed}

@@ -9,3 +9,12 @@ test('progress counts only entered completion dates, using the selected drawing 
 test('hidden members leave active progress totals; restoration retains their dates',()=>{const visibility={a:{hidden:true,version:1}},records={a:{completed:'2026-10-01'}};assert.deepEqual(P.summary(P.activeMembers(base.members,visibility),records),{total:1,completed:0,delivered:0,remaining:1,percent:0});visibility.a.hidden=false;assert.equal(P.summary(P.activeMembers(base.members,visibility),records).completed,1);assert.equal(base.members.length,2);});
 test('zone label and boundary clicks find the correct zone without capturing ordinary interior points',()=>{const d=P.prepare({...base,zones:[{id:'A1',points:[[0,0],[1000,0],[1000,1000],[0,1000]]},{id:'A2',points:[[1100,0],[2100,0],[2100,1000],[1100,1000]]}]});assert.equal(P.zoneHit(d,[500,500],5,40),'A1');assert.equal(P.zoneHit(d,[1600,500],5,40),'A2');assert.equal(P.zoneHit(d,[997,200],5,40),'A1');assert.equal(P.zoneHit(d,[200,200],5,40),'');assert.equal(P.zoneHit(d,[1050,500],5,40),'');});
 test('fit bounds use the site perimeter despite remote background objects',()=>{const d=P.prepare({...base,bounds:[-1e6,-1e6,1e6,1e6],perimeter:[[0,0],[20000,0],[20000,10000],[0,10000]],background:[{center:[900000,900000],radius:500}]});assert.deepEqual(d.bounds,base.bounds);assert.ok(d.backgroundBatches[0].bounds[0]>800000);});
+test('slab stages share deck and rebar colours, distinguish kinds before and after casting, and keep openings uncoloured',()=>{
+ const kinds=['deck','conventional','temporary'],colours=(dates={})=>kinds.map(slab_kind=>P.itemColor('slab',{}, {slab_kind,...dates}));
+ assert.equal(new Set(colours()).size,3);assert.equal(new Set(colours({completed:'2026-10-06'})).size,3);
+ assert.equal(new Set(colours({decked:'2026-10-04'})).size,1);assert.equal(new Set(colours({reinforced:'2026-10-05'})).size,1);
+ for(const slab_kind of kinds){const stages=[{}, {decked:'2026-10-04'}, {reinforced:'2026-10-05'}, {completed:'2026-10-06'}];assert.equal(new Set(stages.map(dates=>P.itemColor('slab',{}, {slab_kind,...dates}))).size,4);
+  assert.equal(P.slabStyle({slab_kind,decked:'2026-10-04',reinforced:'2026-10-05',completed:'2026-10-06'}).stage,'completed');assert.equal(P.slabStyle({slab_kind,decked:'2026-10-04',reinforced:'2026-10-05'}).stage,'reinforced');
+ }
+ assert.equal(P.itemColor('slab',{}, {slab_kind:'opening',decked:'2026-10-04',reinforced:'2026-10-05',completed:'2026-10-06'}),'#ffffff');
+});
