@@ -7,6 +7,14 @@ test('slab inner voids are not clickable; review areas require explicit inclusio
 test('calendar validity, chronological steel dates and field limits prevent unsafe records',()=>{assert.throws(()=>P.record({completed:'2026-02-29'},'slab'),/날짜/);assert.throws(()=>P.record({completed:'0000-01-01'},'slab'),/날짜/);assert.throws(()=>P.record({delivered:'2026-10-02',completed:'2026-10-01'},'steel'),/반입/);assert.throws(()=>P.record({label:'x'.repeat(121)},'steel'),/길이/);assert.equal(P.record({completed:'2028-02-29',delivered:'2029-01-01'},'slab').delivered,'');assert.equal(P.record({label:' =A1',note:'<script>'},'steel').label,'=A1');});
 test('progress counts only entered completion dates, using the selected drawing items',()=>{assert.deepEqual(P.summary(base.members,{a:{completed:'2026-10-01'},b:{delivered:'2026-09-29'}}),{total:2,completed:1,delivered:1,remaining:1,percent:50});assert.equal(P.summary([],{a:{completed:'2026-10-01'}}).percent,0);});
 test('hidden members leave active progress totals; restoration retains their dates',()=>{const visibility={a:{hidden:true,version:1}},records={a:{completed:'2026-10-01'}};assert.deepEqual(P.summary(P.activeMembers(base.members,visibility),records),{total:1,completed:0,delivered:0,remaining:1,percent:0});visibility.a.hidden=false;assert.equal(P.summary(P.activeMembers(base.members,visibility),records).completed,1);assert.equal(base.members.length,2);});
+test('duplicate review counts only visible overlapping pairs, including split groups and zone scope',()=>{
+ const d={members:[{key:'a',zone:'A3'},{key:'b',zone:'A3'},{key:'c',zone:'A3'},{key:'d',zone:'A2'},{key:'e',zone:'A2'}],duplicateGroups:[{id:'g1',keys:['a','b','c']},{id:'g2',keys:['d','e']}],duplicatePairs:[{group:'g1',keys:['a','b']},{group:'g1',keys:['b','c']},{group:'g2',keys:['d','e']}]};
+ const ids=(visibility,zone='')=>P.pendingGroups(d,visibility,zone).map(g=>g.id);
+ assert.deepEqual(ids({}),['g1','g2']);assert.deepEqual(ids({b:{hidden:true}}),['g2']);
+ assert.deepEqual(ids({b:{hidden:true}},'A3'),[]);assert.deepEqual(ids({b:{hidden:false}},'A3'),['g1']);
+ assert.deepEqual(ids({a:{hidden:true}},'A3'),['g1']);assert.deepEqual(ids({},'A2'),['g2']);
+ assert.equal(d.duplicatePairs.length,3);assert.equal(d.members.length,5);
+});
 test('confirmed steel without an installation date stays complete in records, colours and progress',()=>{
  const r=P.record({installation_complete:true,label:'shop mark',completed:'',spec:'',note:'keep'},'steel');
  assert.equal(r.installation_complete,true);assert.equal(r.completed,'');assert.equal(r.spec,'');
