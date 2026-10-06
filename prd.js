@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const layers={number:'-col_number',name:'-col_name',type:'-col_type',reaction:'-col_reaction'};
-const stages=[['planned','미착수','#aeb9c2'],['drilled','천공 완료','#438bd0'],['delivered','자재 반입','#dba238'],['ready','천공·반입 완료','#8d70c8'],['installed','타설 완료','#087f5b']];
+const stages=[['planned','미착수','#aeb9c2'],['drilled','천공 완료','#438bd0'],['delivered','자재 반입','#dba238'],['ready','천공·반입 완료','#8d70c8'],['installed','시공 완료','#087f5b']];
 function text(v){return String(v||'').replace(/\\U\+([0-9a-f]{4})/gi,(_,n)=>String.fromCharCode(parseInt(n,16))).trim();}
 function parse(source){
  if(source.startsWith('AutoCAD Binary DXF'))throw Error('바이너리 DXF는 지원하지 않습니다. ASCII DXF로 저장해 주세요.');
@@ -102,6 +102,6 @@ function fixedDrawing(base,saved){
  if(Object.keys(previous.records).some(k=>!keys.has(k)))throw Error('기본 도면에 없는 공의 기록이 있습니다.');
  return {...fixed,records:previous.records};
 }
-root.PRD={parse,decode,stages,status,record,validate,fixedDrawing};
+root.PRD={parse,decode,stages,status,record,validDate,validate,fixedDrawing};
 if(typeof module!=='undefined')module.exports=root.PRD;
 })(globalThis);

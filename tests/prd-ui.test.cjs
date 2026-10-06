@@ -2,6 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const P=require('../prd.js'),Z=require('../prd-zones.js'),base=require('./prd-fixture.cjs');
+global.PRD=P;const M=require('../prd-materials.js');
 // Small DOM adapter: count writes/layout reads, drive the real UI event handlers.
 async function load(options={}){
  const nodes=new Map(),frames=new Map(),writes=[];let nextFrame=0,reads=0,saved=null,failSave=false,role=options.role||'editor',userId='test-user',generation=1;const docEvents={},remote={},calls=[];
@@ -38,9 +39,9 @@ async function load(options={}){
  const cloud={allowed:()=>['viewer','editor','admin'].includes(role),canEdit:()=>['editor','admin'].includes(role),get generation(){return generation;},get userId(){return userId;},explain:e=>e.message,
  load:async()=>({base:JSON.parse(JSON.stringify(base)),rows:Object.values(remote)}),records:async()=>Object.values(remote),save:async(key,r,version)=>{
  calls.push({key,r,version});if(failSave)throw Object.assign(Error('RECORD_CONFLICT'),{code:'40001'});if(!cloud.canEdit())throw Object.assign(Error('EDIT_ACCESS_REQUIRED'),{code:'42501'});
- const row={...r,pile_key:key,version:version+1};remote[key]=row;saved={records:Object.fromEntries(Object.entries(remote).map(([k,v])=>[k,v]))};return row;
+ const row={...remote[key],...r,pile_key:key,version:version+1};remote[key]=row;saved={records:Object.fromEntries(Object.entries(remote).map(([k,v])=>[k,v]))};return row;
  }};
- const ctx=vm.createContext({PRD:P,PRDZones:Z,PRDDashboard:require('../prd-dashboard.js'),SiteCloud:cloud,console,setInterval(){},confirm:()=>options.confirm!==false,document:{getElementById:$,createElementNS:(_,tag)=>new Element(tag),addEventListener(k,fn){(docEvents[k]??=[]).push(fn);},querySelectorAll:s=>s==='.site-page'?pages:[],body:new Element()},window:{addEventListener(){}},localStorage:{getItem:()=>options.legacy?JSON.stringify(options.legacy):null,setItem(){throw Error('must not write localStorage');}},requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id)});
+ const ctx=vm.createContext({PRD:P,PRDMaterials:M,PRDZones:Z,PRDDashboard:require('../prd-dashboard.js'),SiteCloud:cloud,console,setInterval(){},confirm:()=>options.confirm!==false,document:{getElementById:$,createElementNS:(_,tag)=>new Element(tag),addEventListener(k,fn){(docEvents[k]??=[]).push(fn);},querySelectorAll:s=>s==='.site-page'?pages:[],body:new Element()},window:{addEventListener(){}},localStorage:{getItem:()=>options.legacy?JSON.stringify(options.legacy):null,setItem(){throw Error('must not write localStorage');}},requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id)});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../prd-ui.js'),'utf8'),ctx);
  ctx.SitePlanUI={activate:async()=>{},beforeTradeChange:async()=>true};
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../site-workspace.js'),'utf8'),ctx);
@@ -226,7 +227,7 @@ test('export snapshot respects the current zone and status filter and excludes u
  h.$('prd-filter').value='installed';h.$('prd-filter').events.change();
  let snapshot;h.ctx.PRDExport={download:async(s,allowed)=>{assert.equal(allowed(),true);snapshot=s;return true;}};
  await page.querySelector('[data-site-export]').events.click();
- assert.equal(snapshot.piles.length,1);assert.equal(snapshot.piles[0].key,key);assert.equal(snapshot.scope,'A1');assert.equal(snapshot.filter,'타설 완료');
+ assert.equal(snapshot.piles.length,1);assert.equal(snapshot.piles[0].key,key);assert.equal(snapshot.scope,'A1');assert.equal(snapshot.filter,'시공 완료');
  assert.equal(snapshot.records[key].installed,'2026-09-21');assert.match(page.querySelector('[data-site-export-status]').textContent,/1공 다운로드 완료/);
  const select=page.querySelector('[data-site-trade]');select.value='steel';await select.events.change();assert.equal(page.querySelector('[data-site-export]').disabled,false);
  await h.logout();await assert.rejects(()=>h.ctx.PRDCloudUI.exportSnapshot());
@@ -238,4 +239,15 @@ test('failed steel/slab save preserves the active trade and fullscreen',async()=
  h.ctx.SitePlanUI.beforeTradeChange=async trade=>{assert.equal(trade,'steel');return false;};
  select.value='slab';await select.events.change();assert.equal(select.value,'steel');assert.equal(page.classList.contains('site-fullscreen'),true);
  h.ctx.SitePlanUI.beforeTradeChange=async()=>true;select.value='slab';await select.events.change();assert.equal(select.value,'slab');
+});
+test('material details refresh, survive date edits, export and clear on logout',async()=>{
+ const h=await load(),[a,b]=base.drawing.piles;
+ h.remote[a.key]={pile_key:a.key,version:1,note:'keep',material_details:{schema:1,source:{file:'materials.xlsx',sheet:'A1',row:8},fields:[{id:'column_spec',group:'자재',label:'기둥 규격',value:'H-400',cell:'M8'}],issues:[]}};
+ await h.$('prd-refresh').events.click();await h.click(a.key);assert.match(h.$('prd-material-info').innerHTML,/H-400/);
+ await h.click(b.key);assert.equal(h.$('prd-material-info').innerHTML,'');await h.click(a.key);
+ h.$('prd-note').value='changed';h.$('prd-form').events.input();await h.click(b.key);await h.click(a.key);assert.match(h.$('prd-material-info').innerHTML,/H-400/);
+ const snap=await h.ctx.PRDCloudUI.exportSnapshot();assert.equal(snap.materials[a.key].fields[0].value,'H-400');assert.equal(h.remote[a.key].material_details.fields[0].value,'H-400');
+ h.remote[a.key].material_details.fields[0].value='H-500';h.remote[a.key].material_details.issues=[{kind:'기존 날짜 불일치',source:'2026-01-23',existing:'2026-01-27'}];h.remote[a.key].version++;await h.$('prd-refresh').events.click();assert.match(h.$('prd-material-info').innerHTML,/H-500/);
+ h.$('prd-filter').value='issues';h.$('prd-filter').events.change();assert.match(h.$('prd-count').textContent,/상태 필터 1공/);assert.equal((h.$('prd-zone-rows').innerHTML.match(/<tr>/g)||[]).length,1);assert.equal(h.$('prd-p-'+a.key).classList.contains('prd-issue'),true);assert.equal((await h.ctx.PRDCloudUI.exportSnapshot()).piles.length,1);
+ await h.logout();assert.equal(h.$('prd-material-info').innerHTML,'');
 });

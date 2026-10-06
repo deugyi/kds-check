@@ -21,14 +21,16 @@ function controls(){
  $('prd-import-local').disabled=busy;$('prd-refresh').disabled=busy;
 }
 function takeRows(rows){
- const records={},nextVersions=new Map();
- for(const row of rows){if(!pilesByKey.has(row.pile_key))continue;records[row.pile_key]=P.record(row);nextVersions.set(row.pile_key,row.version);}
+ const records={},materials={},nextVersions=new Map();
+ for(const row of rows){if(!pilesByKey.has(row.pile_key))continue;records[row.pile_key]=P.record(row);const detail=globalThis.PRDMaterials?.read(row.material_details);if(detail)materials[row.pile_key]=detail;nextVersions.set(row.pile_key,row.version);}
  const changed=nextVersions.size!==versions.size||Object.keys(records).some(key=>{
   const previous=data.records[key];return !previous||nextVersions.get(key)!==versions.get(key)||['drilled','delivered','installed','note'].some(field=>previous[field]!==records[key][field]);
  });
  if(changed)data.records=records;
+ data.materials=materials;
  versions=nextVersions;
 }
+function renderMaterials(){if(data&&selected)$('prd-material-info').innerHTML=globalThis.PRDMaterials?.render(data.materials?.[selected])||'';}
 // Coalesce pointer/wheel bursts into one SVG update per animation frame.
 function viewbox(){if(!frame)frame=requestAnimationFrame(paintView);}
 function paintView(){
@@ -67,7 +69,8 @@ async function select(key,focus=false){
  const oldZone=activeZone,p=pilesByKey.get(key),r=data.records[key]||{};setSelected(key);
  if(activeZone&&zoneData.membership[key]!==activeZone)activeZone=zoneData.membership[key];
  $('prd-selection-empty').hidden=true;$('prd-form').hidden=false;$('prd-selected-title').textContent=title(p);
- $('prd-info').innerHTML=[['공구',zoneData.membership[p.key]==='unassigned'?'미분류':zoneData.membership[p.key]],['부재명',p.name.join(' / ')||'—'],['타입',p.type.join(' / ')||'—'],['공경 레이어',p.layer]].map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+ $('prd-info').innerHTML=[['공구',zoneData.membership[p.key]==='unassigned'?'미분류':zoneData.membership[p.key]],['부재명',p.name.join(' / ')||'—'],['타입',p.type.join(' / ')||'—'],['공 직경',Number.isFinite(p.diameter)?p.diameter.toLocaleString('ko-KR')+' mm':p.layer]].map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+ renderMaterials();
  $('prd-form-feedback').textContent=cloud.canEdit()?'':'조회 전용 계정입니다.';controls();
  if(isExpanded())showDetails(true);
  $('prd-selected-warning').textContent=p.warnings.join(' · ');$('prd-selected-warning').hidden=!p.warnings.length;
@@ -77,7 +80,8 @@ async function select(key,focus=false){
  if(oldZone!==activeZone)renderStatus();
 }
 function inZone(p){return !activeZone||zoneData.membership[p.key]===activeZone;}
-function visibility(){const f=$('prd-filter').value;return p=>inZone(p)&&(!f||(f==='issues'?p.warnings.length:P.status(data.records[p.key])===f));}
+function hasIssues(p){return p.warnings.length||data.materials?.[p.key]?.issues.length;}
+function visibility(){const f=$('prd-filter').value;return p=>inZone(p)&&(!f||(f==='issues'?hasIssues(p):P.status(data.records[p.key])===f));}
 function attr(n,k,v){v=String(v);if(n.getAttribute(k)!==v)n.setAttribute(k,v);}
 function renderDashboard(){
  const D=globalThis.PRDDashboard,day=D.today();
@@ -91,7 +95,7 @@ function renderStatus(){
  if(!data)return;
  const visible=visibility();
  const counts=Object.fromEntries(P.stages.map(s=>[s[0],0]));let shown=0;
- for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p);if(inZone(p))counts[s[0]]++;shown+=v?1:0;attr(n,'fill',s[2]);attr(n,'data-stage',s[0]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(p.warnings.length?' · 확인 필요':''));const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
+ for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p),issue=!!hasIssues(p);if(inZone(p))counts[s[0]]++;shown+=v?1:0;attr(n,'fill',s[2]);attr(n,'data-stage',s[0]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(issue?' · 확인 필요':''));if(n.classList.contains('prd-issue')!==issue)n.classList.toggle('prd-issue',issue);const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
  $('prd-stats').innerHTML=P.stages.map(([key,name,color])=>`<span class="prd-stat"><i class="prd-dot" data-stage="${key}" style="background:${color}"></i>${name} <strong>${counts[key]}</strong></span>`).join('');
  $('prd-count').textContent=`${activeZone?(activeZone==='unassigned'?'미분류':activeZone)+' 공구':'전체'} ${data.drawing.piles.filter(inZone).length}공 · 상태 필터 ${shown}공`;
  setSelected(selected);
@@ -111,12 +115,12 @@ async function selectZone(id){
 function renderZoneDetails(visible){
  const members=sortedPiles.filter(inZone),info=Z.summary(members,data.records,P.status),name=activeZone==='unassigned'?'미분류':activeZone;
  $('prd-zone-title').textContent=(name?name+' 공구':'전체 공구')+' PRD 상세 현황';
- $('prd-zone-side').innerHTML=activeZone?`<h3>${esc(name)} 공구 현황</h3><p><strong>${info.total}공 · 시공률 ${info.percent.toFixed(1)}%</strong></p><p class="prd-muted">천공 ${info.work.drilled} · 반입 ${info.work.delivered} · 타설 ${info.work.installed}공</p><button type="button" data-zone-details>상세 목록 보기</button><hr>`:'';
+ $('prd-zone-side').innerHTML=activeZone?`<h3>${esc(name)} 공구 현황</h3><p><strong>${info.total}공 · 시공률 ${info.percent.toFixed(1)}%</strong></p><p class="prd-muted">천공 ${info.work.drilled} · 반입 ${info.work.delivered} · 시공 완료 ${info.work.installed}공</p><button type="button" data-zone-details>상세 목록 보기</button><hr>`:'';
  $('prd-zone-progress').textContent=`시공률 ${info.percent.toFixed(1)}%`;
- $('prd-zone-summary').innerHTML=[['전체',info.total],['천공 완료',info.work.drilled],['자재 반입',info.work.delivered],['타설 완료',info.work.installed],['확인 필요',info.warnings]].map(([label,n])=>`<div><span>${label}</span><strong>${n}<small> 공</small></strong></div>`).join('');
+ $('prd-zone-summary').innerHTML=[['전체',info.total],['천공 완료',info.work.drilled],['자재 반입',info.work.delivered],['시공 완료',info.work.installed],['확인 필요',members.filter(hasIssues).length]].map(([label,n])=>`<div><span>${label}</span><strong>${n}<small> 공</small></strong></div>`).join('');
  const rows=members.filter(visible);
  $('prd-zone-table-count').textContent=`공 번호를 누르면 해당 공으로 이동합니다. ${rows.length} / ${members.length}공 표시`;
- $('prd-zone-rows').innerHTML=rows.map(p=>{const r=data.records[p.key]||{},s=stage(p),z=zoneData.membership[p.key];return `<tr><td><button type="button" data-key="${esc(p.key)}">${esc(title(p))}${p.warnings.length?' ⚠':''}</button></td><td>${esc(z==='unassigned'?'미분류':z)}</td><td>${esc(p.type.join(' / ')||'—')}</td><td><i class="prd-dot" data-stage="${s[0]}" style="background:${s[2]}"></i> ${s[1]}</td><td>${esc(r.drilled||'—')}</td><td>${esc(r.delivered||'—')}</td><td>${esc(r.installed||'—')}</td><td class="prd-note-cell">${esc(r.note||'—')}</td></tr>`;}).join('')||'<tr><td colspan="8">해당 조건의 공이 없습니다.</td></tr>';
+ $('prd-zone-rows').innerHTML=rows.map(p=>{const r=data.records[p.key]||{},s=stage(p),z=zoneData.membership[p.key];return `<tr><td><button type="button" data-key="${esc(p.key)}">${esc(title(p))}${hasIssues(p)?' ⚠':''}</button></td><td>${esc(z==='unassigned'?'미분류':z)}</td><td>${esc(p.type.join(' / ')||'—')}</td><td><i class="prd-dot" data-stage="${s[0]}" style="background:${s[2]}"></i> ${s[1]}</td><td>${esc(r.drilled||'—')}</td><td>${esc(r.delivered||'—')}</td><td>${esc(r.installed||'—')}</td><td class="prd-note-cell">${esc(r.note||'—')}</td></tr>`;}).join('')||'<tr><td colspan="8">해당 조건의 공이 없습니다.</td></tr>';
  for(const b of $('prd-zone-tabs').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.zone===activeZone));
  for(const n of zoneShapes.querySelectorAll('[data-zone]')){const on=n.dataset.zone===activeZone;n.classList.toggle('prd-zone-active',on);n.setAttribute('aria-pressed',String(on));}
  for(const n of zoneLabels.querySelectorAll('[data-zone]'))n.classList.toggle('prd-zone-active',n.dataset.zone===activeZone);
@@ -162,7 +166,7 @@ async function refreshRecords(manual=false){
  if(busy||loading||!data||!cloud.allowed())return;
  if(dirty&&(!manual||!confirm('저장하지 않은 입력을 버리고 최신 기록을 불러올까요?')))return;
  const epoch=cloud.generation;busy=true;controls();
- try{const rows=await cloud.records();if(epoch!==cloud.generation)return;takeRows(rows);dirty=false;renderStatus();if(selected){const r=data.records[selected]||{};for(const k of ['drilled','delivered','installed','note'])$('prd-'+k).value=r[k]||'';}message('최신 서버 기록을 불러왔습니다.');}
+ try{const rows=await cloud.records();if(epoch!==cloud.generation)return;takeRows(rows);dirty=false;renderStatus();if(selected){const r=data.records[selected]||{};for(const k of ['drilled','delivered','installed','note'])$('prd-'+k).value=r[k]||'';renderMaterials();}message('최신 서버 기록을 불러왔습니다.');}
  catch(e){message(cloud.explain(e),true);}
  finally{busy=false;controls();}
 }
@@ -191,7 +195,7 @@ function clearDrawing(){
  data=null;baseDrawing=null;loadedUser=null;selected=null;zoneData=null;legacy=null;dirty=false;view=null;wheel=null;drag=null;
  pileNodes.clear();pilesByKey.clear();versions.clear();sortedPiles=[];
  for(const n of [group,labels,zoneShapes,zoneLabels])n.replaceChildren();
- for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
+ for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-material-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
  for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note'])$(id).value='';
  for(const id of ['prd-count','prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
  $('prd-workspace').hidden=true;$('prd-empty').hidden=false;$('prd-form').hidden=true;message('');
@@ -209,7 +213,7 @@ globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm
  if(!await saveForm(true))throw Error('기록을 저장하지 못했습니다. PRD 입력 내용을 확인해 주세요.');
  if(!data||!cloud.allowed())throw Error('접근 권한을 다시 확인해 주세요.');
  const filter=$('prd-filter').value;
- return {piles:sortedPiles.filter(visibility()),records:JSON.parse(JSON.stringify(data.records)),zones:zoneData,scope:activeZone==='unassigned'?'미분류':activeZone||'전체',filter:filter==='issues'?'확인 필요':P.stages.find(s=>s[0]===filter)?.[1]||'전체 상태',asOf:globalThis.PRDDashboard.today()};
+ return {piles:sortedPiles.filter(visibility()),records:JSON.parse(JSON.stringify(data.records)),materials:JSON.parse(JSON.stringify(data.materials||{})),zones:zoneData,scope:activeZone==='unassigned'?'미분류':activeZone||'전체',filter:filter==='issues'?'확인 필요':P.stages.find(s=>s[0]===filter)?.[1]||'전체 상태',asOf:globalThis.PRDDashboard.today()};
 }};
 $('prd-retry').addEventListener('click',openFixedDrawing);
 $('prd-form').addEventListener('input',()=>{if(busy||!cloud.canEdit())return;dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});

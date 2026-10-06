@@ -1,7 +1,7 @@
 /* Progress is calculated from authenticated drawing items and saved dates. */
 (function(root){
 'use strict';
-const trades=[{id:'prd',name:'PRD',unit:'공',done:'installed',caption:'타설 완료',pre:'drilled',preName:'천공'}, {id:'steel',name:'철골보',unit:'부재',done:'completed',caption:'설치 완료',pre:'delivered',preName:'자재 반입'}, {id:'slab',name:'슬래브',unit:'m²',done:'completed',caption:'타설 완료'}, {id:'curtainwall',name:'커튼월',unit:'개',done:'completed',caption:'시공 완료'}];
+const trades=[{id:'prd',name:'PRD',unit:'공',done:'installed',caption:'시공 완료',pre:'drilled',preName:'천공'}, {id:'steel',name:'철골보',unit:'부재',done:'completed',caption:'설치 완료',pre:'delivered',preName:'자재 반입'}, {id:'slab',name:'슬래브',unit:'m²',done:'completed',caption:'타설 완료'}, {id:'curtainwall',name:'커튼월',unit:'개',done:'completed',caption:'시공 완료'}];
 function count(items,records,trade,visibility={}){if(!Array.isArray(items))return {ready:false,total:null,completed:null,remaining:null,percent:null,previous:null};const unique=[...new Map(items.filter(v=>!visibility[v.key]?.hidden).map(v=>[v.key,v])).values()];let completed=0,previous=0;for(const item of unique){const r=records?.[item.key];if(r?.[trade.done])completed++;if(trade.pre&&r?.[trade.pre])previous++;}return {ready:true,total:unique.length,completed,remaining:unique.length-completed,percent:unique.length?completed/unique.length*100:null,previous};}
 function slabProgress(source,zone){const a=zone?source?.areaByZone?.[zone]:source?.area;return a?{ready:true,...a,previous:null}:{ready:false,total:null,completed:null,remaining:null,percent:null,previous:null};}
 function summarize(sources={},asOf='',site='south'){
