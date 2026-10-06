@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const tick=()=>new Promise(r=>setImmediate(r));
 global.PRDZones=require('../prd-zones.js');const G=require('../site-plan.js');
-function harness(catalog=[]){
+function harness(catalog=[],drawingPatch={}){
  const listeners={},intervals=[],frames=[],calls=[],records={d1:[],d2:[]},hidden={d1:{},d2:{}},regions={d1:[],d2:[]};let allowed=true,generation=1,failSave=false,failLoad=false,holdId=null,release=null;
  class Element{
   constructor(){this.selectors=new Map();this.events={};this.dataset={};this.value='';this.checked=false;this.hidden=false;this.textContent='';this.attrs={};this.children=[];this.parentNode={title:''};this.classList={toggle(){},contains:()=>false};this.elements={namedItem:n=>this.querySelector('[name="'+n+'"]')};}
@@ -10,10 +10,11 @@ function harness(catalog=[]){
   querySelector(s){if(!this.selectors.has(s))this.selectors.set(s,new Element());return this.selectors.get(s);}
   querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
   reset(){for(const e of this.querySelectorAll('input,select,textarea,button')){e.value='';e.checked=false;}}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
-  getContext(){if(!this.context){const data={calls:[],fills:[],fill(){this.fills.push(this.fillStyle);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
+  getContext(){if(!this.context){const data={calls:[],fills:[],fillAlphas:[],fill(){this.fills.push(this.fillStyle);this.fillAlphas.push([this.fillStyle,this.globalAlpha]);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
  }
  const page=new Element(),steel=page.querySelector('[data-trade="steel"]'),slab=page.querySelector('[data-trade="slab"]');slab.hidden=true;page.querySelector('[data-site-trade]').value='steel';page.querySelector('[data-plan-floor]').value='B1';
  const drawing={floor:'지하1층',bounds:[0,0,10000,10000],perimeter:[[0,0],[10000,0],[10000,10000],[0,10000]],zones:[{id:'A1',points:[[0,0],[10000,0],[10000,10000],[0,10000]]}],members:[{key:'same',a:[1000,1500],b:[4000,1500],kind:'beam',zone:'A1'}],slabs:[{key:'panel',zone:'A1',points:[[6000,1000],[8000,1000],[8000,3000],[6000,3000]],holes:[],area:4}],columns:[],background:[],duplicatePairs:[],duplicateGroups:[],openEnds:[]};
+ Object.assign(drawing,drawingPatch);
  const cloud={planFloors:[{id:'B1',name:'지하1층',drawing:'d1'},{id:'B2',name:'지하2층',drawing:'d2'}],allowed:()=>allowed,canEditTrade:()=>allowed,isAdmin:()=>allowed,explain:e=>e.message,get generation(){return generation;},get userId(){return 'viewer';},loadPlan:async id=>{calls.push(['load',id]);if(failLoad&&id==='d2')throw Error('offline');if(holdId===id)await new Promise(r=>release=r);return {document:{drawing:{...drawing,floor:id==='d1'?'지하1층':'지하2층',slabsReady:id==='d1',slabCatalog:id==='d1'?catalog:[]}},rows:structuredClone(records[id]),visibility:hidden[id],regions:structuredClone(regions[id])};},planState:async id=>{calls.push(['state',id]);return {records:structuredClone(records[id]),visibility:hidden[id],regions:structuredClone(regions[id])};},saveTrade:async(trade,key,value,version,id)=>{calls.push(['save',id]);if(failSave)throw Error('save failed');const row={...value,trade,item_key:key,version:version+1};records[id]=records[id].filter(r=>r.trade!==trade||r.item_key!==key).concat(row);return row;},saveSlabRegion:async(key,geometry,hide,version,id)=>{calls.push(['region',id,key]);if(failSave)throw Error('save failed');const row={item_key:key,geometry:structuredClone(geometry),hidden:hide,version:version+1};regions[id]=regions[id].filter(r=>r.item_key!==key).concat(row);return row;},saveSlabRegions:async(changes,expected,id)=>{calls.push(['regions',id,changes]);if(failSave)throw Error('save failed');const actual=Object.fromEntries(regions[id].map(r=>[r.item_key,r.version]));if(JSON.stringify(actual)!==JSON.stringify(expected))throw Error('REGION_STATE_CONFLICT');const rows=changes.map(c=>({item_key:c.item_key,geometry:structuredClone(c.geometry),hidden:c.hidden,version:c.expected_version+1}));const keys=new Set(rows.map(r=>r.item_key));regions[id]=regions[id].filter(r=>!keys.has(r.item_key)).concat(rows);return rows;},setMemberHidden:async(key,hide,version,id)=>{calls.push(['hide',id]);return hidden[id][key]={hidden:hide,version:version+1};}};
  const context=vm.createContext({document:{createElementNS(){},createElement:()=>new Element(),getElementById:()=>page,addEventListener:(k,f)=>listeners[k]=f,hidden:false},window:{addEventListener(){}},SiteCloud:cloud,crypto:require('node:crypto').webcrypto,SiteSlabEditor:require('../site-slab-editor.js'),PRDZones:global.PRDZones,SitePlan:G,SiteSlabCatalog:require('../site-slab-catalog.js'),SiteSlabArea:require('../site-slab-area.js'),SiteWorkspace:{refreshControls(){}},PRDDashboard:{today:()=> '2026-10-03'},ResizeObserver:class{observe(){}},Path2D:class{moveTo(){}lineTo(){}closePath(){}arc(){}},requestAnimationFrame:f=>{frames.push(f);return frames.length;},setInterval:f=>intervals.push(f),confirm:()=>true,structuredClone});
  vm.runInContext(fs.readFileSync(require.resolve('../site-plan-ui.js'),'utf8'),context);
@@ -131,4 +132,17 @@ test('slab canvas uses construction stages and kinds even when its member table 
   h.records.d1[0]={trade:'slab',item_key:'panel',slab_kind:'deck',spec:'S1',version:1,...dates};await h.context.SitePlanUI.exportSnapshot('slab');ctx.fills.length=0;h.flush();assert.ok(ctx.fills.includes(G.slabStyle(h.records.d1[0]).fill));assert.ok(!ctx.fills.includes('#abcdef'));
  }
  assert.equal(h.slab.querySelector('[data-slab-catalog-legend]').hidden,true);assert.match(h.slab.innerHTML,/슬래브 종류별 미착수와 타설 완료 색상/);
+});
+
+test('cross-zone slab stays in each zone catalog, keeps selected scope on focus and exports the correct portion',async()=>{
+ const zones=[{id:'A1',points:[[0,0],[6500,0],[6500,10000],[0,10000]]},{id:'A2',points:[[6500,0],[10000,0],[10000,10000],[6500,10000]]}],h=harness([{code:'S1',thickness_mm:180,type:'T1'}],{zones});
+ h.regions.d1.push({item_key:'USER-SLAB-cross',geometry:{points:[[6000,1000],[8000,1000],[8000,3000],[6000,3000]],holes:[]},hidden:false,version:1});
+ h.records.d1.push({trade:'slab',item_key:'USER-SLAB-cross',label:'cross',spec:'S1',slab_kind:'deck',completed:'2026-10-07',version:1});
+ await slabActive(h);await slabAction(h,undefined,{zone:'A1'});
+ assert.equal(h.slab.querySelector('.plan-catalog-regions').querySelector('summary').textContent,'규격 연결 영역 · 1개');
+ await slabAction(h,undefined,{item:'USER-SLAB-cross'});h.flush();
+ const snap=await h.context.SitePlanUI.exportSnapshot('slab');assert.equal(snap.scope,'A1');assert.ok(snap.items.some(v=>v.key==='USER-SLAB-cross'));assert.equal(snap.area.total,1);assert.equal(snap.area.completed,1);
+ assert.match(h.slab.querySelector('.plan-info').innerHTML,/A1 · A2/);
+ assert.ok(h.slab.querySelector('canvas').context.fillAlphas.some(([color,alpha])=>color===G.slabStyle({slab_kind:'deck',completed:true}).fill&&alpha===1));
+ await slabAction(h,undefined,{zone:'A2'});const other=await h.context.SitePlanUI.exportSnapshot('slab');assert.ok(other.items.some(v=>v.key==='USER-SLAB-cross'));assert.equal(other.area.total,3);assert.equal(other.area.completed,3);
 });

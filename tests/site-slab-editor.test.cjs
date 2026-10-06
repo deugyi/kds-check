@@ -63,3 +63,13 @@ test('split regions use their total overlap with each zone',()=>{
  const d={...base,slabs:[],zones:[{id:'A1',points:rect(0,0,3000,8000)},{id:'C3',points:rect(4000,0,6000,8000)}]},pp=[{points:rect(0,0,2000,2000),holes:[]},{points:rect(4000,0,3000,1000),holes:[]},{points:rect(4000,2000,3000,1000),holes:[]}];
  const updated=E.apply(d,[{item_key:'split',geometry:{...pp[0],parts:pp},hidden:false,version:1}]);assert.equal(updated.slabs[0].zone,'C3');assert.equal(updated.slabs[0].area,10);
 });
+test('a slab crossing two zones remains selectable in both, excluding voids and zones it only touches',()=>{
+ const zones=[{id:'A2',points:rect(0,0,5000,10000)},{id:'A3',points:rect(5000,0,5000,10000)},{id:'C3',points:rect(7000,4000,1000,2000)}];
+ const geometry={points:rect(4000,2000,3000,2000),holes:[rect(5500,2400,200,200)]};
+ const rows=[{item_key:'cross',geometry,hidden:false,version:1}],updated=E.apply({...base,slabs:[],zones},rows),slab=updated.slabs[0];
+ assert.equal(slab.zone,'A3');assert.deepEqual(slab.zoneIds,['A2','A3']);
+ const d=G.prepare(updated);assert.equal(G.hits(d,'slab',[4500,2500],0,'A2')[0].key,'cross');assert.equal(G.hits(d,'slab',[6000,2500],0,'A3')[0].key,'cross');
+ assert.equal(G.hits(d,'slab',[5600,2500],0,'A3').length,0);assert.equal(G.hits(d,'slab',[6000,2500],0,'C3').length,0);
+ assert.deepEqual(E.apply(updated,rows).slabs[0].zoneIds,['A2','A3']);
+ const area=A.summarize(zones.slice(0,2),updated.slabs,{cross:{slab_kind:'deck',completed:'2026-10-07'}});assert.equal(area.area.total,5.96);assert.equal(area.byZone.A2.total,2);assert.equal(area.byZone.A3.total,3.96);assert.equal(area.area.completed,5.96);
+});
