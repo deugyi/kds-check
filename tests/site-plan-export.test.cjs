@@ -2,6 +2,11 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const ExcelJS=require('../vendor/exceljs-4.4.0.min.js');
 global.PRDZones=require('../prd-zones.js');global.SitePlan=require('../site-plan.js');
 const E=require('../site-plan-export.js');
+test('slab member table exports known attributes and leaves cropped or unavailable fields blank',async()=>{
+ const b=E.build(ExcelJS,{trade:'slab',floor:'지하1층',items:[],records:{},scope:'전체',asOf:'2026-10-06',duplicatePairs:[],area:{},slabCatalog:[{code:'S1',thickness_mm:180,type:'T1',attributes:[{label:'상부 주근',value:'=literal'}]},{code:'S2',thickness_mm:200,type:'T2',attributes:[]}]});
+ const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());const sheet=round.getWorksheet('슬래브 부재표');
+ assert.equal(sheet.getCell('B4').value,180);assert.equal(sheet.getCell('C5').value,'T2');assert.equal(sheet.getCell('D4').value,'=literal');assert.equal(sheet.getCell('D4').formula,undefined);assert.equal(sheet.getCell('D5').value,'');assert.equal(sheet.rowCount,5);
+});
 test('selected floor appears in exported workbook titles',async()=>{
  const b=E.build(ExcelJS,{trade:'steel',floor:'지하2층',items:[],records:{},scope:'전체',asOf:'2026-10-03',duplicatePairs:[]});
  const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());
