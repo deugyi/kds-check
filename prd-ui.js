@@ -16,7 +16,7 @@ function svg(name,attrs,parent){const n=document.createElementNS(NS,name);Object
 function stage(p){return P.stages.find(s=>s[0]===P.status(data.records[p.key]));}
 function controls(){
  const disabled=busy||!cloud?.canEdit();
- for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note','prd-save'])$(id).disabled=disabled;
+ for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec','prd-drilled','prd-delivered','prd-installed','prd-note','prd-save'])$(id).disabled=disabled;
  $('prd-import-local').hidden=!legacy||!cloud?.canEdit();
  $('prd-import-local').disabled=busy;$('prd-refresh').disabled=busy;
 }
@@ -24,13 +24,13 @@ function takeRows(rows){
  const records={},materials={},nextVersions=new Map();
  for(const row of rows){if(!pilesByKey.has(row.pile_key))continue;records[row.pile_key]=P.record(row);const detail=globalThis.PRDMaterials?.read(row.material_details);if(detail)materials[row.pile_key]=detail;nextVersions.set(row.pile_key,row.version);}
  const changed=nextVersions.size!==versions.size||Object.keys(records).some(key=>{
-  const previous=data.records[key];return !previous||nextVersions.get(key)!==versions.get(key)||['drilled','delivered','installed','note'].some(field=>previous[field]!==records[key][field]);
+  const previous=data.records[key];return !previous||nextVersions.get(key)!==versions.get(key)||['drilled','delivered','installed','note'].some(field=>previous[field]!==records[key][field])||JSON.stringify(previous.specifications)!==JSON.stringify(records[key].specifications);
  });
  if(changed)data.records=records;
  data.materials=materials;
  versions=nextVersions;
 }
-function renderMaterials(){if(data&&selected)$('prd-material-info').innerHTML=globalThis.PRDMaterials?.render(data.materials?.[selected])||'';}
+function fillSpecifications(){if(!data||!selected)return;const s=globalThis.PRDMaterials.specifications(data.records[selected],pilesByKey.get(selected),data.materials?.[selected]);$('prd-diameter').value=s.diameter??'';$('prd-column-spec').value=s.column_spec;$('prd-insert-spec').value=s.insert_spec;}
 // Coalesce pointer/wheel bursts into one SVG update per animation frame.
 function viewbox(){if(!frame)frame=requestAnimationFrame(paintView);}
 function paintView(){
@@ -54,11 +54,11 @@ async function saveForm(silent=false){
  if(!selected||!dirty)return true;
  const key=selected,epoch=cloud.generation;
  try{
-  const r=P.record({drilled:$('prd-drilled').value,delivered:$('prd-delivered').value,installed:$('prd-installed').value,note:$('prd-note').value});
+  const r=P.record({drilled:$('prd-drilled').value,delivered:$('prd-delivered').value,installed:$('prd-installed').value,note:$('prd-note').value,specifications:{diameter:$('prd-diameter').value,column_spec:$('prd-column-spec').value,insert_spec:$('prd-insert-spec').value}});
   busy=true;controls();message('서버에 저장하고 있습니다…');
   const saved=await cloud.save(key,r,versions.get(key)||0);
   if(epoch!==cloud.generation||!cloud.allowed())return false;
-  data.records[key]=P.record(saved);dashboardRecords=null;versions.set(key,saved.version);dirty=false;renderStatus();
+  data.records[key]=P.record(saved);dashboardRecords=null;versions.set(key,saved.version);dirty=false;renderStatus();fillSpecifications();
   if(!silent)message('서버에 저장했습니다.');return true;
  }catch(e){message(e?.code?cloud.explain(e):e.message,true);return false;}
  finally{busy=false;controls();}
@@ -69,8 +69,8 @@ async function select(key,focus=false){
  const oldZone=activeZone,p=pilesByKey.get(key),r=data.records[key]||{};setSelected(key);
  if(activeZone&&zoneData.membership[key]!==activeZone)activeZone=zoneData.membership[key];
  $('prd-selection-empty').hidden=true;$('prd-form').hidden=false;$('prd-selected-title').textContent=title(p);
- $('prd-info').innerHTML=[['공구',zoneData.membership[p.key]==='unassigned'?'미분류':zoneData.membership[p.key]],['부재명',p.name.join(' / ')||'—'],['타입',p.type.join(' / ')||'—'],['공 직경',Number.isFinite(p.diameter)?p.diameter.toLocaleString('ko-KR')+' mm':p.layer]].map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
- renderMaterials();
+ $('prd-info').innerHTML=[['공구',zoneData.membership[p.key]==='unassigned'?'미분류':zoneData.membership[p.key]],['부재명',p.name.join(' / ')||'—'],['타입',p.type.join(' / ')||'—']].map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+ fillSpecifications();
  $('prd-form-feedback').textContent=cloud.canEdit()?'':'조회 전용 계정입니다.';controls();
  if(isExpanded())showDetails(true);
  $('prd-selected-warning').textContent=p.warnings.join(' · ');$('prd-selected-warning').hidden=!p.warnings.length;
@@ -80,7 +80,7 @@ async function select(key,focus=false){
  if(oldZone!==activeZone)renderStatus();
 }
 function inZone(p){return !activeZone||zoneData.membership[p.key]===activeZone;}
-function hasIssues(p){return p.warnings.length||data.materials?.[p.key]?.issues.length;}
+function hasIssues(p){return p.warnings.length;}
 function visibility(){const f=$('prd-filter').value;return p=>inZone(p)&&(!f||(f==='issues'?hasIssues(p):P.status(data.records[p.key])===f));}
 function attr(n,k,v){v=String(v);if(n.getAttribute(k)!==v)n.setAttribute(k,v);}
 function renderDashboard(){
@@ -166,7 +166,7 @@ async function refreshRecords(manual=false){
  if(busy||loading||!data||!cloud.allowed())return;
  if(dirty&&(!manual||!confirm('저장하지 않은 입력을 버리고 최신 기록을 불러올까요?')))return;
  const epoch=cloud.generation;busy=true;controls();
- try{const rows=await cloud.records();if(epoch!==cloud.generation)return;takeRows(rows);dirty=false;renderStatus();if(selected){const r=data.records[selected]||{};for(const k of ['drilled','delivered','installed','note'])$('prd-'+k).value=r[k]||'';renderMaterials();}message('최신 서버 기록을 불러왔습니다.');}
+ try{const rows=await cloud.records();if(epoch!==cloud.generation)return;takeRows(rows);dirty=false;renderStatus();if(selected){const r=data.records[selected]||{};for(const k of ['drilled','delivered','installed','note'])$('prd-'+k).value=r[k]||'';fillSpecifications();}message('최신 서버 기록을 불러왔습니다.');}
  catch(e){message(cloud.explain(e),true);}
  finally{busy=false;controls();}
 }
@@ -195,8 +195,8 @@ function clearDrawing(){
  data=null;baseDrawing=null;loadedUser=null;selected=null;zoneData=null;legacy=null;dirty=false;view=null;wheel=null;drag=null;
  pileNodes.clear();pilesByKey.clear();versions.clear();sortedPiles=[];
  for(const n of [group,labels,zoneShapes,zoneLabels])n.replaceChildren();
- for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-material-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
- for(const id of ['prd-drilled','prd-delivered','prd-installed','prd-note'])$(id).value='';
+ for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
+ for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec','prd-drilled','prd-delivered','prd-installed','prd-note'])$(id).value='';
  for(const id of ['prd-count','prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
  $('prd-workspace').hidden=true;$('prd-empty').hidden=false;$('prd-form').hidden=true;message('');
 }
@@ -213,7 +213,8 @@ globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm
  if(!await saveForm(true))throw Error('기록을 저장하지 못했습니다. PRD 입력 내용을 확인해 주세요.');
  if(!data||!cloud.allowed())throw Error('접근 권한을 다시 확인해 주세요.');
  const filter=$('prd-filter').value;
- return {piles:sortedPiles.filter(visibility()),records:JSON.parse(JSON.stringify(data.records)),materials:JSON.parse(JSON.stringify(data.materials||{})),zones:zoneData,scope:activeZone==='unassigned'?'미분류':activeZone||'전체',filter:filter==='issues'?'확인 필요':P.stages.find(s=>s[0]===filter)?.[1]||'전체 상태',asOf:globalThis.PRDDashboard.today()};
+ const records=JSON.parse(JSON.stringify(data.records));for(const p of sortedPiles)records[p.key]={...records[p.key],specifications:globalThis.PRDMaterials.specifications(records[p.key],p,data.materials?.[p.key])};
+ return {piles:sortedPiles.filter(visibility()),records,zones:zoneData,scope:activeZone==='unassigned'?'미분류':activeZone||'전체',filter:filter==='issues'?'확인 필요':P.stages.find(s=>s[0]===filter)?.[1]||'전체 상태',asOf:globalThis.PRDDashboard.today()};
 }};
 $('prd-retry').addEventListener('click',openFixedDrawing);
 $('prd-form').addEventListener('input',()=>{if(busy||!cloud.canEdit())return;dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});

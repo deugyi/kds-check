@@ -240,14 +240,19 @@ test('failed steel/slab save preserves the active trade and fullscreen',async()=
  select.value='slab';await select.events.change();assert.equal(select.value,'steel');assert.equal(page.classList.contains('site-fullscreen'),true);
  h.ctx.SitePlanUI.beforeTradeChange=async()=>true;select.value='slab';await select.events.change();assert.equal(select.value,'slab');
 });
-test('material details refresh, survive date edits, export and clear on logout',async()=>{
+test('editable specifications initialize from Excel, save with dates, survive refresh and clear without reverting',async()=>{
  const h=await load(),[a,b]=base.drawing.piles;
- h.remote[a.key]={pile_key:a.key,version:1,note:'keep',material_details:{schema:1,source:{file:'materials.xlsx',sheet:'A1',row:8},fields:[{id:'column_spec',group:'자재',label:'기둥 규격',value:'H-400',cell:'M8'}],issues:[]}};
- await h.$('prd-refresh').events.click();await h.click(a.key);assert.match(h.$('prd-material-info').innerHTML,/H-400/);
- await h.click(b.key);assert.equal(h.$('prd-material-info').innerHTML,'');await h.click(a.key);
- h.$('prd-note').value='changed';h.$('prd-form').events.input();await h.click(b.key);await h.click(a.key);assert.match(h.$('prd-material-info').innerHTML,/H-400/);
- const snap=await h.ctx.PRDCloudUI.exportSnapshot();assert.equal(snap.materials[a.key].fields[0].value,'H-400');assert.equal(h.remote[a.key].material_details.fields[0].value,'H-400');
- h.remote[a.key].material_details.fields[0].value='H-500';h.remote[a.key].material_details.issues=[{kind:'기존 날짜 불일치',source:'2026-01-23',existing:'2026-01-27'}];h.remote[a.key].version++;await h.$('prd-refresh').events.click();assert.match(h.$('prd-material-info').innerHTML,/H-500/);
- h.$('prd-filter').value='issues';h.$('prd-filter').events.change();assert.match(h.$('prd-count').textContent,/상태 필터 1공/);assert.equal((h.$('prd-zone-rows').innerHTML.match(/<tr>/g)||[]).length,1);assert.equal(h.$('prd-p-'+a.key).classList.contains('prd-issue'),true);assert.equal((await h.ctx.PRDCloudUI.exportSnapshot()).piles.length,1);
- await h.logout();assert.equal(h.$('prd-material-info').innerHTML,'');
+ h.remote[a.key]={pile_key:a.key,version:1,note:'keep',drilled:'2026-09-09',installed:'2026-09-16',material_details:{schema:1,fields:[{id:'diameter',value:'D1200'},{id:'column_spec',value:'BH-650'},{id:'insert_spec',value:'H-400'},{id:'weight',value:39.3}]}};
+ await h.$('prd-refresh').events.click();await h.click(a.key);assert.equal(h.$('prd-diameter').value,1200);assert.equal(h.$('prd-column-spec').value,'BH-650');assert.equal(h.$('prd-insert-spec').value,'H-400');
+ h.$('prd-diameter').value='1400';h.$('prd-column-spec').value='H-500';h.$('prd-insert-spec').value='H-450';h.$('prd-note').value='changed';h.$('prd-form').events.input();await h.click(b.key);await h.click(a.key);
+ assert.equal(h.$('prd-diameter').value,1400);assert.equal(h.$('prd-column-spec').value,'H-500');assert.equal(h.remote[a.key].drilled,'2026-09-09');assert.equal(h.remote[a.key].installed,'2026-09-16');assert.equal(h.remote[a.key].material_details.fields.length,4);
+ const snap=await h.ctx.PRDCloudUI.exportSnapshot();assert.equal(snap.records[a.key].specifications.insert_spec,'H-450');assert.equal(snap.materials,undefined);
+ h.remote[a.key].specifications.column_spec='H-600';h.remote[a.key].version++;await h.$('prd-refresh').events.click();assert.equal(h.$('prd-column-spec').value,'H-600');
+ for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec'])h.$(id).value='';h.$('prd-form').events.input();await h.$('prd-form').events.submit({preventDefault(){}});await h.click(b.key);await h.click(a.key);assert.equal(h.$('prd-diameter').value,'');assert.equal(h.$('prd-column-spec').value,'');
+ await h.logout();for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec'])assert.equal(h.$(id).value,'');
+});
+test('specification drafts remain on failed validation or conflicting saves, and viewer inputs are disabled',async()=>{
+ const h=await load(),[a,b]=base.drawing.piles;await h.click(a.key);h.$('prd-diameter').value='0';h.$('prd-column-spec').value='draft';h.$('prd-form').events.input();await h.click(b.key);assert.equal(h.calls.length,0);assert.equal(h.$('prd-column-spec').value,'draft');assert.match(h.$('prd-feedback').textContent,/천공 직경/);
+ h.$('prd-diameter').value='1200';h.failSave();await h.click(b.key);assert.equal(h.$('prd-column-spec').value,'draft');assert.equal(h.$('prd-selected-title').textContent,a.number.join(' / '));
+ const v=await load({role:'viewer'});await v.click(a.key);for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec'])assert.equal(v.$(id).disabled,true);
 });

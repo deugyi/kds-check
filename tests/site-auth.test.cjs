@@ -54,6 +54,13 @@ test('pending and blocked remain locked; ordinary user can read but cannot save 
  await h.change('viewer');assert.equal(h.classes.has('site-authorized'),true);assert.equal(h.context.SiteCloud.canEdit(),false);await assert.rejects(()=>h.context.SiteCloud.save('a',{},0),/ACCESS_REQUIRED/);
 });
 
+test('PRD specification saves send the three values atomically; legacy date imports keep their existing RPC',async()=>{
+ const h=await load('editor'),specifications={diameter:1200,column_spec:'BH-650',insert_spec:'H-400'};
+ await h.context.SiteCloud.save('pile',{note:'memo',drilled:'2026-09-09',specifications},3);
+ assert.equal(h.calls.at(-1)[0],'site_save_prd_details');assert.deepEqual(h.calls.at(-1)[1].specification,specifications);assert.equal(h.calls.at(-1)[1].expected_version,3);assert.equal(h.calls.at(-1)[1].drilled_date,'2026-09-09');
+ await h.context.SiteCloud.save('legacy',{note:'memo'},0);assert.equal(h.calls.at(-1)[0],'site_save_prd');assert.equal(h.calls.at(-1)[1].specification,undefined);
+});
+
 test('approved ordinary user may save steel and slab dates, while unapproved accounts remain denied',async()=>{
  const h=await load('viewer');assert.equal(h.context.SiteCloud.canEditTrade(),true);assert.equal(h.context.SiteCloud.canEdit(),false);
  const value={label:'B-1',spec:'H',delivered:'',completed:'2026-10-02',note:'memo'};

@@ -139,7 +139,9 @@ root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,
  },
  async save(key,value,version){
   if(!canEdit())throw Error('EDIT_ACCESS_REQUIRED');
-  const r=await client.rpc('site_save_prd',{drawing:cfg.drawing,pile:key,expected_version:version,drilled_date:value.drilled||null,delivered_date:value.delivered||null,installed_date:value.installed||null,memo:value.note});
+  const args={drawing:cfg.drawing,pile:key,expected_version:version,drilled_date:value.drilled||null,delivered_date:value.delivered||null,installed_date:value.installed||null,memo:value.note};
+  if(value.specifications!==undefined)args.specification=value.specifications;
+  const r=await client.rpc(value.specifications===undefined?'site_save_prd':'site_save_prd_details',args);
   if(r.error)throw r.error;return r.data;
  }
 };

@@ -76,10 +76,17 @@ function decode(buffer){
 }
 function status(record={}){return record.installed?'installed':record.drilled&&record.delivered?'ready':record.drilled?'drilled':record.delivered?'delivered':'planned';}
 function validDate(v){if(v==='')return true;if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const d=new Date(v+'T00:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===v;}
+function specifications(input){
+ if(!input||typeof input!=='object'||Array.isArray(input))throw Error('규격 입력을 확인해 주세요.');
+ const raw=input.diameter,diameter=raw===null||raw===undefined||String(raw).trim()===''?null:Number(raw);
+ if(diameter!==null&&(!['string','number'].includes(typeof raw)||!Number.isFinite(diameter)||diameter<=0))throw Error('천공 직경은 0보다 큰 숫자로 입력해 주세요.');
+ const out={diameter};for(const k of ['column_spec','insert_spec']){out[k]=String(input[k]??'').trim();if(out[k].length>120)throw Error('규격은 120자 이내로 입력해 주세요.');}return out;
+}
 function record(input){
  const out={};for(const k of ['drilled','delivered','installed']){out[k]=String(input[k]||'');if(!validDate(out[k]))throw Error('날짜 형식을 확인해 주세요.');}
  out.note=String(input.note||'').slice(0,2000);
  if(out.installed&&[out.drilled,out.delivered].some(d=>d&&d>out.installed))throw Error('타설일(완료일)은 천공·자재 반입 일자보다 빠를 수 없습니다.');
+ if(input.specifications!==undefined&&input.specifications!==null)out.specifications=specifications(input.specifications);
  return out;
 }
 function validate(data){
@@ -102,6 +109,6 @@ function fixedDrawing(base,saved){
  if(Object.keys(previous.records).some(k=>!keys.has(k)))throw Error('기본 도면에 없는 공의 기록이 있습니다.');
  return {...fixed,records:previous.records};
 }
-root.PRD={parse,decode,stages,status,record,validDate,validate,fixedDrawing};
+root.PRD={parse,decode,stages,status,record,specifications,validDate,validate,fixedDrawing};
 if(typeof module!=='undefined')module.exports=root.PRD;
 })(globalThis);
