@@ -134,7 +134,8 @@ root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,
  },
  async saveTrade(trade,key,value,version,drawingId=cfg.planDrawing){
   if(!canEditTrade())throw Error('EDIT_ACCESS_REQUIRED');
-  const r=trade==='slab'?await client.rpc('site_save_slab_record',{drawing:planId(drawingId),item:key,expected_version:version,member_label:value.label,member_spec:value.spec,slab_type:value.slab_kind||'',deck_date:value.decked||null,rebar_date:value.reinforced||null,cast_date:value.completed||null,memo:value.note}):await client.rpc('site_save_trade',{drawing:planId(drawingId),trade_name:trade,item:key,expected_version:version,member_label:value.label,member_spec:value.spec,delivered_date:value.delivered||null,completed_date:value.completed||null,memo:value.note});
+  if(!['steel','slab'].includes(trade))throw Error('INVALID_RECORD');
+  const r=trade==='slab'?await client.rpc('site_save_slab_record',{drawing:planId(drawingId),item:key,expected_version:version,member_label:value.label,member_spec:value.spec,slab_type:value.slab_kind||'',deck_date:value.decked||null,rebar_date:value.reinforced||null,cast_date:value.completed||null,memo:value.note}):await client.rpc('site_save_steel_record',{drawing:planId(drawingId),item:key,expected_version:version,member_label:value.label,member_spec:value.spec,delivered_date:value.delivered||null,completed_date:value.completed||null,memo:value.note,installation_done:value.installation_complete===true||!!value.completed});
   if(r.error)throw r.error;return r.data;
  },
  async save(key,value,version){

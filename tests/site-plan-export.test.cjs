@@ -2,6 +2,15 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const ExcelJS=require('../vendor/exceljs-4.4.0.min.js');
 global.PRDZones=require('../prd-zones.js');global.SitePlan=require('../site-plan.js');
 const E=require('../site-plan-export.js');
+test('date-free steel completion exports its status and counts without inventing a date or size',async()=>{
+ const items=[{key:'a',display:'보 0001',zone:'A3',a:[0,0],b:[3000,0],kind:'beam'},{key:'b',display:'보 0002',zone:'A3',a:[0,10],b:[3000,10],kind:'beam'}];
+ const book=E.build(ExcelJS,{trade:'steel',items,records:{a:{installation_complete:true,note:'keep'}},scope:'A3',asOf:'2026-10-06',duplicatePairs:[]});
+ const round=new ExcelJS.Workbook();await round.xlsx.load(await book.xlsx.writeBuffer());
+ const summary=round.getWorksheet('공구별 집계'),detail=round.getWorksheet('시공 기록');
+ assert.equal(summary.getCell('C3').value,'설치 완료');assert.equal(summary.getCell('C4').value,1);assert.equal(summary.getCell('E4').value,.5);
+ assert.equal(detail.getCell('K3').value,'설치 상태');assert.equal(detail.getCell('K4').value,'설치 완료');assert.equal(detail.getCell('K5').value,'설치 완료 미확인');
+ assert.equal(detail.getCell('H4').value,null);assert.equal(detail.getCell('D4').value,'');assert.equal(detail.getCell('I4').value,'keep');
+});
 test('slab member table exports known attributes and leaves cropped or unavailable fields blank',async()=>{
  const b=E.build(ExcelJS,{trade:'slab',floor:'지하1층',items:[],records:{},scope:'전체',asOf:'2026-10-06',duplicatePairs:[],area:{},slabCatalog:[{code:'S1',thickness_mm:180,type:'T1',attributes:[{label:'상부 주근',value:'=literal'}]},{code:'S2',thickness_mm:200,type:'T2',attributes:[]}]});
  const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());const sheet=round.getWorksheet('슬래브 부재표');

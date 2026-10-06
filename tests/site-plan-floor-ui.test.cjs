@@ -8,8 +8,8 @@ function harness(catalog=[]){
   addEventListener(k,f){this.events[k]=f;}setAttribute(k,v){this.attrs[k]=v;}removeAttribute(k){delete this.attrs[k];}appendChild(n){this.children.push(n);}
   set innerHTML(v){this.html=v;this.children=[];for(const m of v.matchAll(/<button\b([^>]*)>/g)){const b=new Element();for(const a of m[1].matchAll(/data-([\w-]+)="([^"]*)"/g))b.dataset[a[1]]=a[2];this.children.push(b);}}get innerHTML(){return this.html||'';}
   querySelector(s){if(!this.selectors.has(s))this.selectors.set(s,new Element());return this.selectors.get(s);}
-  querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','completed','note','slab_kind','decked','reinforced'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
-  reset(){for(const e of this.querySelectorAll('input,select,textarea,button'))e.value='';}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
+  querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
+  reset(){for(const e of this.querySelectorAll('input,select,textarea,button')){e.value='';e.checked=false;}}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
   getContext(){if(!this.context){const data={calls:[],fills:[],fill(){this.fills.push(this.fillStyle);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
  }
  const page=new Element(),steel=page.querySelector('[data-trade="steel"]'),slab=page.querySelector('[data-trade="slab"]');slab.hidden=true;page.querySelector('[data-site-trade]').value='steel';page.querySelector('[data-plan-floor]').value='B1';
@@ -33,6 +33,16 @@ test('slab catalog selection saves a specification without changing kind, dates,
  await h.context.SitePlanUI.selectFloor('B2');assert.equal(h.slab.querySelector('[data-slab-catalog-control]').hidden,true);assert.doesNotMatch(select.innerHTML,/S1/);
  await h.context.SitePlanUI.selectFloor('B1');await h.pickSlab();assert.equal(field('spec').value,'custom text');assert.equal(select.value,'__existing__');select.value='';select.events.change();assert.equal(field('spec').value,'');assert.equal(select.value,'');
  h.logout();assert.doesNotMatch(select.innerHTML,/S1/);assert.doesNotMatch(select.innerHTML,/custom text/);
+});
+test('date-free installation stays checked through edits and refresh; floors remain isolated and clearing status clears its date',async()=>{
+ const h=harness();h.records.d1=[{trade:'steel',item_key:'same',label:'shop mark',spec:'',note:'keep',installation_complete:true,completed:null,version:1}];
+ await h.activate();await h.pick();assert.equal(h.field('installation_complete').checked,true);assert.equal(h.field('completed').value,'');assert.match(h.steel.querySelector('.plan-status').textContent,/설치 완료 · 완료일 미확인/);
+ h.edit('note','keep plus edit');let snap=await h.context.SitePlanUI.exportSnapshot('steel');assert.equal(snap.records.same.installation_complete,true);assert.equal(snap.records.same.completed,'');assert.equal(snap.records.same.spec,'');assert.equal(snap.records.same.label,'shop mark');assert.match(h.steel.querySelector('.plan-stats').innerHTML,/100\.0%/);
+ await h.context.SitePlanUI.selectFloor('B2');await h.pick();assert.equal(h.field('installation_complete').checked,false);assert.equal(h.field('completed').value,'');
+ const form=h.steel.querySelector('form'),done=h.field('installation_complete'),date=h.field('completed');date.value='2026-10-06';form.events.input({target:date});assert.equal(done.checked,true);
+ done.checked=false;form.events.input({target:done});assert.equal(date.value,'');snap=await h.context.SitePlanUI.exportSnapshot('steel');assert.equal(snap.records.same.installation_complete,false);
+ done.checked=true;form.events.input({target:done});snap=await h.context.SitePlanUI.exportSnapshot('steel');assert.equal(snap.records.same.installation_complete,true);assert.equal(snap.records.same.completed,'');
+ await h.context.SitePlanUI.selectFloor('B1');await h.pick();assert.equal(h.field('installation_complete').checked,true);assert.equal(h.field('note').value,'keep plus edit');h.logout();assert.equal(h.field('installation_complete').checked,false);
 });
 test('floor switch saves source edits before replacing geometry; destination records and export stay isolated',async()=>{
  const h=harness();await h.activate();await h.pick();h.edit('label','B1 member');await h.context.SitePlanUI.selectFloor('B2');
