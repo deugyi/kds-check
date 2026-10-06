@@ -13,6 +13,8 @@ test('duplicate review counts only visible overlapping pairs, including split gr
  assert.deepEqual(ids({}),['g1','g2']);assert.deepEqual(ids({b:{hidden:true}}),['g2']);
  assert.deepEqual(ids({b:{hidden:true}},'A3'),[]);assert.deepEqual(ids({b:{hidden:false}},'A3'),['g1']);
  assert.deepEqual(ids({a:{hidden:true}},'A3'),['g1']);assert.deepEqual(ids({},'A2'),['g2']);
+ assert.deepEqual(P.pendingPairs(d,{b:{hidden:true}}).flatMap(p=>p.keys),['d','e']);
+ assert.deepEqual(P.pendingPairs(d,{a:{hidden:true}},'A3').flatMap(p=>p.keys),['b','c']);
  assert.equal(d.duplicatePairs.length,3);assert.equal(d.members.length,5);
 });
 test('confirmed steel without an installation date stays complete in records, colours and progress',()=>{
