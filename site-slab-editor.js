@@ -43,9 +43,10 @@ function partition(drawing,key,g,regions=[],records={}){
 }
 function hasOverlap(drawing,key,g,records={}){return drawing.slabs.some(v=>v.key!==key&&(!v.review||v.manual||records[v.key])&&A.area(clip.intersection(multi(v),multi(g)))>1e-8);}
 function boxOf(g){const p=parts(g).flatMap(part=>part.points),xs=p.map(v=>v[0]),ys=p.map(v=>v[1]);return [Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];}
+function zoneOf(g,zones){let best={id:'unassigned',area:0};const shape=multi(g);for(const zone of zones){const area=A.area(clip.intersection(shape,[zone.points]));if(area>best.area)best={id:zone.id,area};}return best.id;}
 function apply(base,regions=[]){
  const map=new Map((base.slabs||[]).map((v,i)=>[v.key,{...v,holes:v.holes||[],display:v.display||(v.review?'검토 영역 ':'슬래브 ')+String(i+1).padStart(4,'0')}]));
- for(const row of regions){if(row.hidden){map.delete(row.item_key);continue;}const old=map.get(row.item_key);if(old&&JSON.stringify(geometry(row.geometry))===JSON.stringify(geometry(old)))continue;const g=validate(row.geometry),largest=parts(g).reduce((a,b)=>A.area([[b.points,...b.holes]])>A.area([[a.points,...a.holes]])?b:a),center=largest.points.reduce((p,v)=>[p[0]+v[0]/largest.points.length,p[1]+v[1]/largest.points.length],[0,0]),zone=base.zones.find(z=>contains(center,z.points))?.id||'unassigned';
+ for(const row of regions){if(row.hidden){map.delete(row.item_key);continue;}const old=map.get(row.item_key);if(old&&JSON.stringify(geometry(row.geometry))===JSON.stringify(geometry(old)))continue;const g=validate(row.geometry),zone=zoneOf(g,base.zones);
   map.set(row.item_key,{...old,display:old?.display||'사용자 영역 '+String(regions.filter(r=>r.item_key.startsWith('USER-SLAB-')).findIndex(r=>r.item_key===row.item_key)+1).padStart(3,'0'),key:row.item_key,...g,zone,area:A.area(multi(g)),review:false,manual:true});
  }return {...base,slabs:[...map.values()],slabsReady:base.slabsReady!==false||regions.some(r=>!r.hidden)};
 }

@@ -54,3 +54,12 @@ test('shared boundary snapping preserves exact coordinates; hidden and unconfirm
 test('new shape is clipped to the true zone outline rather than its bounding rectangle',()=>{
  const d=G.prepare({...base,zones:[{id:'A1',points:[[0,0],[10000,0],[0,10000]]}],slabs:[]});const plan=E.partition(d,'new',{points:rect(4000,4000,4000,4000),holes:[]});assert.equal(A.area(E.multi(plan.geometry)),2);assert.throws(()=>E.partition(d,'new',{points:rect(8000,8000,1000,1000),holes:[]}),/존 안/);
 });
+test('concave regions remain in their zone even when the mean of their vertices is in a neighbouring zone',()=>{
+ const points=[[0,0],[6000,0],[6000,2000],[2000,2000],[2000,6000],[0,6000]],d={...base,slabs:[],zones:[{id:'A3',points:rect(2000,2000,4000,4000)},{id:'C3',points}]};
+ const updated=E.apply(d,[{item_key:'concave',geometry:{points,holes:[rect(500,500,500,500)]},hidden:false,version:1}]);
+ assert.equal(updated.slabs[0].zone,'C3');assert.equal(updated.slabs[0].area,19.75);
+});
+test('split regions use their total overlap with each zone',()=>{
+ const d={...base,slabs:[],zones:[{id:'A1',points:rect(0,0,3000,8000)},{id:'C3',points:rect(4000,0,6000,8000)}]},pp=[{points:rect(0,0,2000,2000),holes:[]},{points:rect(4000,0,3000,1000),holes:[]},{points:rect(4000,2000,3000,1000),holes:[]}];
+ const updated=E.apply(d,[{item_key:'split',geometry:{...pp[0],parts:pp},hidden:false,version:1}]);assert.equal(updated.slabs[0].zone,'C3');assert.equal(updated.slabs[0].area,10);
+});
