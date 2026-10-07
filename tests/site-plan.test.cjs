@@ -1,6 +1,13 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 global.PRDZones=require('../prd-zones.js');const P=require('../site-plan.js');
 const base={zones:[],bounds:[0,0,20000,10000],duplicateGroups:[],duplicatePairs:[],columns:[],members:[{key:'a',a:[0,0],b:[20000,10000],zone:'A1',kind:'beam'},{key:'b',a:[0,10],b:[20000,10010],zone:'A1',kind:'beam'}],slabs:[{key:'s',zone:'A1',points:[[0,0],[1000,0],[1000,1000],[0,1000]],holes:[[[200,200],[400,200],[400,400],[200,400]]],area:.96,review:false},{key:'r',zone:'A2',points:[[1500,0],[2000,0],[2000,500],[1500,500]],holes:[],area:.25,review:true}]};
+test('original steel and reinforcing profiles are independent, trimmed and limited; slabs omit reinforcement',()=>{
+ const r=P.record({spec:' H808 · SM355 ',reinforcement_spec:' CT300 · SM355 '},'steel');
+ assert.equal(r.spec,'H808 · SM355');assert.equal(r.reinforcement_spec,'CT300 · SM355');
+ assert.equal(P.record({spec:'legacy H'},'steel').reinforcement_spec,'');
+ assert.throws(()=>P.record({reinforcement_spec:'x'.repeat(121)},'steel'),/길이/);
+ assert.equal(Object.hasOwn(P.record({reinforcement_spec:'CT'},'slab'),'reinforcement_spec'),false);
+});
 test('background paths and circles are bounded for culling and never enter selectable indexes',()=>{const background=[{points:[[30000,0],[45000,1000]],closed:false},{center:[31000,500],radius:100},{center:[90000,80000],radius:500,start:0,end:Math.PI}];const d=P.prepare({...base,background});assert.equal(d.backgroundBatches.reduce((n,b)=>n+b.objects.length,0),3);assert.deepEqual(d.backgroundBatches[0].bounds,[30000,0,45000,1000]);assert.equal(P.hits(d,'steel',[31000,500],500).length,0);assert.equal(P.hits(d,'slab',[31000,500],500).length,0);assert.equal(d.memberMap.size,2);assert.equal(P.kindName('sps'),'SPS 철골보');});
 test('long members are pickable across index cells; near overlapping alternatives and zones remain distinct',()=>{const d=P.prepare(base);assert.equal(P.hits(d,'steel',[18000,9000],1).length,1);assert.equal(P.hits(d,'steel',[18000,9000],12).length,2);assert.equal(P.hits(d,'steel',[18000,9000],12,'A2').length,0);});
 test('slab inner voids are not clickable; review areas require explicit inclusion',()=>{const d=P.prepare(base);assert.equal(P.hits(d,'slab',[100,100],0)[0].key,'s');assert.equal(P.hits(d,'slab',[300,300],0).length,0);assert.equal(P.hits(d,'slab',[1700,100],0).length,0);assert.equal(P.hits(d,'slab',[1700,100],0,'',true)[0].key,'r');});

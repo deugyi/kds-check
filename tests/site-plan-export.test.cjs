@@ -2,6 +2,13 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const ExcelJS=require('../vendor/exceljs-4.4.0.min.js');
 global.PRDZones=require('../prd-zones.js');global.SitePlan=require('../site-plan.js');
 const E=require('../site-plan-export.js');
+test('steel export keeps original and reinforcing members in distinct literal columns',async()=>{
+ const items=[{key:'a',display:'B2SG61',zone:'C3',a:[0,0],b:[3000,0],kind:'beam'}];
+ const b=E.build(ExcelJS,{trade:'steel',items,records:{a:{spec:'H808×302×16×30 · SM355',reinforcement_spec:'CT300×302×16×30 · SM355',installation_complete:true}},scope:'C3',asOf:'2026-10-07',duplicatePairs:[]});
+ const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());const detail=round.getWorksheet('시공 기록');
+ assert.equal(detail.getCell('D3').value,'원부재');assert.equal(detail.getCell('E3').value,'보강부재');
+ assert.equal(detail.getCell('D4').value,'H808×302×16×30 · SM355');assert.equal(detail.getCell('E4').value,'CT300×302×16×30 · SM355');assert.equal(detail.getCell('F4').value,3);assert.equal(detail.getCell('L4').value,'설치 완료');
+});
 test('slab export retains date-free reinforcement status while openings stay excluded',async()=>{
  const items=['work','open'].map(key=>({key,display:key,zone:'A2',area:4})),records={work:{slab_kind:'deck',reinforcement_in_progress:true},open:{slab_kind:'opening',reinforcement_in_progress:true}};
  const book=E.build(ExcelJS,{trade:'slab',items,records,scope:'A2',asOf:'2026-10-07',area:{},duplicatePairs:[]});
@@ -14,8 +21,8 @@ test('date-free steel completion exports its status and counts without inventing
  const round=new ExcelJS.Workbook();await round.xlsx.load(await book.xlsx.writeBuffer());
  const summary=round.getWorksheet('공구별 집계'),detail=round.getWorksheet('시공 기록');
  assert.equal(summary.getCell('C3').value,'설치 완료');assert.equal(summary.getCell('C4').value,1);assert.equal(summary.getCell('E4').value,.5);
- assert.equal(detail.getCell('K3').value,'설치 상태');assert.equal(detail.getCell('K4').value,'설치 완료');assert.equal(detail.getCell('K5').value,'설치 완료 미확인');
- assert.equal(detail.getCell('H4').value,null);assert.equal(detail.getCell('D4').value,'');assert.equal(detail.getCell('I4').value,'keep');
+ assert.equal(detail.getCell('L3').value,'설치 상태');assert.equal(detail.getCell('L4').value,'설치 완료');assert.equal(detail.getCell('L5').value,'설치 완료 미확인');
+ assert.equal(detail.getCell('I4').value,null);assert.equal(detail.getCell('D4').value,'');assert.equal(detail.getCell('J4').value,'keep');
 });
 test('slab member table exports known attributes and leaves cropped or unavailable fields blank',async()=>{
  const b=E.build(ExcelJS,{trade:'slab',floor:'지하1층',items:[],records:{},scope:'전체',asOf:'2026-10-06',duplicatePairs:[],area:{},slabCatalog:[{code:'S1',thickness_mm:180,type:'T1',attributes:[{label:'상부 주근',value:'=literal'}]},{code:'S2',thickness_mm:200,type:'T2',attributes:[]}]});
@@ -34,9 +41,9 @@ test('steel XLSX preserves input labels, literal notes, dates and duplicate pair
  const round=new ExcelJS.Workbook();await round.xlsx.load(await b.xlsx.writeBuffer());
  assert.deepEqual(round.worksheets.map(v=>v.name),['공구별 집계','시공 기록','중복 부재 검토']);
  const detail=round.getWorksheet('시공 기록'),summary=round.getWorksheet('공구별 집계'),review=round.getWorksheet('중복 부재 검토');
- assert.equal(detail.getCell('B4').value,'부재 A');assert.equal(detail.getCell('E4').value,3);
- assert.equal(detail.getCell('G4').value.toISOString(),'2026-09-21T00:00:00.000Z');assert.equal(detail.getCell('H4').value.toISOString(),'2026-09-22T00:00:00.000Z');
- assert.equal(detail.getCell('I4').value,records.a.note);assert.equal(detail.getCell('I4').formula,undefined);
+ assert.equal(detail.getCell('B4').value,'부재 A');assert.equal(detail.getCell('F4').value,3);
+ assert.equal(detail.getCell('H4').value.toISOString(),'2026-09-21T00:00:00.000Z');assert.equal(detail.getCell('I4').value.toISOString(),'2026-09-22T00:00:00.000Z');
+ assert.equal(detail.getCell('J4').value,records.a.note);assert.equal(detail.getCell('J4').formula,undefined);
  assert.equal(summary.getCell('B4').value,2);assert.equal(summary.getCell('E4').value,.5);assert.equal(review.rowCount,4);assert.equal(review.getCell('B4').value,'부재 A');assert.equal(review.getCell('D4').value,5);
 });
 test('slab XLSX preserves three types and construction dates including legacy casting records',async()=>{

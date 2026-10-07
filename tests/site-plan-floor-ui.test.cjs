@@ -8,7 +8,7 @@ function harness(catalog=[],drawingPatch={}){
   addEventListener(k,f){this.events[k]=f;}setAttribute(k,v){this.attrs[k]=v;}removeAttribute(k){delete this.attrs[k];}appendChild(n){this.children.push(n);}
   set innerHTML(v){this.html=v;this.children=[];for(const m of v.matchAll(/<button\b([^>]*)>/g)){const b=new Element();for(const a of m[1].matchAll(/data-([\w-]+)="([^"]*)"/g))b.dataset[a[1]]=a[2];this.children.push(b);}}get innerHTML(){return this.html||'';}
   querySelector(s){if(!this.selectors.has(s))this.selectors.set(s,new Element());return this.selectors.get(s);}
-  querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced','reinforcement_in_progress'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
+  querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','reinforcement_spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced','reinforcement_in_progress'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
   reset(){for(const e of this.querySelectorAll('input,select,textarea,button')){e.value='';e.checked=false;}}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
   getContext(){if(!this.context){const data={calls:[],segments:[],currentPath:[],beginPath(){this.currentPath=[];},moveTo(...xy){this.currentPath.push(xy);},stroke(path){if(!path&&this.currentPath.length===2)this.segments.push(structuredClone(this.currentPath));},fills:[],fillAlphas:[],fill(){this.fills.push(this.fillStyle);this.fillAlphas.push([this.fillStyle,this.globalAlpha]);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);this.currentPath.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
  }
@@ -22,6 +22,17 @@ function harness(catalog=[],drawingPatch={}){
  async function pick(){const canvas=steel.querySelector('canvas'),e={button:0,pointerId:1,clientX:2450/10.9,clientY:1000-1950/10.9};canvas.events.pointerdown(e);await canvas.events.pointerup(e);}
  return {context,page,steel,slab,cloud,calls,records,regions,field,pick,flush(){while(frames.length)frames.shift()();},async pickSlab(){const canvas=slab.querySelector('canvas'),e={button:0,pointerId:1,clientX:7450/10.9,clientY:1000-2450/10.9};canvas.events.pointerdown(e);await canvas.events.pointerup(e);},async activate(){await context.SitePlanUI.activate('steel');},edit(name,value){field(name).value=value;form.events.input();},failSave(){failSave=true;},failLoad(){failLoad=true;},hold(){holdId='d2';},release(){release();},logout(){allowed=false;generation++;listeners['site-auth-change']();}};
 }
+test('composite steel inputs save separately, survive floor changes and clear on logout',async()=>{
+ const h=harness();h.records.d1=[{trade:'steel',item_key:'same',label:'B2SG61',spec:'H808 · SM355',reinforcement_spec:'CT300 · SM355',installation_complete:true,version:1}];
+ await h.activate();await h.pick();assert.match(h.steel.innerHTML,/<label>원부재<input name="spec"/);assert.match(h.steel.innerHTML,/<label>보강부재<input name="reinforcement_spec"/);
+ assert.equal(h.field('spec').value,'H808 · SM355');assert.equal(h.field('reinforcement_spec').value,'CT300 · SM355');
+ h.edit('reinforcement_spec','CT300 revised');let snap=await h.context.SitePlanUI.exportSnapshot('steel');
+ assert.equal(snap.records.same.spec,'H808 · SM355');assert.equal(snap.records.same.reinforcement_spec,'CT300 revised');assert.equal(snap.records.same.installation_complete,true);assert.equal(snap.records.same.completed,'');
+ await h.context.SitePlanUI.selectFloor('B2');await h.pick();assert.equal(h.field('reinforcement_spec').value,'');
+ await h.context.SitePlanUI.selectFloor('B1');await h.pick();assert.equal(h.field('reinforcement_spec').value,'CT300 revised');h.edit('spec','H808 revised');snap=await h.context.SitePlanUI.exportSnapshot('steel');
+ assert.equal(snap.records.same.spec,'H808 revised');assert.equal(snap.records.same.reinforcement_spec,'CT300 revised');
+ h.logout();assert.equal(h.field('reinforcement_spec').value,'');assert.equal(h.field('spec').value,'');
+});
 test('reinforcement in progress survives refresh, edits and export without a date; casting clears it',async()=>{
  const h=harness();h.records.d1=[{trade:'slab',item_key:'panel',slab_kind:'deck',reinforcement_in_progress:true,note:'keep',version:1}];
  await slabActive(h);await h.pickSlab();const form=h.slab.querySelector('form'),field=n=>form.elements.namedItem(n);

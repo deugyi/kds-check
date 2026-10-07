@@ -64,8 +64,9 @@ test('PRD specification saves send the three values atomically; legacy date impo
 test('approved ordinary user may save steel and slab dates, while unapproved accounts remain denied',async()=>{
  const h=await load('viewer');assert.equal(h.context.SiteCloud.canEditTrade(),true);assert.equal(h.context.SiteCloud.canEdit(),false);
  const value={label:'B-1',spec:'H',delivered:'',completed:'2026-10-02',note:'memo'};
- await h.context.SiteCloud.saveTrade('steel','item',value,3);assert.equal(h.calls.at(-1)[0],'site_save_steel_record');assert.equal(h.calls.at(-1)[1].installation_done,true);assert.equal(h.calls.at(-1)[1].expected_version,3);
- await h.context.SiteCloud.saveTrade('steel','item',{...value,completed:'',installation_complete:true},4);assert.equal(h.calls.at(-1)[1].installation_done,true);assert.equal(h.calls.at(-1)[1].completed_date,null);assert.equal(h.calls.at(-1)[1].member_spec,'H');
+ await h.context.SiteCloud.saveTrade('steel','item',value,3);assert.equal(h.calls.at(-1)[0],'site_save_steel_components');assert.equal(h.calls.at(-1)[1].installation_done,true);assert.equal(h.calls.at(-1)[1].expected_version,3);
+ await h.context.SiteCloud.saveTrade('steel','item',{...value,completed:'',installation_complete:true},4);assert.equal(h.calls.at(-1)[1].installation_done,true);assert.equal(h.calls.at(-1)[1].completed_date,null);assert.equal(h.calls.at(-1)[1].member_spec,'H');assert.equal(h.calls.at(-1)[1].reinforcing_spec,'');
+ await h.context.SiteCloud.saveTrade('steel','item',{...value,reinforcement_spec:'CT300 · SM355'},5);assert.equal(h.calls.at(-1)[1].reinforcing_spec,'CT300 · SM355');assert.equal(h.calls.at(-1)[1].member_spec,'H');
  await h.context.SiteCloud.saveTrade('steel','item',{...value,completed:'',installation_complete:false},5);assert.equal(h.calls.at(-1)[1].installation_done,false);
  await h.context.SiteCloud.saveTrade('slab','item',{...value,slab_kind:'deck',decked:'2026-09-29',reinforced:'2026-10-01'},3);
  assert.equal(h.calls.at(-1)[0],'site_save_slab_progress');assert.deepEqual(JSON.parse(JSON.stringify(h.calls.at(-1)[1])),{item:'item',expected_version:3,member_label:'B-1',member_spec:'H',slab_type:'deck',deck_date:'2026-09-29',rebar_date:'2026-10-01',cast_date:'2026-10-02',memo:'memo',rebar_in_progress:false});
