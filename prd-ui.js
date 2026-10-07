@@ -114,7 +114,6 @@ async function selectZone(id){
 function renderZoneDetails(visible){
  const members=sortedPiles.filter(inZone),info=Z.summary(members,data.records,P.status),name=activeZone==='unassigned'?'미분류':activeZone;
  $('prd-zone-title').textContent=(name?name+' 공구':'전체 공구')+' PRD 상세 현황';
- $('prd-zone-side').innerHTML=activeZone?`<h3>${esc(name)} 공구 현황</h3><p><strong>${info.total}공 · 시공률 ${info.percent.toFixed(1)}%</strong></p><p class="prd-muted">천공 ${info.work.drilled} · 반입 ${info.work.delivered} · 시공 완료 ${info.work.installed}공</p><button type="button" data-zone-details>상세 목록 보기</button><hr>`:'';
  $('prd-zone-progress').textContent=`시공률 ${info.percent.toFixed(1)}%`;
  $('prd-zone-summary').innerHTML=[['전체',info.total],['천공 완료',info.work.drilled],['자재 반입',info.work.delivered],['시공 완료',info.work.installed],['확인 필요',members.filter(hasIssues).length]].map(([label,n])=>`<div><span>${label}</span><strong>${n}<small> 공</small></strong></div>`).join('');
  const rows=members.filter(visible);
@@ -194,7 +193,7 @@ function clearDrawing(){
  data=null;baseDrawing=null;loadedUser=null;selected=null;zoneData=null;legacy=null;dirty=false;view=null;wheel=null;drag=null;
  pileNodes.clear();pilesByKey.clear();versions.clear();sortedPiles=[];
  for(const n of [group,labels,zoneShapes,zoneLabels])n.replaceChildren();
- for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
+ for(const id of ['prd-zone-rows','prd-zone-tabs','prd-stats','prd-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
  for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec','prd-drilled','prd-delivered','prd-installed','prd-note'])$(id).value='';
  for(const id of ['prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
  $('prd-workspace').hidden=true;$('prd-empty').hidden=false;$('prd-form').hidden=true;message('');
@@ -219,7 +218,6 @@ $('prd-retry').addEventListener('click',openFixedDrawing);
 $('prd-form').addEventListener('input',()=>{if(busy||!cloud.canEdit())return;dirty=true;message('입력 중 · 저장 버튼을 누르면 기록됩니다.');});
 $('prd-form').addEventListener('submit',e=>{e.preventDefault();saveForm();});
 $('prd-filter').addEventListener('change',renderStatus);
-$('prd-zone-side').addEventListener('click',async e=>{if(e.target.closest('[data-zone-details]')){if(isExpanded())await exitExpanded();$('prd-zone-title').scrollIntoView({behavior:'smooth',block:'start'});}});
 $('prd-zone-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-zone]');if(b)selectZone(b.dataset.zone);});
 $('prd-dashboard').addEventListener('click',async e=>{const b=e.target.closest('button[data-zone]');if(!b)return;await selectZone(b.dataset.zone);if(activeZone===b.dataset.zone){if(isExpanded())$('prd-graphs-toggle').focus();else $('prd-zone-tabs').scrollIntoView?.({behavior:'smooth',block:'start'});}});
 $('prd-zone-rows').addEventListener('click',e=>{const b=e.target.closest('button[data-key]');if(b)select(b.dataset.key,true);});

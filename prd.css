@@ -47,7 +47,6 @@
 .prd-dot[data-stage="installed"]{width:12px;height:12px;border:2px solid #064e3b;box-sizing:border-box}
 #prd-detail label{font-size:14px;gap:5px;margin:12px 0;color:var(--ink)}
 #prd-detail{align-self:start;position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto}
-#prd-zone-side hr{border:0;border-top:1px solid var(--line);margin:16px 0}
 #prd-zone-title{scroll-margin-top:80px}
 #prd-detail dl{display:grid;grid-template-columns:80px 1fr;gap:5px 10px;margin:12px 0;font-size:13px}
 #prd-detail dt{color:var(--dim)}
