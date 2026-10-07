@@ -5,10 +5,10 @@ test('south overview uses both floor records and displays the aggregation scope'
  const html=h.pages[0].nodes['[data-overview-body]'].innerHTML;
  assert.match(html,/철골보 지하1층·지하2층 합산/);assert.match(html,/50\.0%/);
 });
-test('steel overview explains date-free installation and shows the same totals as the floor',async()=>{
+test('steel overview shows confirmed installation totals without a completion date',async()=>{
  const h=harness();h.context.SitePlanUI.overviewSnapshot=async()=>({sources:{steel:{items:[{key:'a',zone:'A3'},{key:'b',zone:'A3'}],records:{a:{installation_complete:true},b:{installation_complete:true}}}},coverage:'지하2층'});
  await h.context.SiteOverviewUI.activate(h.pages[0]);const html=h.pages[0].nodes['[data-overview-body]'].innerHTML;
- assert.match(html,/설치 완료 확인 기준/);assert.match(html,/설치 완료 미확인 0부재/);assert.match(html,/완료일 없이 설치 완료로 저장한 부재도 집계/);assert.match(html,/100\.0%/);
+ assert.match(html,/설치 완료 확인 기준/);assert.match(html,/<b>2<\/b> \/ 2부재 · 설치 완료/);assert.match(html,/100\.0%/);
 });
 test('north overview never reads southern records and uses pending data instead of fake zeroes',async()=>{const h=harness();await h.context.SiteOverviewUI.activate(h.pages[1]);assert.equal(h.calls,0);assert.match(h.pages[1].nodes['[data-overview-body]'].innerHTML,/북측/);assert.match(h.pages[1].nodes['[data-overview-body]'].innerHTML,/집계 준비 중/);assert.doesNotMatch(h.pages[1].nodes['[data-overview-body]'].innerHTML,/0\.0%/);});
 test('auth revocation clears rendered progress and prevents a pending response from restoring private content',async()=>{const h=harness();await h.context.SiteOverviewUI.activate(h.pages[0]);assert.match(h.pages[0].nodes['[data-overview-body]'].innerHTML,/100\.0%/);h.hold();const pending=h.context.SiteOverviewUI.activate(h.pages[0]);await new Promise(r=>setImmediate(r));h.logout();h.release();await pending;assert.equal(h.pages[0].nodes['[data-overview-body]'].innerHTML,'');await assert.rejects(h.context.SiteOverviewUI.exportSnapshot(h.pages[0]),/권한/);});

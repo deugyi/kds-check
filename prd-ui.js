@@ -94,10 +94,9 @@ function renderDashboard(){
 function renderStatus(){
  if(!data)return;
  const visible=visibility();
- const counts=Object.fromEntries(P.stages.map(s=>[s[0],0]));let shown=0;
- for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p),issue=!!hasIssues(p);if(inZone(p))counts[s[0]]++;shown+=v?1:0;attr(n,'fill',s[2]);attr(n,'data-stage',s[0]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(issue?' · 확인 필요':''));if(n.classList.contains('prd-issue')!==issue)n.classList.toggle('prd-issue',issue);const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
+ const counts=Object.fromEntries(P.stages.map(s=>[s[0],0]));
+ for(const p of data.drawing.piles){const n=pileNodes.get(p.key),v=visible(p),s=stage(p),issue=!!hasIssues(p);if(inZone(p))counts[s[0]]++;attr(n,'fill',s[2]);attr(n,'data-stage',s[0]);attr(n,'opacity',v?1:.12);attr(n,'aria-label',title(p)+' · '+s[1]+(issue?' · 확인 필요':''));if(n.classList.contains('prd-issue')!==issue)n.classList.toggle('prd-issue',issue);const t=n.firstElementChild,text=title(p)+' · '+s[1];if(t.textContent!==text)t.textContent=text;}
  $('prd-stats').innerHTML=P.stages.map(([key,name,color])=>`<span class="prd-stat"><i class="prd-dot" data-stage="${key}" style="background:${color}"></i>${name} <strong>${counts[key]}</strong></span>`).join('');
- $('prd-count').textContent=`${activeZone?(activeZone==='unassigned'?'미분류':activeZone)+' 공구':'전체'} ${data.drawing.piles.filter(inZone).length}공 · 상태 필터 ${shown}공`;
  setSelected(selected);
  renderZoneDetails(visible);renderDashboard();
 }
@@ -197,7 +196,7 @@ function clearDrawing(){
  for(const n of [group,labels,zoneShapes,zoneLabels])n.replaceChildren();
  for(const id of ['prd-zone-rows','prd-zone-tabs','prd-zone-side','prd-stats','prd-info','prd-zone-summary','prd-dashboard'])$(id).innerHTML='';
  for(const id of ['prd-diameter','prd-column-spec','prd-insert-spec','prd-drilled','prd-delivered','prd-installed','prd-note'])$(id).value='';
- for(const id of ['prd-count','prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
+ for(const id of ['prd-selected-title','prd-current-status','prd-selected-warning','prd-zone-title','prd-zone-progress','prd-zone-table-count','prd-import-warning','prd-sync-status'])$(id).textContent='';
  $('prd-workspace').hidden=true;$('prd-empty').hidden=false;$('prd-form').hidden=true;message('');
 }
 document.addEventListener('site-auth-change',()=>{
