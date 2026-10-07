@@ -9,7 +9,7 @@
 #site-prd button:disabled{opacity:.5;cursor:default}
 #site-prd button.prd-primary{background:var(--accent);color:var(--panel);border-color:var(--accent)}
 .prd-workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px}
-.prd-zone-navigation{display:flex;align-items:flex-start;gap:6px;padding-top:10px}.prd-zone-tabs{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.prd-zone-navigation{display:flex;align-items:flex-start;gap:6px;padding-top:10px}.prd-zone-tabs{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px}.prd-zone-navigation>.prd-zone-tabs{flex:1;min-width:0;padding-top:0}
 #site-prd .prd-zone-navigation button{font-size:12px;padding:6px 9px}#site-prd #prd-graphs-toggle{flex:none}
 #site-prd .prd-zone-tabs button[aria-pressed=true]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
 #prd-map .prd-zone{fill:var(--accent);fill-opacity:.025;stroke:#9fb4c3;stroke-width:1;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;cursor:pointer}
