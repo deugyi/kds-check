@@ -10,7 +10,7 @@ function harness(catalog=[],drawingPatch={}){
   querySelector(s){if(!this.selectors.has(s))this.selectors.set(s,new Element());return this.selectors.get(s);}
   querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced','reinforcement_in_progress'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
   reset(){for(const e of this.querySelectorAll('input,select,textarea,button')){e.value='';e.checked=false;}}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
-  getContext(){if(!this.context){const data={calls:[],fills:[],fillAlphas:[],fill(){this.fills.push(this.fillStyle);this.fillAlphas.push([this.fillStyle,this.globalAlpha]);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
+  getContext(){if(!this.context){const data={calls:[],segments:[],currentPath:[],beginPath(){this.currentPath=[];},moveTo(...xy){this.currentPath.push(xy);},stroke(path){if(!path&&this.currentPath.length===2)this.segments.push(structuredClone(this.currentPath));},fills:[],fillAlphas:[],fill(){this.fills.push(this.fillStyle);this.fillAlphas.push([this.fillStyle,this.globalAlpha]);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);this.currentPath.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
  }
  const page=new Element(),steel=page.querySelector('[data-trade="steel"]'),slab=page.querySelector('[data-trade="slab"]');slab.hidden=true;page.querySelector('[data-site-trade]').value='steel';page.querySelector('[data-plan-floor]').value='B1';
  const drawing={floor:'지하1층',bounds:[0,0,10000,10000],perimeter:[[0,0],[10000,0],[10000,10000],[0,10000]],zones:[{id:'A1',points:[[0,0],[10000,0],[10000,10000],[0,10000]]}],members:[{key:'same',a:[1000,1500],b:[4000,1500],kind:'beam',zone:'A1'}],slabs:[{key:'panel',zone:'A1',points:[[6000,1000],[8000,1000],[8000,3000],[6000,3000]],holes:[],area:4}],columns:[],background:[],duplicatePairs:[],duplicateGroups:[],openEnds:[]};
@@ -95,6 +95,24 @@ const slabAction=(h,action,extra={})=>h.slab.events.click({target:{closest:()=>(
 const slabEvent=(x,y)=>({button:0,pointerId:1,clientX:(x+450)/10.9,clientY:1000-(y+450)/10.9});
 async function slabPoint(h,x,y){const c=h.slab.querySelector('canvas'),e=slabEvent(x,y);c.events.pointerdown(e);await c.events.pointerup(e);}
 async function slabActive(h){h.steel.hidden=true;h.slab.hidden=false;h.page.querySelector('[data-site-trade]').value='slab';await h.context.SitePlanUI.activate('slab');}
+
+test('steel and slab render the same beam endpoints after slab overrides and floor-specific hide/restore',async()=>{
+ const members=[{key:'same',a:[1000,1500],b:[4000,1500],kind:'beam',zone:'A1'},{key:'diagonal',a:[2000,2000],b:[5000,5000],kind:'beam',zone:'A1'},{key:'vertical',a:[7500,1000],b:[7500,5000],kind:'beam',zone:'A1'}],h=harness([],{members});
+ h.records.d1.push({trade:'steel',item_key:'same',label:'B1SB1',installation_complete:true,version:1});
+ const lines=values=>[...new Set(values.map(v=>JSON.stringify(v)))].sort(),expected=keys=>lines(members.filter(m=>keys.includes(m.key)).map(m=>[m.a,m.b]));
+ async function rendered(trade){
+  h.steel.hidden=trade!=='steel';h.slab.hidden=trade!=='slab';h.page.querySelector('[data-site-trade]').value=trade;
+  const pane=trade==='steel'?h.steel:h.slab,ctx=pane.querySelector('canvas').getContext();ctx.segments.length=0;
+  await h.context.SitePlanUI.activate(trade);h.flush();return lines(ctx.segments);
+ }
+ const all=expected(['same','diagonal','vertical']);assert.deepEqual(await rendered('steel'),all);assert.deepEqual(await rendered('slab'),all);
+ h.regions.d1.push({item_key:'panel',geometry:{points:[[5500,500],[9000,500],[9000,4000],[5500,4000]],holes:[]},hidden:false,version:1});
+ await h.cloud.setMemberHidden('diagonal',true,0,'d1');
+ assert.deepEqual(await rendered('steel'),expected(['same','vertical']));assert.deepEqual(await rendered('slab'),expected(['same','vertical']));
+ await h.context.SitePlanUI.selectFloor('B2');assert.deepEqual(await rendered('steel'),all);assert.deepEqual(await rendered('slab'),all);
+ await h.context.SitePlanUI.selectFloor('B1');assert.deepEqual(await rendered('slab'),expected(['same','vertical']));
+ await h.cloud.setMemberHidden('diagonal',false,1,'d1');assert.deepEqual(await rendered('steel'),all);assert.deepEqual(await rendered('slab'),all);
+});
 test('new polygon saves on the current floor; kind defaults opening and the saved polygon controls area export',async()=>{
  const h=harness();await slabActive(h);await slabAction(h,'slab-new');assert.equal(h.context.SitePlanUI.hasUnsaved(),true);
  assert.equal(await h.context.SitePlanUI.selectFloor('B2'),false);assert.equal(await h.context.SitePlanUI.beforeTradeChange('slab'),false);
