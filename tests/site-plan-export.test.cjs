@@ -2,6 +2,12 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const ExcelJS=require('../vendor/exceljs-4.4.0.min.js');
 global.PRDZones=require('../prd-zones.js');global.SitePlan=require('../site-plan.js');
 const E=require('../site-plan-export.js');
+test('slab export retains date-free reinforcement status while openings stay excluded',async()=>{
+ const items=['work','open'].map(key=>({key,display:key,zone:'A2',area:4})),records={work:{slab_kind:'deck',reinforcement_in_progress:true},open:{slab_kind:'opening',reinforcement_in_progress:true}};
+ const book=E.build(ExcelJS,{trade:'slab',items,records,scope:'A2',asOf:'2026-10-07',area:{},duplicatePairs:[]});
+ const round=new ExcelJS.Workbook();await round.xlsx.load(await book.xlsx.writeBuffer());const sheet=round.getWorksheet('시공 기록');
+ assert.equal(sheet.getCell('L3').value,'철근 배근 상태');assert.equal(sheet.getCell('L4').value,'철근 배근 중');assert.equal(sheet.getCell('L5').value,'오프닝');assert.equal(sheet.getCell('I4').value,null);assert.equal(sheet.getCell('J4').value,null);
+});
 test('date-free steel completion exports its status and counts without inventing a date or size',async()=>{
  const items=[{key:'a',display:'보 0001',zone:'A3',a:[0,0],b:[3000,0],kind:'beam'},{key:'b',display:'보 0002',zone:'A3',a:[0,10],b:[3000,10],kind:'beam'}];
  const book=E.build(ExcelJS,{trade:'steel',items,records:{a:{installation_complete:true,note:'keep'}},scope:'A3',asOf:'2026-10-06',duplicatePairs:[]});

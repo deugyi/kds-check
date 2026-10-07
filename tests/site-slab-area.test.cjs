@@ -3,6 +3,10 @@ const A=require('../site-slab-area.js');
 const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
 const zones=[{id:'A1',points:rect(0,0,10000,10000)},{id:'A2',points:rect(10000,0,10000,10000)}];
 const item=(key,x,y,w,h,extra={})=>({key,points:rect(x,y,w,h),...extra});
+test('date-free reinforcement contributes to its stage area without implying casting or counting openings',()=>{
+ const r=A.summarize(zones,[item('work',0,0,15000,10000),item('open',0,0,2000,10000)],{work:{slab_kind:'deck',reinforcement_in_progress:true},open:{slab_kind:'opening',reinforcement_in_progress:true}});
+ assert.equal(r.area.reinforced,130);assert.equal(r.area.completed,0);assert.equal(r.area.decked,0);assert.equal(r.area.percent,0);assert.equal(r.byZone.A1.reinforced,80);assert.equal(r.byZone.A2.reinforced,50);
+});
 test('whole zone area is retained and unspecified parts are deducted as default openings',()=>{
  const result=A.summarize(zones,[item('cast',0,0,2000,10000)],{cast:{slab_kind:'deck',completed:'2026-10-06'}});
  assert.equal(result.area.gross,200);assert.equal(result.area.opening,180);assert.equal(result.area.total,20);assert.equal(result.area.completed,20);assert.equal(result.area.percent,100);

@@ -8,7 +8,7 @@ function harness(catalog=[],drawingPatch={}){
   addEventListener(k,f){this.events[k]=f;}setAttribute(k,v){this.attrs[k]=v;}removeAttribute(k){delete this.attrs[k];}appendChild(n){this.children.push(n);}
   set innerHTML(v){this.html=v;this.children=[];for(const m of v.matchAll(/<button\b([^>]*)>/g)){const b=new Element();for(const a of m[1].matchAll(/data-([\w-]+)="([^"]*)"/g))b.dataset[a[1]]=a[2];this.children.push(b);}}get innerHTML(){return this.html||'';}
   querySelector(s){if(!this.selectors.has(s))this.selectors.set(s,new Element());return this.selectors.get(s);}
-  querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
+  querySelectorAll(s){if(s==='button')return this.children;if(s==='input,select,textarea,button')return ['label','spec','delivered','installation_complete','completed','note','slab_kind','decked','reinforced','reinforcement_in_progress'].map(n=>this.elements.namedItem(n));if(s==='.plan-zones button')return this.querySelector('.plan-zones').children;return [];}
   reset(){for(const e of this.querySelectorAll('input,select,textarea,button')){e.value='';e.checked=false;}}getBoundingClientRect(){return {left:0,top:0,width:1000,height:1000};}setPointerCapture(){}hasPointerCapture(){return true;}releasePointerCapture(){}focus(){}
   getContext(){if(!this.context){const data={calls:[],fills:[],fillAlphas:[],fill(){this.fills.push(this.fillStyle);this.fillAlphas.push([this.fillStyle,this.globalAlpha]);},transforms:[],translate(...xy){this.transforms.push(xy);},lineTo(...xy){this.calls.push(xy);}};this.context=new Proxy(data,{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}return this.context;}
  }
@@ -22,6 +22,16 @@ function harness(catalog=[],drawingPatch={}){
  async function pick(){const canvas=steel.querySelector('canvas'),e={button:0,pointerId:1,clientX:2450/10.9,clientY:1000-1950/10.9};canvas.events.pointerdown(e);await canvas.events.pointerup(e);}
  return {context,page,steel,slab,cloud,calls,records,regions,field,pick,flush(){while(frames.length)frames.shift()();},async pickSlab(){const canvas=slab.querySelector('canvas'),e={button:0,pointerId:1,clientX:7450/10.9,clientY:1000-2450/10.9};canvas.events.pointerdown(e);await canvas.events.pointerup(e);},async activate(){await context.SitePlanUI.activate('steel');},edit(name,value){field(name).value=value;form.events.input();},failSave(){failSave=true;},failLoad(){failLoad=true;},hold(){holdId='d2';},release(){release();},logout(){allowed=false;generation++;listeners['site-auth-change']();}};
 }
+test('reinforcement in progress survives refresh, edits and export without a date; casting clears it',async()=>{
+ const h=harness();h.records.d1=[{trade:'slab',item_key:'panel',slab_kind:'deck',reinforcement_in_progress:true,note:'keep',version:1}];
+ await slabActive(h);await h.pickSlab();const form=h.slab.querySelector('form'),field=n=>form.elements.namedItem(n);
+ assert.equal(field('reinforcement_in_progress').checked,true);assert.equal(field('reinforced').value,'');assert.equal(field('completed').value,'');assert.equal(h.slab.querySelector('.plan-status').textContent,'철근 배근 중');
+ field('note').value='keep plus edit';form.events.input({target:field('note')});const snap=await h.context.SitePlanUI.exportSnapshot('slab');
+ assert.equal(snap.records.panel.reinforcement_in_progress,true);assert.equal(snap.records.panel.reinforced,'');assert.equal(snap.records.panel.completed,'');assert.equal(snap.area.reinforced,4);assert.equal(snap.area.completed,0);
+ h.flush();assert.ok(h.slab.querySelector('canvas').getContext().fills.includes('#efad52'));
+ field('completed').value='2026-10-07';form.events.input({target:field('completed')});assert.equal(field('reinforcement_in_progress').checked,false);assert.equal(field('reinforcement_in_progress').disabled,true);
+ h.logout();assert.equal(field('reinforcement_in_progress').checked,false);
+});
 test('slab catalog selection saves a specification without changing kind, dates, label or geometry; clears across floors and logout',async()=>{
  const catalog=[{code:'S1',thickness_mm:180,type:'T1',attributes:[{label:'상부 주근',value:'<img src=x>'}]}],h=harness(catalog);
  await h.activate();await h.pickSlab();const form=h.slab.querySelector('form'),field=n=>form.elements.namedItem(n),select=h.slab.querySelector('[data-slab-catalog]');

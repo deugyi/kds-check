@@ -15,7 +15,7 @@ function summarize(zones,items,records={}){
  // explicit openings cut it, while untouched overlapping candidates cannot erase it.
  const slabs=union(items.filter(v=>kind(records[v.key])!=='opening').map(polygon));
  const openings=union(items.filter(v=>records[v.key]?.slab_kind==='opening').map(polygon));
- const stages=Object.fromEntries(['completed','decked','reinforced'].map(stage=>[stage,union(items.filter(v=>kind(records[v.key])!=='opening'&&records[v.key]?.[stage]).map(polygon))]));
+ const stages=Object.fromEntries(['completed','decked','reinforced'].map(stage=>[stage,union(items.filter(v=>kind(records[v.key])!=='opening'&&(records[v.key]?.[stage]||stage==='reinforced'&&records[v.key]?.reinforcement_in_progress===true)).map(polygon))]));
  function within(boundary){const result=zero();result.gross=area(boundary);const assigned=boundary.length&&slabs.length?clip.intersection(boundary,slabs):[],target=assigned.length&&openings.length?clip.difference(assigned,openings):assigned;result.total=area(target);result.opening=Math.max(0,result.gross-result.total);
   for(const [stage,regions] of Object.entries(stages))result[stage]=target.length&&regions.length?Math.min(result.total,area(clip.intersection(target,regions))):0;
   result.remaining=Math.max(0,result.total-result.completed);result.percent=result.total?100*result.completed/result.total:null;return result;

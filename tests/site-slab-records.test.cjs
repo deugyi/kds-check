@@ -14,3 +14,12 @@ test('slab types and dates preserve legacy casting records and optional stages',
  assert.equal(G.record({...value,delivered:'2026-09-25'},'slab').delivered,'');
  assert.equal(G.record({...value,delivered:'2026-09-25'},'steel').slab_kind,undefined);
 });
+
+test('reinforcement in progress has a distinct status without invented dates and casting takes precedence',()=>{
+ const r=G.record({slab_kind:'deck',reinforcement_in_progress:true},'slab');
+ assert.equal(r.reinforcement_in_progress,true);for(const field of ['decked','reinforced','completed'])assert.equal(r[field],'');
+ assert.equal(G.slabStyle(r).stage,'reinforced');assert.equal(G.slabStyle(r).fill,'#efad52');
+ assert.equal(G.record({...r,reinforcement_in_progress:'true'},'slab').reinforcement_in_progress,false);
+ assert.equal(G.record({...r,completed:'2026-10-07'},'slab').reinforcement_in_progress,false);
+ assert.equal(G.slabStyle({...r,slab_kind:'opening'}).stage,'opening');
+});
