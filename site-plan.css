@@ -59,3 +59,5 @@
 .plan-slab-legend table{margin:3px 0;border-collapse:collapse;width:100%;font-size:11px}.plan-slab-legend th,.plan-slab-legend td{background:transparent;border:0;padding:5px 3px;font-size:11px;text-align:center;white-space:nowrap}.plan-slab-legend th:first-child{text-align:left;padding-left:0}.plan-slab-legend thead th{font-weight:600;border-bottom:1px solid #dce4e9}.plan-slab-legend tbody th{font-weight:400}.plan-slab-legend tbody i{width:25px;height:12px}.plan-slab-legend>span:last-child i{border-style:dashed}
 
 .site-page .plan-detail .plan-installation-state{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:600}.site-page .plan-detail .plan-installation-state input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:0 0 18px;accent-color:var(--accent)}
+
+.plan-slab-resources{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);font-size:12px}.plan-slab-resources>summary{color:var(--accent);font-weight:600;cursor:pointer;line-height:1.6}
