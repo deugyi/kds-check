@@ -9,8 +9,8 @@
 #site-prd button:disabled{opacity:.5;cursor:default}
 #site-prd button.prd-primary{background:var(--accent);color:var(--panel);border-color:var(--accent)}
 .prd-workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px}
-.prd-zone-tabs{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px}
-#site-prd .prd-zone-tabs button{font-size:12px;padding:6px 9px}
+.prd-zone-navigation{display:flex;align-items:flex-start;gap:6px;padding-top:10px}.prd-zone-tabs{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+#site-prd .prd-zone-navigation button{font-size:12px;padding:6px 9px}#site-prd #prd-graphs-toggle{flex:none}
 #site-prd .prd-zone-tabs button[aria-pressed=true]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
 #prd-map .prd-zone{fill:var(--accent);fill-opacity:.025;stroke:#9fb4c3;stroke-width:1;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;cursor:pointer}
 #prd-map .prd-zone:hover,#prd-map .prd-zone:focus{fill-opacity:.12;outline:none;stroke:var(--accent);stroke-width:2}
@@ -117,7 +117,7 @@ body.prd-fullscreen-open{overflow:hidden}
 #site-prd.prd-fullscreen .prd-zone-card,#site-prd.prd-fullscreen #prd-import-warning,#site-prd.prd-fullscreen #prd-detail{display:none}
 #site-prd.prd-fullscreen.prd-fs-details #prd-workspace{grid-template-columns:minmax(0,1fr) 320px}
 #site-prd.prd-fullscreen.prd-fs-details #prd-detail{display:block;position:static;max-height:100%;height:100%;overflow:auto;margin:0}
-#site-prd.prd-fullscreen .prd-zone-tabs{padding-top:0}
+#site-prd.prd-fullscreen .prd-zone-navigation{padding-top:0;flex:none;max-height:22vh;overflow:auto}
 #site-prd.prd-fullscreen:fullscreen{width:100vw;height:100dvh}
 @media(max-width:700px){
  #site-prd.prd-fullscreen{padding:6px}
@@ -135,7 +135,6 @@ body.prd-fullscreen-open{overflow:hidden}
 #site-prd.prd-fullscreen.prd-fs-graphs #prd-fit,
 #site-prd.prd-fullscreen.prd-fs-graphs .prd-toolbar label{display:none}
 #site-prd #prd-graphs-toggle[aria-pressed=true]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
-#site-prd.prd-fullscreen .prd-zone-tabs{flex:none;max-height:22vh;overflow:auto}
 
 /* One authenticated workspace per side; trade panes remain mounted. */
 .site-page [hidden]{display:none!important}

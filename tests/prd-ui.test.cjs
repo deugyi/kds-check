@@ -134,7 +134,7 @@ test('dashboard reflects saved dates and its zone bars reuse the existing drawin
  const b=h.$('prd-dashboard').children.find(n=>n.dataset.zone==='A1');
  await h.$('prd-dashboard').events.click({target:b});
  assert.equal(h.$('prd-zone-title').textContent,'A1 공구 PRD 상세 현황');
- assert.equal(h.$('prd-dashboard').innerHTML.includes('남측 전체 기록 기준'),true);
+ assert.match(h.$('prd-dashboard').innerHTML,new RegExp('전체 <strong>'+base.drawing.piles.length+'</strong>공'));
 });
 test('import skips existing server records and keeps local source untouched',async()=>{
  const [a,b]=base.drawing.piles,legacy={...base,records:{[a.key]:{note:'old'},[b.key]:{note:'local'}}};
