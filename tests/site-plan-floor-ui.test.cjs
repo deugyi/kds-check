@@ -23,9 +23,9 @@ function harness(catalog=[],drawingPatch={}){
  return {context,page,steel,slab,cloud,calls,records,regions,hidden,field,pick,flush(){while(frames.length)frames.shift()();},async pickSlab(){const canvas=slab.querySelector('canvas'),e={button:0,pointerId:1,clientX:7450/10.9,clientY:1000-2450/10.9};canvas.events.pointerdown(e);await canvas.events.pointerup(e);},async activate(){await context.SitePlanUI.activate('steel');},edit(name,value){field(name).value=value;form.events.input();},failSave(){failSave=true;},failLoad(){failLoad=true;},hold(){holdId='d2';},release(){release();},logout(){allowed=false;generation++;listeners['site-auth-change']();}};
 }
 test('report snapshot covers both floors without switching the active drawing or losing undated status',async()=>{
- const h=harness();h.records.d1=[{trade:'steel',item_key:'same',installation_complete:true,completed:'',version:1}];h.records.d2=[{trade:'steel',item_key:'same',completed:'2026-10-08',version:1}];h.hidden.d1={same:{hidden:true}};
+ const h=harness({},{members:[{key:'same',a:[1000,1500],b:[4000,1500],kind:'beam',zone:'A1',renderOnly:()=>{}}]});h.records.d1=[{trade:'steel',item_key:'same',installation_complete:true,completed:'',version:1}];h.records.d2=[{trade:'steel',item_key:'same',completed:'2026-10-08',version:1}];h.hidden.d1={same:{hidden:true}};
  await h.activate();const snapshot=await h.context.SitePlanUI.reportSnapshot();
- assert.equal(snapshot.length,2);assert.equal(snapshot[0].records[0].installation_complete,true);assert.equal(snapshot[0].records[0].completed,'');assert.equal(snapshot[1].records[0].completed,'2026-10-08');assert.equal(snapshot[0].visibility.same.hidden,true);assert.equal(h.context.SitePlanUI.floor,'B1');
+ assert.equal(snapshot.length,2);assert.equal(snapshot[0].records[0].installation_complete,true);assert.equal(snapshot[0].records[0].completed,'');assert.equal(snapshot[1].records[0].completed,'2026-10-08');assert.equal(snapshot[0].visibility.same.hidden,true);assert.equal(h.context.SitePlanUI.floor,'B1');assert.equal(snapshot[0].drawing.members[0].renderOnly,undefined);
  h.logout();await assert.rejects(()=>h.context.SitePlanUI.reportSnapshot());
 });
 test('composite steel inputs save separately, survive floor changes and clear on logout',async()=>{
