@@ -53,6 +53,12 @@ async function load(options={}){
  async function zone(id){$('prd-zone-tabs').events.click({target:$('prd-zone-tabs').children.find(n=>n.dataset.zone===id)});await new Promise(r=>setImmediate(r));flush();}
  return {$,event,click,zone,flush,writes,frames,calls,remote,ctx,async changeRole(next){role=next;generation++;emit('site-auth-change');await new Promise(r=>setImmediate(r));},async logout(){role='pending';userId=null;generation++;emit('site-auth-change');await new Promise(r=>setImmediate(r));},get reads(){return reads;},get saved(){return saved;},failSave:()=>failSave=true};
 }
+test('report snapshot ignores drawing filters and reads fresh saved records',async()=>{
+ const h=await load(),pile=base.drawing.piles[0];h.remote[pile.key]={pile_key:pile.key,installed:'2026-10-08'};
+ await h.zone('A2');h.$('prd-filter').value='planned';const snapshot=await h.ctx.PRDCloudUI.reportSnapshot();
+ assert.equal(snapshot.items.length,base.drawing.piles.length);assert.equal(snapshot.records[pile.key].installed,'2026-10-08');assert.equal(h.$('prd-filter').value,'planned');
+ await h.logout();await assert.rejects(()=>h.ctx.PRDCloudUI.reportSnapshot());
+});
 test('pile selection only updates the old/new circle and preserves the 790-row table',async()=>{
  const h=await load(),[a,b]=base.drawing.piles;
  await h.click(a.key);h.writes.length=0;await h.click(b.key);

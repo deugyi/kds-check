@@ -206,7 +206,7 @@ document.addEventListener('site-auth-change',()=>{
 $('prd-refresh').addEventListener('click',()=>refreshRecords(true));
 $('prd-import-local').addEventListener('click',importLocal);
 setInterval(()=>{if(!document.hidden&&$('site-prd').classList.contains('on'))refreshRecords();},30000);
-globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState,overviewSnapshot:async()=>{if(!data)await openFixedDrawing();if(!data||!cloud.allowed())throw Error('도면을 불러온 후 다시 시도해 주세요.');return {items:data.drawing.piles.map(v=>({key:v.key,zone:zoneData.membership[v.key]||'unassigned'})),zoneIds:zoneData.zones.map(z=>z.id)};},exportSnapshot:async()=>{
+globalThis.PRDCloudUI={hasUnsaved:()=>dirty||busy,beforeTradeChange:()=>saveForm(true),onFullscreenChange:expandedState,overviewSnapshot:async()=>{if(!data)await openFixedDrawing();if(!data||!cloud.allowed())throw Error('도면을 불러온 후 다시 시도해 주세요.');return {items:data.drawing.piles.map(v=>({key:v.key,zone:zoneData.membership[v.key]||'unassigned'})),zoneIds:zoneData.zones.map(z=>z.id)};},reportSnapshot:async()=>{if(!data)await openFixedDrawing();if(!data||!cloud.allowed()||!await saveForm(true))throw Error('PRD 입력 내용을 저장한 후 다시 조회해 주세요.');const epoch=cloud.generation,rows=await cloud.records();if(epoch!==cloud.generation||!cloud.allowed())throw Error('접근 권한을 다시 확인해 주세요.');return {items:sortedPiles.map(p=>({key:p.key,label:title(p),zone:zoneData.membership[p.key]||'미분류'})),records:Object.fromEntries(rows.map(r=>[r.pile_key,r]))};},exportSnapshot:async()=>{
  if(!data||!cloud.allowed())throw Error('도면을 불러온 후 다시 시도해 주세요.');
  if(!await saveForm(true))throw Error('기록을 저장하지 못했습니다. PRD 입력 내용을 확인해 주세요.');
  if(!data||!cloud.allowed())throw Error('접근 권한을 다시 확인해 주세요.');
