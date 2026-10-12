@@ -11,7 +11,7 @@ select set_config('test.progress.report',(public.site_progress_submit(current_se
  '[{"floor":"지하1층","zone":"B2","process":"철골보","quantity":20,"unit":"부재"}]',false,'검증',0)).id::text,true);
 do $$begin
  if (select state from public.site_progress_reports where id=current_setting('test.progress.report')::uuid)<>'pending' then raise exception 'FAIL_PENDING'; end if;
- begin perform public.site_progress_submit(current_setting('test.progress.company')::uuid,(now() at time zone 'Asia/Seoul')::date-1,'[]',true,'잘못된 버전',0);raise exception 'FAIL_CONFLICT';exception when serialization_failure then null;end;
+ begin perform public.site_progress_submit_report(current_setting('test.progress.company')::uuid,(now() at time zone 'Asia/Seoul')::date-1,'[]',true,'잘못된 버전',0,current_setting('test.progress.report')::uuid);raise exception 'FAIL_CONFLICT';exception when serialization_failure then null;end;
  begin update public.site_progress_reports set state='approved' where id=current_setting('test.progress.report')::uuid;raise exception 'FAIL_DIRECT_WRITE';exception when insufficient_privilege then null;end;
  begin perform public.site_progress_bot_config();raise exception 'FAIL_SECRET_ACCESS';exception when insufficient_privilege then null;end;
 end $$;

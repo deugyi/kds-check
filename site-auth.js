@@ -95,7 +95,7 @@ async function records(){
 root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
  async progressRPC(name,args={}){
   if(!allowed())throw Error('ACCESS_REQUIRED');
-  if(!['context','save_company','invite','submit','review','notifications','disconnect'].includes(name))throw Error('INVALID_PROGRESS_ACTION');
+  if(!['context','save_company','invite','submit','submit_report','review','notifications','disconnect'].includes(name))throw Error('INVALID_PROGRESS_ACTION');
   const r=await client.rpc('site_progress_'+name,args);if(r.error)throw r.error;return r.data;
  },
  async progressReports(start,end){
