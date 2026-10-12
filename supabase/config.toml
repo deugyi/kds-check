@@ -1,0 +1,4 @@
+[functions.site-process-bot]
+# Telegram webhooks and cron use their own independently checked shared secrets.
+# Admin setup requests validate the Google session and database admin role inside the handler.
+verify_jwt = false

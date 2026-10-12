@@ -93,7 +93,7 @@ test('south and north unified workspaces gate the overview and four trade panes'
  const h=await load();
  const expected=['site-prd','site-north-prd'];
  assert.deepEqual(h.pages.map(p=>p.id),expected);
- assert.deepEqual([...html.matchAll(/data-t="(site-[^"]+)"/g)].map(m=>m[1]),expected);
+ assert.deepEqual([...html.matchAll(/data-t="(site-[^"]+)"/g)].map(m=>m[1]),['site-prd','site-progress','site-north-prd']);
  assert.deepEqual([...html.matchAll(/data-open="(site-[^"]+)"/g)].map(m=>m[1]),expected);
  for(const [i,page] of h.pages.entries()){
   assert.equal(h.panels[i].querySelector('h2').textContent,i===0?'서리풀 : 남측':'서리풀 : 북측');
