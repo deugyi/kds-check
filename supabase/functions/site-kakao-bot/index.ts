@@ -32,13 +32,16 @@ export async function handler(req:Request){
   if(!same(req.headers.get('x-siteone-kakao-key')||'',config.key||''))return response({error:'UNAUTHORIZED'},401);
   if(!config.enabled||!config.bot_id)return response({error:'KAKAO_NOT_CONFIGURED'},409);
   const u=data?.userRequest?.user,text=data?.userRequest?.utterance,bot=data?.bot?.id;
-  if(bot!==config.bot_id||typeof text!=='string'||text.length>12000)
-   return response({error:'INVALID_KAKAO_REQUEST'},400);
-  // Builder simulator calls are authenticated diagnostics, never supplier registrations or results.
+  // Fixed diagnostic codes only: never emit request values, credentials or sender identifiers.
+  const invalid=(reason:string)=>{console.warn('site_kakao_validation:'+reason);return response({error:'INVALID_KAKAO_REQUEST'},400);};
+  if(typeof text!=='string'||text.length>12000)return invalid('utterance_invalid');
+  // Builder uses a separate bot identity. Authenticated simulator calls can only return a
+  // fixed diagnostic: no company lookup, sender linking, event recording or quantities.
   if(data.userRequest.params?.surface==='BuilderBotTest'||data.userRequest.params?.ignoreMe===true||data.userRequest.params?.ignoreMe==='true')
    return skill('사이트원 접수 서버가 응답했습니다. 관리자센터 테스트 화면에서는 업체 연결이나 실적을 저장하지 않습니다. 채널 연결·배포 후 실제 담당자 계정에서 연결 코드를 전송해 주세요.');
-  if(u?.type!=='botUserKey'||typeof u.id!=='string'||!u.id||u.id.length>70||/[\u0000-\u001f]/.test(u.id))
-   return response({error:'INVALID_KAKAO_REQUEST'},400);
+  if(bot!==config.bot_id)return invalid('bot_mismatch');
+  if(u?.type!=='botUserKey')return invalid('sender_type_invalid');
+  if(typeof u.id!=='string'||!u.id||u.id.length>70||/[\u0000-\u001f]/.test(u.id))return invalid('sender_key_invalid');
   const raw=text.trim();let payload:any;
   const link=/^(?:연결|업체연결)\s+([a-f0-9]{48})$/i.exec(raw);
   const query=/^(오늘\s*계획|계획\s*조회|회신\s*안내)(?:\s+(\d{4}-\d{2}-\d{2}))?$/.exec(raw);
