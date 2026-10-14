@@ -95,13 +95,22 @@ async function records(){
 root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
  async progressRPC(name,args={}){
   if(!allowed())throw Error('ACCESS_REQUIRED');
-  if(!['context','save_company','invite','submit','submit_report','review','notifications','disconnect'].includes(name))throw Error('INVALID_PROGRESS_ACTION');
+  if(!['context','save_company','invite','submit','submit_report','review','notifications','disconnect','save_plan','submit_feedback','kakao_status','kakao_setup','kakao_credentials','kakao_invite','kakao_disconnect'].includes(name))throw Error('INVALID_PROGRESS_ACTION');
   const r=await client.rpc('site_progress_'+name,args);if(r.error)throw r.error;return r.data;
  },
  async progressReports(start,end){
   if(!allowed())throw Error('ACCESS_REQUIRED');const rows=[];
   for(let offset=0;offset<50000;offset+=1000){const r=await client.from('site_progress_reports').select('*').gte('work_date',start).lte('work_date',end).order('work_date',{ascending:false}).order('id').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)return rows;}
   throw Error('REPORT_RANGE_TOO_LARGE');
+ },
+ async progressPlans(start,end){
+  if(!allowed())throw Error('ACCESS_REQUIRED');const rows=[];
+  for(let offset=0;offset<50000;offset+=1000){const r=await client.from('site_progress_plans').select('*').gte('work_date',start).lte('work_date',end).order('work_date',{ascending:false}).order('id').range(offset,offset+999);if(r.error)throw r.error;rows.push(...r.data);if(r.data.length<1000)return rows;}
+  throw Error('REPORT_RANGE_TOO_LARGE');
+ },
+ async progressKakaoStatus(){
+  if(!isAdmin())throw Error('ADMIN_REQUIRED');const r=await client.functions.invoke('site-kakao-bot',{body:{action:'status'}});
+  if(r.error)throw Error('KAKAO_SERVER_CHECK_FAILED');return r.data;
  },
  async progressBot(action,args={}){
   if(!isAdmin())throw Error('ADMIN_REQUIRED');

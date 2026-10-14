@@ -2,3 +2,8 @@
 # Telegram webhooks and cron use their own independently checked shared secrets.
 # Admin setup requests validate the Google session and database admin role inside the handler.
 verify_jwt = false
+
+[functions.site-kakao-bot]
+# Skill calls validate a server-issued secret header and the configured bot ID.
+# Status calls separately validate the Google session and the site admin role.
+verify_jwt = false

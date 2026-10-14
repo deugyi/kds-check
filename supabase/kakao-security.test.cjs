@@ -1,0 +1,65 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
+const {PGlite}=require(process.env.PGLITE_MODULE||'@electric-sql/pglite');
+const M=require('./functions/_shared/morning-core.js');
+const sql=n=>fs.readFileSync(path.join(__dirname,'migrations',n),'utf8');
+test('PostgreSQL enforces Kakao pairing, replay protection, private plans, complete feedback, supervisor approval and immutable quantities',async()=>{
+ const db=new PGlite();try{
+ await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema extensions;create schema vault;');
+ await db.exec(`create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
+ create function auth.uid() returns uuid language sql stable as $$select nullif(auth.jwt()->>'sub','')::uuid$$;
+ grant usage on schema auth,public,extensions,vault to anon,authenticated,service_role;grant execute on all functions in schema auth to anon,authenticated,service_role;
+ create table public.site_members(user_id uuid primary key,email text,role text,created_at timestamptz default now());
+ create function public.site_role() returns text language sql security definer set search_path='' as $$select role from public.site_members where user_id=auth.uid()$$;
+ create table vault.secrets(id uuid primary key default gen_random_uuid(),name text unique,decrypted_secret text);
+ create view vault.decrypted_secrets as select * from vault.secrets;
+ create function vault.create_secret(value text,key text) returns uuid language sql as $$insert into vault.secrets(name,decrypted_secret) values(key,value) returning id$$;
+ create function vault.update_secret(secret_id uuid,value text,key text) returns void language sql as $$update vault.secrets set name=key,decrypted_secret=value where id=secret_id$$;
+ -- Fixture-only crypto adapters. Production uses the existing pgcrypto/Vault installation.
+ create function extensions.gen_random_bytes(n integer) returns bytea language sql as $$select decode(left(string_agg(replace(gen_random_uuid()::text,'-',''),''),n*2),'hex') from generate_series(1,(n+15)/16)$$;
+ create function extensions.digest(value text,algorithm text) returns bytea language sql immutable as $$select decode(md5(value)||md5(value||algorithm),'hex')$$;
+ `);
+ await db.exec(sql('20261012052728_site_process_progress.sql').split('-- Scheduler is inert')[0]+'commit;');
+ await db.exec(sql('20261012064555_site_progress_approval_labels.sql'));
+ await db.exec(sql('20261012082019_site_progress_multiple_processes.sql'));
+ await db.exec(sql('20261014005751_site_kakao_morning_intake.sql'));
+ const admin='00000000-0000-0000-0000-000000000001',viewer='00000000-0000-0000-0000-000000000002';
+ await db.query("insert into public.site_members(user_id,email,role) values($1,'admin@example.test','admin'),($2,'viewer@example.test','viewer')",[admin,viewer]);
+ async function as(role,user=null){await db.exec('reset role');await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({role,sub:user})]);await db.exec('set role '+role);}
+ const call=async(n,args=[])=> (await db.query('select to_jsonb(public.site_progress_'+n+'('+args.map((_,i)=>'$'+(i+1)).join(',')+')) result',args)).rows[0].result;
+ await as('anon');await assert.rejects(()=>call('kakao_config'),/permission denied/);
+ await as('authenticated',viewer);await assert.rejects(()=>call('kakao_credentials'),/ADMIN_REQUIRED/);await assert.rejects(()=>call('kakao_setup',['test-bot','https://pf.kakao.com/_test',true,false]),/ADMIN_REQUIRED/);
+ await as('authenticated',admin);const company=await call('save_company',[null,'검증업체','south',admin,true,false,'17:00',[1,2,3,4,5,6]]);
+ const settings=await call('kakao_setup',['test-bot','https://pf.kakao.com/_test',true,false]);assert.equal(settings.header_value.length,64);const invite=await call('kakao_invite',[company.id]);
+ await as('service_role');
+ let counter=0;const hash=s=>createHash('sha256').update(s).digest('hex');
+ const receive=(payload,raw=JSON.stringify(payload),key=hash('event-'+(++counter)),user='supplier')=>call('kakao_receive',['test-bot',user,key,hash(raw),payload,raw]);
+ assert.match((await receive({type:'link',token:invite})).reply,/연결되었습니다/);
+ assert.match((await receive({type:'link',token:invite},null??'reuse',undefined,'another')).reply,/만료/);
+ const day=(await db.query("select (now() at time zone 'Asia/Seoul')::date::text as work_date")).rows[0].work_date;
+ const raw=day+'\n1. 업체명: 검증업체\n2. 출력인원\n- 총원: 2명\n- 관리자: 2명\n3. 장비\n- 굴착기 1대\n4. 작업내용\n- B2 B1F 수평재 용접\n- C3 B1F 복공판 설치\n5. 자재반입\n- C3 B1F 복공판 카고1대\n6.신규자\n- 없음';
+ const document=M.parseMorning(raw,day),event=hash('morning-fixed');
+ assert.match((await receive({type:'plan',document},raw,event)).reply,/아침계획/);
+ assert.equal((await receive({type:'plan',document},raw,event)).duplicate,true);
+ await assert.rejects(()=>receive({type:'plan',document},raw+'changed',event),/EVENT_CONFLICT/);
+ assert.equal((await db.query('select count(*)::integer n from public.site_progress_reports')).rows[0].n,0);
+ const plan=(await db.query('select * from public.site_progress_plans')).rows[0];
+ await as('authenticated',viewer);assert.equal((await db.query('select * from public.site_progress_plans')).rows.length,0);
+ await assert.rejects(()=>call('save_plan',[company.id,day,document,raw,1]),/SUBMIT_ACCESS_REQUIRED/);
+ await as('service_role');assert.match((await receive({type:'plan',document:{...document,company_name:'다른업체'}},'wrong company')).reply,/다릅니다/);
+ const feedback=M.parseFeedback('작업결과\n'+day+'\n계획버전: 1\n1 / 완료 / 수평재 용접 / 5 / 개소 / -\n2 / 미실시 / - / - / - / 작업면 미확보',day);
+ const bad={...feedback,feedback:feedback.feedback.slice(0,1)};assert.match((await receive({type:'feedback',feedback:bad},'incomplete')).reply,/모든 계획/);
+ assert.match((await receive({type:'feedback',feedback},'actual feedback')).reply,/감독자 승인 대기/);
+ const report=(await db.query('select * from public.site_progress_reports')).rows[0];assert.equal(report.state,'pending');assert.equal(report.plan_id,plan.id);assert.equal(report.source,'kakao');assert.equal(report.items[0].quantity,5);assert.equal(report.task_feedback.length,2);
+ assert.equal((await db.query('select company_id from site_progress_private.kakao_events where report_id=$1',[report.id])).rows[0].company_id,company.id);
+ await as('authenticated',viewer);await assert.rejects(()=>call('review',[report.id,1,'approved','']),/SUPERVISOR_REQUIRED/);
+ await as('authenticated',admin);await assert.rejects(()=>call('save_plan',[company.id,day,{...document,expected:1},raw,1]),/PLAN_FEEDBACK_LOCKED/);
+ await assert.rejects(()=>call('submit_report',[company.id,day,report.items,false,'',1,report.id]),/PLAN_FEEDBACK_EDIT_REQUIRED/);
+ await call('review',[report.id,1,'approved','']);
+ await as('authenticated',viewer);assert.equal((await db.query('select * from public.site_progress_plans')).rows.length,1);assert.equal((await db.query('select * from public.site_progress_reports')).rows[0].state,'approved');
+ await as('service_role');assert.match((await receive({type:'feedback',feedback:{...feedback,revision:true,expected_report:2}},'approved revision')).reply,/승인된 실적/);
+ assert.equal((await db.query('select items from public.site_progress_reports')).rows[0].items[0].quantity,5);
+ await as('authenticated',admin);await call('review',[report.id,2,'returned','수량 확인']);
+ await as('authenticated',viewer);assert.equal((await db.query('select * from public.site_progress_plans')).rows.length,0);
+ await as('authenticated',admin);await call('kakao_disconnect',[company.id]);await as('service_role');assert.match((await receive({type:'plan',document},'after disconnect')).reply,/연결 코드/);
+ }finally{await db.close();}
+});

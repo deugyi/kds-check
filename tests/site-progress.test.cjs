@@ -15,3 +15,8 @@ test('approved-only XLSX preserves dates, units, no-work submissions and literal
  const original=await P.workbook(ExcelJS,reports,[{id:'c',name:'업체'}],day,day),wb=new ExcelJS.Workbook();await wb.xlsx.load(await original.xlsx.writeBuffer());
  assert.deepEqual(wb.worksheets.map(s=>s.name),['공정별 실적','업체별 실적','승인 실적 목록']);assert.equal(wb.worksheets[0].getRow(4).getCell(2).value,2);const s=wb.worksheets[2];assert.ok(s.getRow(4).getCell(1).value instanceof Date);assert.equal(s.getRow(4).getCell(8).value,'=1+1');assert.equal(s.getRow(5).getCell(5).value,'작업 없음');assert.equal(s.getRow(3).getCell(11).value,'승인 상태');assert.equal(s.getRow(4).getCell(11).value,'승인됨');assert.equal(s.getRow(5).getCell(11).value,'승인됨');assert.equal(s.rowCount,5);
 });
+test('Kakao approved feedback export links its planned job, keeps reasons and leaves pending amounts out',async()=>{
+ const r={id:'r',company_id:'c',plan_id:'p',state:'approved',work_date:day,source:'kakao',items:[{...line(5,'개소'),plan_item:1}],task_feedback:[{task_no:1,state:'partial',reason:'잔여 용접'}]},pending={...r,id:'pending',state:'pending',items:[line(999)]};
+ const source=await P.workbook(ExcelJS,[r,pending],[{id:'c',name:'업체'}],day,day,[{id:'p',document:{tasks:[{no:1,description:'수평재 용접'}]}}]),wb=new ExcelJS.Workbook();await wb.xlsx.load(await source.xlsx.writeBuffer());
+ assert.equal(wb.getWorksheet('공정별 실적').getRow(4).getCell(2).value,5);assert.equal(wb.getWorksheet('승인 실적 목록').getRow(4).getCell(9).value,'카카오톡');assert.equal(wb.getWorksheet('승인 실적 목록').getRow(4).getCell(12).value,1);const s=wb.getWorksheet('계획별 작업결과');assert.equal(s.getRow(4).getCell(4).value,'수평재 용접');assert.equal(s.getRow(4).getCell(5).value,'일부 완료');assert.equal(s.getRow(4).getCell(6).value,'잔여 용접');assert.equal(s.rowCount,4);
+});
