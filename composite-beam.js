@@ -9,12 +9,14 @@
 const load=n=>typeof module!=='undefined'&&module.exports?require(n):null;
 const S=load('./steel-section.js')||root.SteelSection;
 const SB=load('./steel-beam.js')||root.SteelBeam;
+const BL=load('./composite-beam-loads.js')||root.CompositeBeamLoads;
 const PHI_B=.90;                       // 4.5.2(2)
 const STUDS=Object.fromEntries([13,16,19,22].map(d=>['D'+d,{d,a:Math.PI*d*d/4}]));
 function positive(v,name){if(!Number.isFinite(v)||v<=0)throw Error(`${name}은 0보다 큰 숫자여야 합니다.`);}
 function nonnegative(v,name){if(!Number.isFinite(v)||v<0)throw Error(`${name}은 0 이상의 숫자여야 합니다.`);}
 function studLayout(p){
-  if(p.studsPerRow==null&&p.studSpacing==null)return {count:p.studCount,legacy:true,spacing:p.span/(2*p.studCount),perRow:1,rowsPerHalf:p.studCount,total:2*p.studCount};
+  positive(p.span,'보 경간');
+  if(p.studsPerRow==null&&p.studSpacing==null){const spacing=p.span/(2*p.studCount);return {count:p.studCount,legacy:true,spacing,perRow:1,rowsPerHalf:p.studCount,total:2*p.studCount,half:p.span/2,endGap:spacing/2,centreGap:spacing};}
   positive(p.studsPerRow,'한 줄당 스터드 개수');positive(p.studSpacing,'보 길이방향 스터드 간격');
   if(!Number.isInteger(p.studsPerRow))throw Error('한 줄당 스터드 개수는 정수여야 합니다.');
   const half=p.span/2,rowsPerHalf=Math.floor((half+1e-9)/p.studSpacing);
@@ -100,29 +102,87 @@ function plasticMoment(p,props,be,V){
 }
 function calculate(p){
   const layout=studLayout(p);p={...p,studCount:layout.count};
-  validate(p);
+  if(p.loadMode!=null&&!['auto','direct'].includes(p.loadMode))throw Error('하중 입력 방식을 선택해 주세요.');
+  const auto=p.loadMode==='auto';
+  validate(auto?{...p,Mu:0,Vu:0,MuConstruction:0}:p);
   const props=S.hProps(p.H,p.B,p.tw,p.tf,p.J,p.r);
+  const demand=auto?BL.calculate(p,props):null;
+  if(demand)p={...p,Mu:demand.Mu,Vu:demand.Vu,MuConstruction:demand.MuConstruction};
   const web=(p.H-2*p.tf)/p.tw,webLimit=3.76*Math.sqrt(p.E/p.Fy);
   // 4.5.2(2): a compact web gets the plastic moment, otherwise the yield moment.
   if(web>webLimit)throw Error(`웨브 h/tw = ${web.toFixed(1)}가 3.76√(E/Fy) = ${webLimit.toFixed(1)}를 초과합니다. 이 경우 항복모멘트로 산정해야 하며 이 화면에서 다루지 않습니다.`);
   const ew=effectiveWidth(p);
   const Ac=ew.be*p.ts;                               // 골 내부 콘크리트는 포함하지 않음
   const st=studStrength(p);
-  const hs=horizontalShear(p,props,Ac,st.Qn);
+  const checks=demand?connectionChecks(p,props,ew.be,Ac,st.Qn,layout,demand):[];
+  const governing=checks.length?checks.reduce((a,b)=>a.ratio>=b.ratio?a:b):null;
+  const connectionCount=governing?governing.count:layout.count;
+  const hs=horizontalShear({...p,studCount:connectionCount},props,Ac,st.Qn);
   const pm=plasticMoment(p,props,ew.be,hs.V);
   const phiMn=PHI_B*pm.Mn;
   // 4.6.2: shear is carried by the steel section alone.
   const bare=SB.calculate({...p,Lb:p.LbConstruction,Cb:p.CbConstruction,Mu:p.MuConstruction,Vu:p.Vu});
   const required=Math.ceil(hs.full*1000/st.Qn);      // 4.8.2.3 완전합성 소요개수
   const detail=studDetail(p,st,props,layout);
-  return {props,ew,Ac,stud:st,shearFlow:hs,plastic:pm,layout,
+  const okM=governing?checks.every(c=>c.ok):p.Mu<=phiMn+1e-9;
+  const verificationMoment=governing?governing.M:p.Mu;
+  return {props,ew,Ac,stud:st,shearFlow:hs,plastic:pm,layout,demand,inputs:p,checks,governing,connectionCount,verificationMoment,
     web:{ratio:web,limit:webLimit},
-    phiMn,phi:PHI_B,ratioM:phiMn>0?p.Mu/phiMn:Infinity,okM:p.Mu<=phiMn+1e-9,
+    phiMn,phi:PHI_B,ratioM:phiMn>0?verificationMoment/phiMn:Infinity,okM,
     steel:bare,requiredStuds:required,
     detail,
     okV:bare.supported?bare.shear.ok:null,
     okConstruction:bare.supported?bare.flexure.ok:null,
-    ok:detail.ok&&(p.Mu<=phiMn+1e-9)&&(bare.supported?bare.shear.ok&&bare.flexure.ok:false)};
+    ok:detail.ok&&okM&&(bare.supported?bare.shear.ok&&bare.flexure.ok:false)};
+}
+// Physical rows on the two half spans. Boundary rows are excluded from both
+// segments, so a row exactly at a check location is never counted twice.
+function studsBetween(layout,from,to){
+  const tol=layout.half*2e-10,n=layout.rowsPerHalf,s=layout.spacing;
+  const count=start=>{
+    const first=Math.max(0,Math.floor((from+tol-start)/s)+1);
+    const last=Math.min(n-1,Math.ceil((to-tol-start)/s)-1);
+    return Math.max(0,last-first+1);
+  };
+  return (count(layout.endGap)+count(layout.half+layout.endGap))*layout.perRow;
+}
+// 4.8.2.3: evaluate the actual maximum-moment position on both sides, and each
+// concentrated-load position towards its nearest zero-moment support.
+function connectionChecks(p,props,be,Ac,Qn,layout,demand){
+  const capacity=n=>PHI_B*plasticMoment(p,props,be,horizontalShear({...p,studCount:n},props,Ac,Qn).V).Mn;
+  const fullCount=Math.ceil(Math.min(.85*p.fck*Ac,p.Fy*props.A)/Qn),fullCapacity=capacity(fullCount);
+  const needed=M=>{
+    if(M>fullCapacity+1e-8)return null;
+    let lo=0,hi=fullCount;
+    while(lo<hi){const mid=Math.floor((lo+hi)/2);if(capacity(mid)+1e-8>=M)hi=mid;else lo=mid+1;}
+    return lo;
+  };
+  const checks=[];
+  for(const c of demand.cases.filter(c=>c.phase==='completed')){
+    const locations=[{x:c.xM,M:c.Mu,why:'최대모멘트',sides:['left','right']},
+      ...c.pointMoments.map(q=>({x:q.x,M:q.M,why:`집중하중 ${q.index}`,sides:q.x<demand.span/2?['left']:q.x>demand.span/2?['right']:['left','right']}))];
+    for(const a of locations)for(const side of a.sides){
+      const x=a.x*1000,count=studsBetween(layout,side==='left'?0:x,side==='left'?x:p.span),phiMn=capacity(count);
+      checks.push({caseId:c.id,caseLabel:c.label,why:a.why,x:a.x,side,count,required:needed(a.M),M:a.M,phiMn,
+        ratio:phiMn>0?a.M/phiMn:Infinity,ok:a.M<=phiMn+1e-8});
+    }
+  }
+  return checks;
+}
+function recommendSection(p){
+  // Validate the non-section inputs once. Each candidate includes its own
+  // self weight, plate-thickness-dependent Fy and listed/approximated J.
+  const layout=studLayout(p),auto=p.loadMode==='auto';
+  validate({...p,studCount:layout.count,...(auto?{Mu:0,Vu:0,MuConstruction:0}:{})});
+  if(auto)BL.calculate(p,S.hProps(p.H,p.B,p.tw,p.tf,p.J,p.r));
+  const candidates=[];
+  for(const section of S.SECTIONS){
+    const q={...p,...section,J:section.J,r:section.r,section,rolled:true,
+      Fy:p.grade?S.yieldStrength(p.grade,section.tf):p.Fy};
+    try{const result=calculate(q);if(result.ok)candidates.push({section,result,Fy:q.Fy});}catch(_){/* Unsupported section/detail is not a design candidate. */}
+  }
+  candidates.sort((a,b)=>a.result.props.A-b.result.props.A||a.section.H-b.section.H||a.section.B-b.section.B);
+  return {selected:candidates[0]??null,count:candidates.length,searched:S.SECTIONS.length};
 }
 /* 4.8.1(1), 4.8.2(1) and 4.8.2.4 detailing limits. */
 function studDetail(p,st,props,placement=studLayout(p)){
@@ -148,6 +208,6 @@ function studDetail(p,st,props,placement=studLayout(p)){
   return {d,maxSpacing,minLong,minTrans,layout,transverse,reasons,ok:!reasons.length};
 }
 root.CompositeBeam={PHI_B,STUDS,studLayout,effectiveWidth,studStrength,horizontalShear,
-  plasticMoment,studDetail,calculate};
+  plasticMoment,studDetail,studsBetween,connectionChecks,recommendSection,calculate};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.CompositeBeam;
 })(typeof globalThis!=='undefined'?globalThis:this);

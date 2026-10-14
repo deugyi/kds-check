@@ -13,8 +13,30 @@ function read(){
     span:num('cb_span'),spacing:num('cb_spacing'),edge:edge===''?null:Number(edge),
     ts:num('cb_ts'),hr:0,fck:num('cb_fck'),wc:num('cb_wc'),
     stud:get('cb_stud').value,Fu:num('cb_fu'),studsPerRow:num('cb_per_row'),studSpacing:num('cb_stud_spacing'),studTransverseSpacing:num('cb_transverse'),studLength:num('cb_slen'),
+    loadMode:get('cb_load_mode').value,loadWidth:num('cb_load_width'),concreteWeight:num('cb_concrete_weight'),
+    finishLoad:num('cb_finish'),liveLoad:num('cb_live'),includeSelfWeight:get('cb_include_self').checked!==false,
+    formLoad:num('cb_form'),constructionMaterialLoad:num('cb_con_material'),constructionLiveLoad:num('cb_con_live'),
+    pointLoads:[...get('cb_point_rows').querySelectorAll('[data-cb-point]')].map(row=>({
+      kind:row.querySelector('[data-kind]').value,
+      P:row.querySelector('[data-p]').value.trim()===''?NaN:Number(row.querySelector('[data-p]').value),
+      x:row.querySelector('[data-x]').value.trim()===''?NaN:Number(row.querySelector('[data-x]').value)})),
     Mu:num('cb_mu'),Vu:num('cb_vu'),MuConstruction:num('cb_mucon'),
     LbConstruction:num('cb_lbcon'),CbConstruction:num('cb_cbcon')};
+}
+function syncLoadMode(){
+  const auto=get('cb_load_mode').value==='auto';
+  get('cb_auto_loads').hidden=!auto;get('cb_direct_loads').hidden=auto;
+}
+function addPoint(){
+  if(get('cb_point_rows').querySelectorAll('[data-cb-point]').length>=50){get('cb_design_note').textContent='집중하중은 50개까지 입력할 수 있습니다.';return;}
+  const row=document.createElement('div');row.className='cb-point';row.setAttribute('data-cb-point','');
+  row.innerHTML='<div class="cb-point-head"><b>집중하중</b><button type="button" aria-label="이 집중하중 삭제">삭제</button></div>'+
+    '<div class="grid beam-inputs"><label class="beam-wide"><b>하중 종류</b><select data-kind>'+Object.entries(CompositeBeamLoads.KINDS).map(([key,label])=>`<option value="${key}"${key==='L'?' selected':''}>${label}</option>`).join('')+'</select></label>'+
+    '<label><b>크기 (kN)</b><input data-p type="number" min="0" step="any" value="0"></label>'+
+    `<label><b>왼쪽부터 위치 (m)</b><input data-x type="number" min="0" step="any" value="${Number.isFinite(num('cb_span'))?num('cb_span')/2000:0}"></label></div>`;
+  row.querySelector('button').addEventListener('click',()=>{row.remove();update();});
+  row.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>update()));
+  get('cb_point_rows').appendChild(row);update();
 }
 function syncGrade(){
   const g=get('cb_gr').value;
@@ -48,7 +70,8 @@ function renderSummary(p,o){
     (p.section?`<p class="beam-muted">${SteelSection.sectionSource(p.section)}${get('cb_J').value.trim()!==''?' · 적용 J는 직접입력값':''}</p>`:'')+
     `<p class="beam-capacity">${fmt(o.phiMn,2)} <small>kN·m</small></p><p>정모멘트 설계휨강도 φbMn · φb = 0.90</p>`+
     `<p class="${o.ok?'ok':'ng'}">${o.ok?'휨 · 전단 · 시공 중 · 입력 상세조건 충족':'미달 항목이 있습니다'}</p>`+
-    `<dl class="beam-values"><div><dt>Mu / φbMn</dt><dd class="${o.okM?'ok':'ng'}">${fmt(p.Mu,1)} / ${fmt(o.phiMn,1)} = ${fmt(o.ratioM,3)}</dd></div>`+
+    `<dl class="beam-values"><div><dt>검토 Mu / φbMn</dt><dd class="${o.okM?'ok':'ng'}">${fmt(o.verificationMoment,1)} / ${fmt(o.phiMn,1)} = ${fmt(o.ratioM,3)}</dd></div>`+
+    (o.governing?`<div><dt>휨 검토 지배 위치</dt><dd>${o.governing.caseLabel} · x = ${fmt(o.governing.x,3)} m · ${o.governing.why} / ${o.governing.side==='left'?'왼쪽':'오른쪽'} 구간</dd></div>`:'')+
     `<div><dt>소성중립축</dt><dd>${o.plastic.case}${o.plastic.pna!==null?` · 강재 상단에서 ${fmt(o.plastic.pna,2)} mm`:''}</dd></div>`+
     `<div><dt>압축블록 깊이 a</dt><dd>${fmt(o.plastic.a,2)} mm (슬래브 ${fmt(p.ts,0)} mm 이내)</dd></div>`+
     `<div><dt>합성률</dt><dd>${fmt(100*o.shearFlow.degree,1)}% · ${o.shearFlow.partial?'부분합성':'완전합성'}</dd></div></dl>`;
@@ -59,18 +82,47 @@ function renderShearFlow(p,o){
   get('cb_flow').innerHTML=`<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>한계상태</th><th>수평전단력 (kN)</th><th></th></tr></thead><tbody>`+
     row('콘크리트 압괴 0.85fck·Ac',h.concrete,h.governs==='콘크리트 압괴')+
     row('강재단면 인장항복 Fy·As',h.steel,h.governs==='강재단면 인장항복')+
-    row(`강재 전단연결재 ΣQn (${o.layout.count}개)`,h.studs,h.governs==='강재 전단연결재')+
+    row(`강재 전단연결재 ΣQn (검토 구간 ${o.connectionCount}개)`,h.studs,h.governs==='강재 전단연결재')+
     `</tbody></table></div>`+
     `<dl class="beam-values"><div><dt>총 수평전단력 V′</dt><dd>${fmt(h.V,1)} kN</dd></div>`+
     `<div><dt>유효폭 be</dt><dd>${fmt(o.ew.be,0)} mm · 한쪽 ${fmt(o.ew.each,0)} mm (${o.ew.governs})</dd></div>`+
     `<div><dt>슬래브 단면적 Ac</dt><dd>${fmt(o.Ac,0)} mm²</dd></div>`+
     `<div><dt>스터드 1개 Qn</dt><dd>${fmt(s.Qn/1000,2)} kN · ${s.governs} 지배</dd></div>`+
-    `<div><dt>완전합성 소요 개수</dt><dd class="${o.layout.count>=o.requiredStuds?'ok':'warn'}">${o.requiredStuds}개 · 배치 ${o.layout.count}개</dd></div>`+
+    `<div><dt>검토 구간 완전합성 소요 개수</dt><dd class="${o.connectionCount>=o.requiredStuds?'ok':'warn'}">${o.requiredStuds}개 · 배치 ${o.connectionCount}개</dd></div>`+
     `<div><dt>스터드 배치</dt><dd>한 줄 ${o.layout.perRow}개 × 반 경간 ${o.layout.rowsPerHalf}줄 = ${o.layout.count}개 / 전 경간 ${o.layout.total}개</dd></div>
     <div><dt>길이방향 / 폭 방향 간격</dt><dd>${fmt(o.layout.spacing,0)} / ${o.layout.perRow>1?fmt(d.transverse,0):'—'} mm</dd></div>
     <div><dt>반 경간 / 끝 여유 / 중앙 간격</dt><dd>${fmt(o.layout.half,0)} / ${fmt(o.layout.endGap,1)} / ${fmt(o.layout.centreGap,1)} mm</dd></div>
     <div><dt>스터드 상세</dt><dd class="${d.ok?'ok':'warn'}">${d.ok?'충족':d.reasons.join(' / ')}</dd></div></dl>`+
-    `<p class="beam-muted">V′는 3가지 한계상태의 최솟값입니다 (식 4.5-1). Qn = 0.5·Asa√(fck·Ec) ≤ Rg·Rp·Asa·Fu, Rg = ${fmt(s.Rg,2)}, Rp = ${fmt(s.Rp,2)} (골데크 미사용, 형강 직접 용접 · 표 4.3-4). Ec = ${fmt(s.Ec,0)} MPa · KDS 14 20 10 (4.3-1), 0.077·mc^1.5·∛(fck+Δf). 단순보의 최대모멘트 위치를 중앙으로 가정합니다. 각 반 경간에 floor((L/2)/s)줄을 입력 간격으로 중앙 정렬하고 좌우 대칭 배치합니다. 강도에는 한쪽 반 경간 개수만 사용합니다 (4.8.2.3, 4.8.2.4).</p>`;
+    `<p class="beam-muted">V′는 3가지 한계상태의 최솟값입니다 (식 4.5-1). Qn = 0.5·Asa√(fck·Ec) ≤ Rg·Rp·Asa·Fu, Rg = ${fmt(s.Rg,2)}, Rp = ${fmt(s.Rp,2)} (골데크 미사용, 형강 직접 용접 · 표 4.3-4). Ec = ${fmt(s.Ec,0)} MPa · KDS 14 20 10 (4.3-1), 0.077·mc^1.5·∛(fck+Δf). 각 반 경간에 floor((L/2)/s)줄을 중앙 정렬하고 좌우 대칭 배치합니다. ${o.demand?'실제 최대모멘트 위치에서 양쪽 지점까지, 각 집중하중 위치에서 가까운 지점까지의 스터드로 각각 휨강도를 확인합니다. 검토 경계에 놓인 줄은 중복 산입하지 않고 제외합니다.':'직접 입력 모드에서는 최대모멘트 위치를 중앙으로 가정하며 집중하중 위치별 검토를 하지 않습니다.'} (4.8.2.3, 4.8.2.4).</p>`;
+}
+function renderLoads(p,o){
+  const d=o.demand;
+  if(!d){get('cb_loads').innerHTML=`<p>계수 소요강도 직접 입력 · Mu ${fmt(p.Mu,1)} kN·m / Vu ${fmt(p.Vu,1)} kN / 시공 중 Mu ${fmt(p.MuConstruction,1)} kN·m</p>`;return;}
+  const c=d.flexureCase,W=800,left=55,right=745,y=102,x=v=>left+(right-left)*v/d.span;
+  const arrows=Array.from({length:13},(_,i)=>{const xx=left+(right-left)*i/12;return `<path d="M${xx} 53V84m-4-6 4 6 4-6" stroke="var(--dim)" fill="none"/>`;}).join('');
+  const pointArrows=c.points.map((q,i)=>`<path d="M${x(q.x)} 26V98m-5-8 5 8 5-8" stroke="var(--accent)" fill="none" stroke-width="2"/><text x="${x(q.x)}" y="${i%2?44:20}" text-anchor="middle">P${q.index}: ${fmt(q.P,1)} kN</text>`).join('');
+  const Mmax=Math.max(c.Mu,1),curve=c.samples.map((q,i)=>`${i?'L':'M'}${x(q.x).toFixed(1)} ${(180+q.M/Mmax*45).toFixed(1)}`).join(' ');
+  const svg=`<svg viewBox="0 0 ${W} 258" role="img" aria-label="단순보 하중도. ${c.label}, 경간 ${fmt(d.span,2)} m, 최대모멘트 위치 ${fmt(c.xM,3)} m">`+
+    `<text x="400" y="46" text-anchor="middle">${c.label} · w = ${fmt(c.w,2)} kN/m</text>${arrows}${pointArrows}`+
+    `<line x1="${left}" y1="${y}" x2="${right}" y2="${y}" stroke="var(--ink)" stroke-width="4"/><path d="M${left} 103l-10 18h20z M${right} 103l-10 18h20z" fill="var(--code)" stroke="var(--ink)"/>`+
+    `<text x="${left}" y="142">RA ${fmt(c.RA,2)} kN</text><text x="${right}" y="142" text-anchor="end">RB ${fmt(c.RB,2)} kN</text><text x="400" y="161" text-anchor="middle">경간 ${fmt(d.span,2)} m</text>`+
+    `<line x1="${left}" y1="180" x2="${right}" y2="180" stroke="var(--line)"/><path d="${curve}" fill="none" stroke="var(--accent)" stroke-width="2"/>`+
+    `<text x="400" y="250" text-anchor="middle">모멘트도 · 최대 ${fmt(c.Mu,2)} kN·m / 왼쪽부터 ${fmt(c.xM,3)} m</text></svg>`;
+  get('cb_loads').innerHTML=svg+`<dl class="beam-values"><div><dt>슬래브 / 강재 자중</dt><dd>${fmt(d.line.slab,3)} / ${fmt(d.line.steel,3)} kN/m${d.includeSelfWeight?'':' · 자동 가산 끔'}</dd></div>`+
+    `<div><dt>마감 / 활하중 선하중</dt><dd>${fmt(d.line.finish,3)} / ${fmt(d.line.live,3)} kN/m</dd></div>`+
+    `<div><dt>완공 D / L</dt><dd>${fmt(d.D,3)} / ${fmt(d.L,3)} kN/m</dd></div>`+
+    `<div><dt>시공 CD / CM / CP</dt><dd>${fmt(d.CD,3)} / ${fmt(d.CM,3)} / ${fmt(d.CP,3)} kN/m</dd></div>`+
+    `<div><dt>전체 집중하중</dt><dd>${d.points.length}개 · 완공 ${d.points.filter(q=>['D','L'].includes(q.kind)).length}개 / 시공 ${d.points.filter(q=>!['D','L'].includes(q.kind)).length}개</dd></div></dl>`+
+    (d.points.length?`<details class="beam-settings"><summary>입력 집중하중 ${d.points.length}개</summary><div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>번호</th><th>하중 종류</th><th>미계수 P (kN)</th><th>왼쪽부터 x (m)</th></tr></thead><tbody>`+d.points.map(q=>`<tr><td>P${q.index}</td><td>${CompositeBeamLoads.KINDS[q.kind]}</td><td>${fmt(q.P,2)}</td><td>${fmt(q.x,3)}</td></tr>`).join('')+'</tbody></table></div></details>':'')+
+    `<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>단계 · 하중조합</th><th>Mu (kN·m)</th><th>최대 M 위치 (m)</th><th>Vu (kN)</th></tr></thead><tbody>`+
+    d.cases.map(q=>`<tr><td>${q.phase==='completed'?'완공':'시공'} · ${q.label}</td><td>${fmt(q.Mu,2)}</td><td>${fmt(q.xM,3)}</td><td>${fmt(q.Vu,2)}</td></tr>`).join('')+'</tbody></table></div>'+
+    `<p class="beam-muted">면하중 × 부담폭 → 선하중. 집중하중에는 부담폭을 곱하지 않습니다. 조합별 반력과 구간별 V = 0 위치에서 최대모멘트를 계산합니다. 시공 CD는 강재 자중, CM은 굳지 않은 슬래브·거푸집·추가 자재, CP는 작업원·장비 하중입니다. KDS 41 12 00 1.7.1 및 11.2-1의 수직하중 조합입니다.</p>`;
+}
+function renderConnections(o){
+  if(!o.demand){get('cb_connection_checks').innerHTML='<p class="beam-muted">하중 자동 계산 모드에서 실제 최대모멘트와 집중하중 위치별 검토를 제공합니다.</p>';return;}
+  get('cb_connection_checks').innerHTML=`<div class="beam-table-wrap"><table class="beam-table"><thead><tr><th>조합 · 위치</th><th>구간</th><th>Mu / φMn (kN·m)</th><th>소요 / 배치</th><th>판정</th></tr></thead><tbody>`+
+    o.checks.map(q=>`<tr><td>${q.caseLabel} · ${q.why}<br>x = ${fmt(q.x,3)} m</td><td>${q.side==='left'?'왼쪽':'오른쪽'} 지점까지</td><td>${fmt(q.M,2)} / ${fmt(q.phiMn,2)}</td><td>${q.required===null?'완전합성 강도 초과':q.required+'개'} / ${q.count}개</td><td class="${q.ok?'ok':'ng'}">${q.ok?'충족':'미달'}</td></tr>`).join('')+'</tbody></table></div>'+
+    '<p class="beam-muted">부분합성 휨강도로 해당 모멘트를 받을 수 있는 최소 스터드 개수와 실제 구간 배치를 비교합니다. 검토 위치가 중앙에서 벗어나면 양쪽 구간 개수가 달라집니다 (KDS 14 31 80 4.8.2.3).</p>';
 }
 function renderSteel(p,o){
   const b=o.steel;
@@ -96,21 +148,36 @@ function renderBasis(p,o){
     `<li><b>골데크플레이트 (4.5.2(4))</b> — 골데크를 쓰지 않는 충실 슬래브만 다룹니다. Rg·Rp는 형강 직접 용접 값으로 고정됩니다.</li>`+
     `<li>매입형·충전형 합성부재, 합성트러스, 합성데크슬래브, 합성기둥</li>`+
     `<li>처짐·진동 등 사용성, 동바리 사용 시의 시공 단계별 응력 중첩, 콘크리트 크리프·건조수축</li>`+
-    `<li>스터드는 최대모멘트~모멘트 0 구간에 일정 간격으로 배치한다고 가정합니다. 집중하중 위치별 개수 검토(4.8.2.3(2))는 하지 않습니다.</li>`+
+    `<li>직접 입력 모드의 최대모멘트 위치는 중앙으로 가정합니다. 자동 모드는 실제 최대모멘트 및 집중하중 위치별 스터드 개수를 검토합니다 (4.8.2.3). 집중하중 작용부의 국부지압·웨브 좌굴·수직보강재·접합부는 별도 검토 대상입니다.</li>`+
+    `<li>자동 하중해석은 하향 정적 하중을 받는 동바리 없는 단순보입니다. 풍·지진·수평 시공하중, 충격·이동하중, 연속보와 동바리 사용 단계는 이 해석에 포함하지 않습니다.</li>`+
     `<li>슬래브 철근, 횡방향 철근, 균열 제어. 슬래브 실제 자유단까지 거리(4.8.2.4(3)), 측면 피복, 용접부·머리 간섭은 실제 상세도에서 별도 확인합니다. 스터드 상단 피복 25 mm는 이 도구의 배치 가정입니다.</li>`+
     `</ul></details>`;
 }
-function update(){
+function update(clearNote=true){
+  syncLoadMode();if(clearNote)get('cb_design_note').textContent='';
   get('cb_error').hidden=true;
   try{
-    const p=read(),o=CompositeBeam.calculate(p);
+    const o=CompositeBeam.calculate(read()),p=o.inputs;
     get('cb_results').hidden=false;
-    renderSummary(p,o);renderShearFlow(p,o);renderSteel(p,o);renderBasis(p,o);
+    renderLoads(p,o);renderSummary(p,o);renderShearFlow(p,o);renderConnections(o);renderSteel(p,o);renderBasis(p,o);
   }catch(e){
     get('cb_results').hidden=true;get('cb_error').hidden=false;get('cb_error').textContent=e.message;
-    for(const id of ['cb_summary','cb_flow','cb_steel','cb_basis'])get(id).innerHTML='';
+    for(const id of ['cb_loads','cb_summary','cb_flow','cb_connection_checks','cb_steel','cb_basis'])get(id).innerHTML='';
   }
 }
+get('cb_add_point').addEventListener('click',addPoint);
+get('cb_auto_select').addEventListener('click',()=>{
+  try{
+    const p=read();
+    const design=CompositeBeam.recommendSection({...p,grade:get('cb_gr').value}),hit=design.selected;
+    if(!hit){get('cb_design_note').textContent=`검토한 KS ${design.searched}종 중 현재 하중·스터드·시공 조건을 모두 만족하는 단면이 없습니다.`;return;}
+    get('cb_mode').value='ks';get('cb_sec').value=hit.section.name;get('cb_J').value='';
+    for(const key of ['H','B','tw','tf'])get('cb_'+key).value=hit.section[key];
+    get('cb_fy').value=hit.Fy;
+    get('cb_mode').dispatchEvent(new Event('change',{bubbles:true}));
+    update(false);get('cb_design_note').textContent=`${hit.section.name} 선정 · 충족 ${design.count}종 중 단면적 최소. 스터드와 시공 중 Lb·Cb 조건은 입력값을 적용했습니다.`;
+  }catch(e){get('cb_design_note').textContent=e.message;}
+});
 get('cb_gr').innerHTML='<option value="">직접입력</option>'+
   Object.keys(SteelSection.STEEL).map(k=>`<option${k==='SM355'?' selected':''}>${k}</option>`).join('');
 for(const id of ['cb_gr','cb_tf'])get(id).addEventListener('input',syncGrade);

@@ -116,6 +116,7 @@ main:has(#t1.on){max-width:1440px}
 #t2 a,#t3 a,#t5 a,#t6 a{color:var(--accent)}
 #t2 .beam-inputs,#t3 .beam-inputs,#t5 .beam-inputs,#t6 .beam-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #t2 [hidden],#t3 [hidden],#t4 [hidden],#t5 [hidden],#t6 [hidden]{display:none!important}
+#cb_point_rows{display:grid;gap:12px;margin:12px 0}.cb-point{padding:12px;border:1px solid var(--line);border-radius:6px}.cb-point-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.cb-point-head button{padding:5px 10px;font:inherit;color:var(--ng);background:var(--panel);border:1px solid var(--line);border-radius:5px;cursor:pointer}#cb_loads svg{width:100%;display:block}#cb_loads svg text{fill:var(--ink);font-size:13px}#cb_loads .beam-table th,#cb_loads .beam-table td,#cb_connection_checks .beam-table th,#cb_connection_checks .beam-table td{white-space:nowrap;min-width:0}#cb_include_self{min-height:0;width:auto}#cb_auto_select{width:100%;margin-top:12px}#cb_design_note{margin:8px 0 0}
 .beam-inputs>.beam-wide{grid-column:1/-1}
 main:has(#t2.on),main:has(#t3.on),main:has(#t5.on),main:has(#t6.on){max-width:1440px}
 #c_pm svg,#sb_flexure svg{width:100%;max-width:660px;display:block;margin:0 auto}
@@ -727,7 +728,7 @@ body:has(.site-page.on)>footer{display:none}
       <label><b>슬래브 두께 (mm)</b><input id="cb_ts" type="number" min="50" step="10" value="150"></label>
       <label><b>가장자리까지 거리 (mm)</b><input id="cb_edge" type="number" min="0" step="100" placeholder="내부보는 비움"></label>
       <label><b>콘크리트 강도 fck (MPa)</b><input id="cb_fck" type="number" min="21" max="70" step="any" value="30"></label>
-      <label><b>콘크리트 단위중량 (kg/m³)</b><input id="cb_wc" type="number" min="1000" step="50" value="2300"></label>
+      <label><b>콘크리트 질량 mc (kg/m³)</b><input id="cb_wc" type="number" min="1000" step="50" value="2300"><span>콘크리트 탄성계수 산정용</span></label>
     </div><p class="beam-muted">유효폭은 경간의 1/8, 인접보 간격의 1/2, 가장자리까지 거리 중 최솟값을 좌우 합산합니다 (4.5.1(2)). 골데크 없는 충실 슬래브 기준입니다.</p></div>
 
     <div class="card"><h2>4. 스터드 전단연결재</h2><div class="grid beam-inputs">
@@ -739,21 +740,51 @@ body:has(.site-page.on)>footer{display:none}
       <label><b>길이 (mm)</b><input id="cb_slen" type="number" min="10" step="5" value="100"></label>
     </div></div>
 
-    <div class="card"><h2>5. 소요강도</h2><div class="grid beam-inputs">
+    <div class="card"><h2>5. 설계하중</h2><div class="grid beam-inputs">
+      <label class="beam-wide"><b>하중 입력 방식</b><select id="cb_load_mode"><option value="auto" selected>활하중·마감하중으로 자동 계산</option><option value="direct">Mu·Vu 직접 입력</option></select></label>
+    </div>
+    <div id="cb_auto_loads">
+      <p class="beam-muted">동바리 없는 단순보 · 아래로 작용하는 미계수 하중을 입력하세요.</p>
+      <div class="grid beam-inputs">
+        <label><b>하중 부담폭 (m)</b><input id="cb_load_width" type="number" min="0.01" step="any" value="3"><span>이 보가 받는 슬래브 폭</span></label>
+        <label><b>콘크리트 자중 (kN/m³)</b><input id="cb_concrete_weight" type="number" min="1" step="any" value="24"></label>
+        <label><b>마감하중 (kN/m²)</b><input id="cb_finish" type="number" min="0" step="any" value="1.5"><span>슬래브·강재 자중 제외</span></label>
+        <label><b>활하중 (kN/m²)</b><input id="cb_live" type="number" min="0" step="any" value="3"></label>
+        <label class="beam-wide"><span><input id="cb_include_self" type="checkbox" checked> 슬래브·강재 자중 자동 포함</span></label>
+      </div>
+      <p class="beam-muted">부담폭은 하중을 선하중으로 바꾸는 폭입니다. 합성단면 유효폭과 별도로 적용합니다.</p>
+      <h3>집중하중</h3>
+      <p class="beam-muted">하중 종류·크기(kN)·왼쪽 지점부터 위치(m)를 입력하세요. 여러 위치에 추가할 수 있습니다.</p>
+      <div id="cb_point_rows"></div>
+      <button type="button" class="beam-view" id="cb_add_point">+ 집중하중 추가</button>
+      <details class="beam-settings"><summary>시공 중 하중 설정</summary><div class="grid beam-inputs">
+        <label><b>거푸집 하중 (kN/m²)</b><input id="cb_form" type="number" min="0" step="any" value="0.4"></label>
+        <label><b>추가 시공 자재하중 (kN/m²)</b><input id="cb_con_material" type="number" min="0" step="any" value="0.2"><span>굳지 않은 슬래브 자중은 자동 포함</span></label>
+        <label><b>작업원·장비 하중 (kN/m²)</b><input id="cb_con_live" type="number" min="0" step="any" value="2.5"></label>
+      </div><p class="beam-muted">기본값은 검토용 예시입니다. 실제 시공계획에 맞춰 변경하세요. 시공 집중하중은 위 목록에서 시공 고정·자재·작업 하중으로 추가합니다. 마감하중·완공 활하중은 시공 단계에 포함하지 않습니다.</p></details>
+    </div>
+    <div id="cb_direct_loads" class="grid beam-inputs" hidden>
       <label><b>Mu (kN·m)</b><input id="cb_mu" type="number" min="0" step="any" value="1200"><span>합성 후 정모멘트</span></label>
       <label><b>Vu (kN)</b><input id="cb_vu" type="number" min="0" step="any" value="400"></label>
       <label><b>시공 중 Mu (kN·m)</b><input id="cb_mucon" type="number" min="0" step="any" value="300"><span>강재단면만으로 지지</span></label>
+    </div>
+    <div class="grid beam-inputs" style="margin-top:14px">
       <label><b>시공 중 Lb (mm)</b><input id="cb_lbcon" type="number" min="1" step="100" value="3000"></label>
       <label><b>시공 중 Cb</b><input id="cb_cbcon" type="number" min="0.1" step="any" value="1.0"></label>
-    </div></div>
+    </div>
+    <button type="button" class="beam-view" id="cb_auto_select">조건을 만족하는 KS 단면 자동선정</button>
+    <p id="cb_design_note" class="beam-muted" role="status"></p>
+    </div>
   </aside>
 
   <div class="beam-output" aria-label="합성보 결과">
     <div id="cb_error" role="alert" hidden></div>
     <div id="cb_results">
 
+      <div class="card"><h2>하중 산정 · 자동 해석</h2><div id="cb_loads"></div></div>
       <div class="card"><h2>정모멘트 휨강도</h2><div id="cb_summary"></div></div>
       <div class="card"><h2>수평전단력 · 스터드</h2><div id="cb_flow"></div></div>
+      <div class="card"><h2>위치별 휨 · 스터드 검토</h2><div id="cb_connection_checks"></div></div>
       <div class="card"><h2>시공 중 · 전단 (강재단면)</h2><div id="cb_steel"></div></div>
       <div class="card"><h2>적용 기준 · 검토 범위</h2><div id="cb_basis"></div></div>
     </div>
@@ -1085,8 +1116,9 @@ var SectionPicker=(function(){
 <script src="rc-column-ui.js?v=20260911-15"></script>
 <script src="rc-slab-uplift.js?v=20261002-98"></script>
 <script src="rc-slab-uplift-ui.js?v=20261002-98"></script>
-<script src="composite-beam.js?v=20260914-53"></script>
-<script src="composite-beam-ui.js?v=20260914-61"></script>
+<script src="composite-beam-loads.js?v=20261014-1"></script>
+<script src="composite-beam.js?v=20261014-1"></script>
+<script src="composite-beam-ui.js?v=20261014-1"></script>
 <script src="concrete-age.js?v=20260911-15"></script>
 <script src="transfer-beam.js?v=20260920-79"></script>
 <script src="transfer-beam-diagram.js?v=20260911-15"></script>
