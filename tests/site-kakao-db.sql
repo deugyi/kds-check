@@ -5,7 +5,7 @@ select set_config('test.kakao.viewer',(select user_id::text from public.site_mem
 select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('test.kakao.admin'),'role','authenticated')::text,true);
 set local role authenticated;
 do $$declare c public.site_progress_companies;config jsonb;begin
- c:=public.site_progress_save_company(null,'카카오 검증 '||gen_random_uuid()::text,'south',current_setting('test.kakao.admin')::uuid,true,false,'17:00',array[1,2,3,4,5,6]);
+ c:=public.site_progress_save_company(null,'카카오 검증 '||gen_random_uuid()::text,'south',current_setting('test.kakao.admin')::uuid,true);
  perform set_config('test.kakao.company',c.id::text,true);perform set_config('test.kakao.name',c.name,true);
  perform set_config('test.kakao.bot','fixture-'||gen_random_uuid()::text,true);
  config:=public.site_progress_kakao_setup(current_setting('test.kakao.bot'),'https://pf.kakao.com/_fixture',true,false);

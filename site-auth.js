@@ -95,7 +95,7 @@ async function records(){
 root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,get generation(){return generation;},get userId(){return user?.id;},
  async progressRPC(name,args={}){
   if(!allowed())throw Error('ACCESS_REQUIRED');
-  if(!['context','save_company','invite','submit','submit_report','review','notifications','disconnect','save_plan','submit_feedback','kakao_status','kakao_setup','kakao_credentials','kakao_invite','kakao_disconnect'].includes(name))throw Error('INVALID_PROGRESS_ACTION');
+  if(!['context','save_company','submit','submit_report','review','save_plan','submit_feedback','kakao_status','kakao_setup','kakao_credentials','kakao_invite','kakao_disconnect'].includes(name))throw Error('INVALID_PROGRESS_ACTION');
   const r=await client.rpc('site_progress_'+name,args);if(r.error)throw r.error;return r.data;
  },
  async progressReports(start,end){
@@ -111,13 +111,6 @@ root.SiteCloud={planFloors,allowed,canEdit,canEditTrade,isAdmin,explain,refresh,
  async progressKakaoStatus(){
   if(!isAdmin())throw Error('ADMIN_REQUIRED');const r=await client.functions.invoke('site-kakao-bot',{body:{action:'status'}});
   if(r.error)throw Error('KAKAO_SERVER_CHECK_FAILED');return r.data;
- },
- async progressBot(action,args={}){
-  if(!isAdmin())throw Error('ADMIN_REQUIRED');
-  if(!['configure','status','dispatch'].includes(action))throw Error('INVALID_PROGRESS_ACTION');
-  const r=await client.functions.invoke('site-process-bot',{body:{...args,action}});
-  if(r.error){let code='BOT_CONNECTION_FAILED';try{code=(await r.error.context.json()).error||code;}catch{}throw Error(code);}
-  return r.data;
  },
  async load(){
   if(!allowed())throw Error('EDIT_ACCESS_REQUIRED');

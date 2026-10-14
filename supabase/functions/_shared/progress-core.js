@@ -13,7 +13,7 @@ function validate(v,asOf=today()){if(!validDate(v.work_date)||v.work_date<'2020-
  const note=String(v.note||'').trim();if(note.length>2000)throw Error('비고는 2,000자 이내로 입력해 주세요.');const no_work=v.no_work===true;
  if(!Array.isArray(v.items)||v.items.length>50||(!no_work&&!v.items.length)||(no_work&&v.items.length))throw Error('실적 항목을 입력하거나 작업 없음을 선택해 주세요.');
  return {work_date:v.work_date,no_work,note,items:v.items.map(item)};}
-function parseTelegram(text,asOf=today()){if(typeof text!=='string'||text.length>12000)throw Error('메시지는 12,000자 이내로 전송해 주세요.');const lines=text.trim().split(/\r?\n/).map(v=>v.trim()).filter(Boolean);let revision=false;
+function parseMessage(text,asOf=today()){if(typeof text!=='string'||text.length>12000)throw Error('메시지는 12,000자 이내로 전송해 주세요.');const lines=text.trim().split(/\r?\n/).map(v=>v.trim()).filter(Boolean);let revision=false;
  if(['/실적','/수정'].includes(lines[0]))revision=lines.shift()==='/수정';
  const work_date=lines.shift(),items=[];let no_work=false,note='';
  for(const line of lines){if(/^작업\s*없음$/.test(line)){no_work=true;continue;}if(/^(비고|특이사항)\s*:/.test(line)){note+=(note?'\n':'')+line.replace(/^(비고|특이사항)\s*:\s*/,'');continue;}
@@ -34,5 +34,5 @@ async function workbook(ExcelJS,reports,companies,start,end,plans=[]){const wb=n
  const linked=approved(reports,start,end).filter(r=>r.plan_id&&r.task_feedback?.length);
  if(linked.length){const results=sheet('계획별 작업결과',['작업일','업체','계획 항목번호','예정 작업','작업 결과','잔여·미실시 사유','승인 상태'],[14,25,18,40,18,45,18]);for(const r of linked){const p=plans.find(v=>v.id===r.plan_id);for(const f of r.task_feedback)results.addRow([new Date(r.work_date+'T00:00:00Z'),names.get(r.company_id)||'업체',f.task_no,p?.document.tasks.find(t=>t.no===f.task_no)?.description||'',({done:'완료',partial:'일부 완료',not_done:'미실시'})[f.state]||f.state,f.reason||'',states[r.state]]);}results.getColumn(1).numFmt='yyyy-mm-dd';}
  for(const s of wb.worksheets){s.autoFilter={from:{row:3,column:1},to:{row:Math.max(s.rowCount,3),column:s.columnCount}};s.eachRow((row,n)=>{if(n!==3)row.font={name:'맑은 고딕',size:11};row.alignment={vertical:'top',wrapText:true};});}return wb;}
-return {units,states,today,validDate,unit,quantity,item,validate,parseTelegram,approved,summarize,dailyStates,help,workbook};
+return {units,states,today,validDate,unit,quantity,item,validate,parseMessage,approved,summarize,dailyStates,help,workbook};
 });

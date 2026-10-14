@@ -51,7 +51,7 @@ export async function handler(req:Request){
    else if(query){const day=query[2]||P.today();if(!P.validDate(day)||day>P.today())throw Error('조회 날짜를 확인해 주세요.');payload={type:/회신/.test(query[1])?'feedback_help':'status',work_date:day};}
    else if(/^(?:\/)?작업결과(?:수정)?\s*\n/.test(raw))payload={type:'feedback',feedback:M.parseFeedback(raw)};
    else if(/업체명\s*:/.test(raw)&&/(?:작업내용|작업계획)/.test(raw))payload={type:'plan',document:M.parseMorning(raw)};
-   else payload={type:'report',report:P.parseTelegram(raw)};
+   else payload={type:'report',report:P.parseMessage(raw)};
   }catch(e){return skill((e as Error).message+'\n\n'+M.help());}
   const fingerprint=await hash(bot+'\0'+u.id+'\0'+JSON.stringify(payload)+'\0'+raw);
   const requestId=req.headers.get('x-request-id');

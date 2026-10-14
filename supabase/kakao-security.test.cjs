@@ -61,5 +61,35 @@ test('PostgreSQL enforces Kakao pairing, replay protection, private plans, compl
  await as('authenticated',admin);await call('review',[report.id,2,'returned','수량 확인']);
  await as('authenticated',viewer);assert.equal((await db.query('select * from public.site_progress_plans')).rows.length,0);
  await as('authenticated',admin);await call('kakao_disconnect',[company.id]);await as('service_role');assert.match((await receive({type:'plan',document},'after disconnect')).reply,/연결 코드/);
+ // Retirement must preserve results/audit, stop queued delivery and keep Kakao/web approval working.
+ await db.exec('reset role');
+ const legacy=(await db.query("insert into public.site_progress_reports(company_id,work_date,source,items,note) values($1,$2,'telegram',$3,'기존 접수') returning *",[company.id,day,JSON.stringify([{floor:'지하1층',zone:'B2',process:'기존 철골',quantity:3,unit:'부재'}])])).rows[0];
+ const contact=(await db.query("insert into site_progress_private.contacts(company_id,kind,chat_id) values($1,'supplier',101) returning id",[company.id])).rows[0].id;
+ await db.query("insert into site_progress_private.outbox(company_id,work_date,contact_id,kind,message) values($1,$2,$3,'missing','fixture')",[company.id,day,contact]);
+ for(const key of ['site_progress_bot_token','site_progress_bot_username','site_progress_webhook_secret','site_progress_cron_secret'])await db.query('insert into vault.secrets(name,decrypted_secret) values($1,$2)',[key,'retired-fixture']);
+ const snapshot=async()=>JSON.stringify((await db.query('select to_jsonb(r) v from public.site_progress_reports r order by id')).rows);
+ const audit=async()=>JSON.stringify((await db.query('select to_jsonb(a) v from site_progress_private.audit a order by id')).rows);
+ const before=await snapshot(),beforeAudit=await audit();
+ await db.exec(sql('20261014050824_site_remove_telegram.sql'));
+ assert.equal(await snapshot(),before);assert.equal(await audit(),beforeAudit);
+ assert.equal((await db.query('select count(*)::integer n from site_progress_private.contacts where active')).rows[0].n,0);
+ assert.equal((await db.query("select state from site_progress_private.outbox where contact_id=$1",[contact])).rows[0].state,'skipped');
+ assert.equal((await db.query("select count(*)::integer n from vault.secrets where name in ('site_progress_bot_token','site_progress_bot_username','site_progress_webhook_secret','site_progress_cron_secret')")).rows[0].n,0);
+ assert.equal((await db.query("select count(*)::integer n from vault.secrets where name='site_kakao_skill_key'")).rows[0].n,1);
+ assert.equal((await db.query("select count(*)::integer n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('site_progress_bot_config','site_progress_bot_receive','site_progress_bot_claim','site_progress_bot_delivery','site_progress_invite','site_progress_disconnect','site_progress_notifications')")).rows[0].n,0);
+ await assert.rejects(()=>db.query("insert into public.site_progress_reports(company_id,work_date,source,items) values($1,$2,'telegram',$3)",[company.id,day,JSON.stringify(legacy.items)]),/INTEGRATION_REMOVED/);
+ await as('authenticated',admin);const cleanContext=await call('context');assert.ok(!('telegram_configured' in cleanContext));assert.ok(!('reminder_enabled' in cleanContext.companies[0]));
+ await call('review',[legacy.id,1,'approved','']);
+ await db.exec('reset role');assert.equal((await db.query('select count(*)::integer n from site_progress_private.outbox')).rows[0].n,1);
+ await as('authenticated',viewer);await assert.rejects(()=>call('save_company',[null,'권한 없음','south',admin,true]),/ADMIN_REQUIRED/);
+ await as('authenticated',admin);const newCompany=await call('save_company',[null,'카카오 유지 검증','south',admin,true]);const newInvite=await call('kakao_invite',[newCompany.id]);
+ await as('service_role');assert.match((await receive({type:'link',token:newInvite},'post-retirement link',undefined,'new-supplier')).reply,/연결되었습니다/);
+ const quantity=[{floor:'지하1층',zone:'B2',process:'철골보',quantity:7,unit:'부재'}];
+ assert.match((await receive({type:'report',report:{work_date:day,items:quantity,no_work:false,note:'',revision:false}},'post-retirement Kakao',undefined,'new-supplier')).reply,/감독자 승인 대기/);
+ await db.exec('reset role');const kept=(await db.query('select * from public.site_progress_reports where company_id=$1',[newCompany.id])).rows[0];assert.equal(kept.source,'kakao');assert.equal(kept.state,'pending');
+ await as('authenticated',admin);await call('review',[kept.id,1,'approved','']);
+ const web=await call('submit_report',[newCompany.id,day,[{...quantity[0],process:'콘크리트 타설',unit:'m³',quantity:15}],false,'',0,null]);assert.equal(web.source,'web');assert.equal(web.state,'pending');
+ await call('review',[web.id,1,'approved','']);
+ await db.exec('reset role');assert.equal((await db.query('select count(*)::integer n from site_progress_private.outbox')).rows[0].n,1);
  }finally{await db.close();}
 });
