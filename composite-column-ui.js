@@ -6,7 +6,7 @@ const values=rows=>'<dl class="beam-values">'+rows.map(([a,b])=>`<div><dt>${a}</
 const table=(head,rows)=>'<div class="beam-table-wrap"><table class="beam-table"><thead><tr>'+head.map(v=>'<th>'+v+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+v+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 function diagram(o){
  const p=o.p,s=Math.min(240/p.B,240/p.H),X=x=>210+x*s,Y=y=>150-y*s,outer=p.type==='circle';
- const box=(b,h,x,y,fill,extra='')=>`<rect x="${X(x-b/2)}" y="${Y(y+h/2)}" width="${b*s}" height="${h*s}" fill="${fill}" stroke="var(--accent)" ${extra}/>`;
+ const box=(b,h,x,y,fill,extra='')=>`<rect x="${X(x-b/2)}" y="${Y(y+h/2)}" width="${b*s}" height="${h*s}" fill="${fill}" stroke="${p.type==='src'&&p.steelLayout==='cross'&&fill==='#1764b5'?'none':'var(--accent)'}" ${extra}/>`;
  let shapes=outer?`<circle cx="210" cy="150" r="${p.B*s/2}" fill="#1764b5"><title>원형 강관 · t ${p.t} mm</title></circle><circle cx="210" cy="150" r="${(p.B/2-p.t)*s}" fill="#e5e7eb"/>`:box(p.B,p.H,0,0,'#e5e7eb');
  if(p.type==='rect')shapes=box(p.B,p.H,0,0,'#1764b5')+box(p.B-2*p.t,p.H-2*p.t,0,0,'#e5e7eb');
  if(p.type==='src'){
@@ -15,7 +15,7 @@ function diagram(o){
   shapes+=box(p.B-2*d,p.H-2*d,0,0,'none','stroke-dasharray="4 3"');
   shapes+=o.bars.map((q,i)=>`<circle cx="${X(q.x)}" cy="${Y(q.y)}" r="${q.r*s}" fill="#d47d20" stroke="#9a5010"><title>주철근 ${i+1} · ${p.bar} · (${f(q.x)}, ${f(q.y)}) mm</title></circle>`).join('');
  }
- return `<svg viewBox="0 0 420 325" role="img" aria-label="${p.type==='src'?'SRC':outer?'원형 CFT':'각형 CFT'} 단면, 강재 파란색 콘크리트 회색 철근 주황색">${shapes}<path d="M45 150H375 M210 15V285" stroke="var(--dim)" stroke-dasharray="5 5" fill="none"/><g fill="var(--ink)" font-size="12"><text x="375" y="141">X</text><text x="219" y="20">Y</text><text x="210" y="308" text-anchor="middle">${outer?'D':'B'} ${f(p.B)} mm${outer?'':' · H '+f(p.H)+' mm'}</text></g></svg><p class="beam-muted">파란색 강재 · 회색 콘크리트${p.type==='src'?' · 주황색 주철근 (철근에 마우스를 올리면 위치 표시)':''}. X축은 수평축, Y축은 수직축입니다.</p>`;
+ return `<svg viewBox="0 0 420 325" role="img" aria-label="${p.type==='src'?(p.steelLayout==='cross'?'SRC 십자형 H형강 2개':'SRC'):outer?'원형 CFT':'각형 CFT'} 단면, 강재 파란색 콘크리트 회색 철근 주황색">${shapes}<path d="M45 150H375 M210 15V285" stroke="var(--dim)" stroke-dasharray="5 5" fill="none"/><g fill="var(--ink)" font-size="12"><text x="375" y="141">X</text><text x="219" y="20">Y</text><text x="210" y="308" text-anchor="middle">${outer?'D':'B'} ${f(p.B)} mm${outer?'':' · H '+f(p.H)+' mm'}</text></g></svg><p class="beam-muted">파란색 강재 · 회색 콘크리트${p.type==='src'?' · 주황색 주철근 (철근에 마우스를 올리면 위치 표시)':''}. X축은 수평축, Y축은 수직축입니다.${p.type==='src'&&p.steelLayout==='cross'?' 철골 1: 0° / 철골 2: 90° · 교차부 중복 공제.':''}</p>`;
 }
 function interaction(c){
  const max=Math.max(1.1,c.x*1.15,c.y*1.15),X=v=>50+v/max*340,Y=v=>245-v/max*200,l=c.limit;
@@ -25,7 +25,7 @@ function interaction(c){
 let lastStud=null,selectedStud=0;
 function studDiagram(o,t){
  const p=o.p,scale=Math.min(260/p.B,260/p.H),X=x=>180+x*scale,Y=y=>220-y*scale;
- const rect=(b,h,x=0,y=0,color='#e5e7eb')=>`<rect x="${X(x-b/2)}" y="${Y(y+h/2)}" width="${b*scale}" height="${h*scale}" fill="${color}" stroke="#64748b"/>`;
+ const rect=(b,h,x=0,y=0,color='#e5e7eb')=>`<rect x="${X(x-b/2)}" y="${Y(y+h/2)}" width="${b*scale}" height="${h*scale}" fill="${color}" stroke="${p.type==='src'&&p.steelLayout==='cross'&&color==='#1764b5'?'none':'#64748b'}"/>`;
  let shape=p.type==='circle'?`<circle cx="180" cy="220" r="${p.B*scale/2}" fill="#1764b5"/><circle cx="180" cy="220" r="${(p.B/2-p.t)*scale}" fill="#e5e7eb"/>`:rect(p.B,p.H);
  if(p.type==='rect')shape=rect(p.B,p.H,0,0,'#1764b5')+rect(p.B-2*p.t,p.H-2*p.t);
  if(p.type==='src')shape+=o.steel.map(q=>rect(q.b,q.h,q.x,q.y,'#1764b5')).join('')+o.bars.map(b=>`<circle cx="${X(b.x)}" cy="${Y(b.y)}" r="${b.r*scale}" fill="#d47d20"/>`).join('');
@@ -36,7 +36,7 @@ function studDiagram(o,t){
  const plan=t.plan.map((q,j)=>{const i=layer*t.p.perLevel+j;return `<g data-stud="${i}" role="button" tabindex="0" aria-label="${title(i)}" stroke="${color(i)}" stroke-width="3"><title>${title(i)} · d ${t.p.diameter}, h ${t.p.height} mm</title><line x1="${X(q.x)}" y1="${Y(q.y)}" x2="${X(q.hx)}" y2="${Y(q.hy)}"/><circle cx="${X(q.hx)}" cy="${Y(q.hy)}" r="5" fill="${color(i)}"/></g>`;}).join('');
  const ex=i=>440+(i+.5)*300/t.p.perLevel,ey=z=>65+340*z/t.Lin;
  const elevation=t.z.flatMap((z,k)=>t.plan.map((q,j)=>{const i=k*t.p.perLevel+j;return `<circle data-stud="${i}" role="button" tabindex="0" aria-label="${title(i)}" cx="${ex(j)}" cy="${ey(z)}" r="${i===selectedStud?5:3.5}" fill="${color(i)}"><title>${title(i)} · ${j+1}번째 열</title></circle>`;})).join('');
- get('stud_graph').innerHTML=`<svg viewBox="0 0 800 460" role="img" aria-label="스터드 단면 배치와 하중도입부 길이방향 전개도"><g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="180" y="28">단면 배치 · ${layer+1}단</text><text x="590" y="28">길이방향 전개 · 전체 ${t.count}개</text></g>${shape}${t.count?plan:''}<rect x="430" y="65" width="320" height="340" fill="#e5f1ff" stroke="#64748b"/>${t.plan.map((q,j)=>`<line x1="${ex(j)}" x2="${ex(j)}" y1="65" y2="405" stroke="#b9c6d6"/>`).join('')}${elevation}<g fill="var(--ink)" font-size="12"><text x="180" y="413" text-anchor="middle">${p.type==='circle'?'내주 등간격':'대칭 2면 배치'} · 1단 ${t.p.perLevel}개</text><text x="420" y="68" text-anchor="end">z=0</text><text x="420" y="405" text-anchor="end">${f(t.Lin)}</text><text x="590" y="432" text-anchor="middle">하중도입부 Lin ${f(t.Lin)} mm · s ${t.p.spacing} mm</text></g></svg>`;
+ get('stud_graph').innerHTML=`<svg viewBox="0 0 800 460" role="img" aria-label="스터드 단면 배치와 하중도입부 길이방향 전개도"><g fill="var(--ink)" font-size="14" text-anchor="middle"><text x="180" y="28">단면 배치 · ${layer+1}단</text><text x="590" y="28">길이방향 전개 · 전체 ${t.count}개</text></g>${shape}${t.count?plan:''}<rect x="430" y="65" width="320" height="340" fill="#e5f1ff" stroke="#64748b"/>${t.plan.map((q,j)=>`<line x1="${ex(j)}" x2="${ex(j)}" y1="65" y2="405" stroke="#b9c6d6"/>`).join('')}${elevation}<g fill="var(--ink)" font-size="12"><text x="180" y="413" text-anchor="middle">${p.type==='circle'?'내주 등간격':p.type==='src'&&p.steelLayout==='cross'?'십자형 4면 균등 배치':'대칭 2면 배치'} · 1단 ${t.p.perLevel}개</text><text x="420" y="68" text-anchor="end">z=0</text><text x="420" y="405" text-anchor="end">${f(t.Lin)}</text><text x="590" y="432" text-anchor="middle">하중도입부 Lin ${f(t.Lin)} mm · s ${t.p.spacing} mm</text></g></svg>`;
  const q=t.plan[selLine];
  get('stud_info').textContent=t.count?`선택: ${selectedStud+1}번 · ${layer+1}단 / ${selLine+1}열 · 용접 위치 (${f(q.x)}, ${f(q.y)}, ${f(t.z[layer])}) mm · d ${t.p.diameter} × h ${t.p.height} mm · 1개 설계전단강도 ${f(t.phiQ)} kN. 클릭 또는 키보드 Enter로 선택합니다. 스터드 표식은 가독성을 위해 확대했으며 길이방향은 도입부만 표시합니다.`:'하중도입부에 배치 가능한 스터드가 없습니다.';
 }
@@ -47,33 +47,41 @@ function renderStuds(o,t){
 }
 function update(){
  const type=get('type').value,rh=get('shapeMode').value==='rh';
+ const cross=type==='src'&&get('steelLayout').value==='cross',rh2=get('shapeMode2').value==='rh';
+ get('cross_fields').hidden=!cross;get('section2_field').hidden=!rh2;
+ if(cross&&rh2){const sec=SteelSection.findSection(get('section2').value);if(sec)for(const [id,k] of [['sh2','H'],['sb2','B'],['tw2','tw'],['tf2','tf']])get(id).value=String(sec[k]);}
+ for(const id of ['sh2','sb2','tw2','tf2'])get(id).readOnly=rh2;
+ for(const option of get('studN').querySelectorAll('option'))option.disabled=cross&&Number(option.value)%4!==0;
  get('section_field').hidden=!rh;get('steelShare_field').hidden=get('loadPath').value!=='both';
  if(type==='src'&&rh){const sec=SteelSection.findSection(get('section').value);if(sec)for(const [id,k] of [['sh','H'],['sb','B'],['tw','tw'],['tf','tf']])get(id).value=String(sec[k]);}
  for(const id of ['sh','sb','tw','tf'])get(id).readOnly=rh;
  get('src_fields').hidden=type!=='src';get('H_field').hidden=type==='circle';get('t_field').hidden=type==='src';
  try{
-  let p={type,bar:get('bar').value,tie:get('tie').value,shapeMode:get('shapeMode').value,section:get('section').value};
-  for(const id of ['B','H','t','fck','Fy','sh','sb','tw','tf','fy','nb','nh','cover','tieSpacing','klx','kly','Pu','Mux','Muy'])p[id]=num(id);
+  let p={type,bar:get('bar').value,tie:get('tie').value,shapeMode:get('shapeMode').value,section:get('section').value,
+   steelLayout:get('steelLayout').value,shapeMode2:get('shapeMode2').value,section2:get('section2').value,crossConnected:get('crossConnected').value==='confirmed'};
+  for(const id of ['B','H','t','fck','Fy','sh','sb','tw','tf','sh2','sb2','tw2','tf2','fy','nb','nh','cover','tieSpacing','klx','kly','Pu','Mux','Muy'])p[id]=num(id);
   if(type==='circle')p.H=p.B;
   const o=CompositeColumn.calculate(p),a=o.props;p=o.p;
   const optional=id=>get(id).value.trim()===''?null:num(id);
   const stud=CompositeColumnStuds.calculate(o,{length:num('memberLength'),diameter:num('studD'),head:num('studHead'),height:num('studH'),Fu:num('studFu'),perLevel:num('studN'),spacing:num('studS'),edge:num('studEdge'),loadPath:get('loadPath').value,steelShare:num('steelShare'),introLoad:optional('introLoad'),outsideFlow:optional('outsideFlow')});
   get('error').hidden=true;get('results').hidden=false;
-  get('summary').innerHTML=`<p class="beam-layout">${type==='src'?'SRC · H형강 매입':type==='rect'?'CFT · 각형강관':'CFT · 원형강관'}</p><p class="beam-capacity">${f(o.Pr)} <small>kN · φcPn</small></p><p class="${!o.supported?'warn':o.ok?'ok':'ng'}">${!o.supported?'검토 범위 또는 상세 조건 확인 필요':o.ok?'부재 축력·모멘트 검토 충족':'부재 축력·모멘트 검토 미달'}</p><p class="beam-muted">${o.combined?'조합 강도비 '+f(o.combined.value,3)+' / 1.000':'비조밀·세장 CFT의 휨 및 조합 판정은 보류합니다.'} · 2차 효과 반영 설계력 입력 조건</p>`;
+  get('summary').innerHTML=`<p class="beam-layout">${type==='src'?(cross?'SRC · H형강 2개 십자형':'SRC · H형강 매입'):type==='rect'?'CFT · 각형강관':'CFT · 원형강관'}</p><p class="beam-capacity">${f(o.Pr)} <small>kN · φcPn</small></p><p class="${!o.supported?'warn':o.ok?'ok':'ng'}">${!o.supported?'검토 범위 또는 상세 조건 확인 필요':o.ok?'부재 축력·모멘트 검토 충족':'부재 축력·모멘트 검토 미달'}</p><p class="beam-muted">${o.combined?'조합 강도비 '+f(o.combined.value,3)+' / 1.000':'비조밀·세장 CFT의 휨 및 조합 판정은 보류합니다.'} · 2차 효과 반영 설계력 입력 조건</p>`;
   if(type==='src'&&rh)get('summary').innerHTML+=`<p class="beam-muted">${SteelSection.sectionSource(SteelSection.findSection(p.section))} · SRC 단면 검토에는 J를 사용하지 않습니다.</p>`;
+  if(cross)get('summary').innerHTML+=`<p class="beam-muted">철골 1: H-${p.sh}×${p.sb}×${p.tw}×${p.tf} (0°)<br>철골 2: H-${p.sh2}×${p.sb2}×${p.tw2}×${p.tf2} (90°) · 공통 Fy ${f(p.Fy)} MPa<br>교차부 중복 면적 ${f(o.overlap)} mm² 공제 · 연결 상세 ${p.crossConnected?'확인됨':'미확인'}</p>`;
   get('diagram').innerHTML=diagram(o);renderStuds(o,stud);
   get('axial').innerHTML=table(['축','KL (mm)','EIeff (×10¹² N·mm²)','Pe (kN)','Pno / Pe','φcPn (kN)'],o.axes.map(v=>[v.name,f(v.KL),f(v.EI/1e12,3),f(v.Pe),f(v.ratio,3),f(v.phiPn)]))+values([['자동 산정 Ec',f(p.Ec)+' MPa · 8500·∛(fck+Δf) (KDS 14 20 10, mc '+f(p.wc,0)+' kg/m³)'],['길이효과 전 Pno',f(o.Pno)+' kN'],['유효강성 계수 '+(type==='src'?'C1':'C3'),f(o.C,3)],['축압축 콘크리트 계수',f(o.C2,3)],['순강재 하한 φPn',o.steelPr===null?'총단면 항복 상한과 비교 · 상세 조건 참조':f(o.steelPr)+' kN'],['지배 설계압축강도',f(o.Pr)+' kN'],['Pu / φcPn',f(p.Pu/o.Pr,3)]])+'<p class="beam-muted">Pno/Pe ≤ 2.25: Pn=Pno×0.658^(Pno/Pe), 초과: Pn=0.877Pe. 표의 축별 값은 합성단면 휨좌굴 강도이며 최종 강도에는 확인된 순강재 하한을 반영합니다.</p>';
   get('moments').innerHTML=table(['축','|Mu| (kN·m)','φbMn (kN·m)','강도비'],[['X',f(Math.abs(p.Mux)),f(o.mx?.phiMn),f(o.mx?Math.abs(p.Mux)/o.mx.phiMn:NaN,3)],['Y',f(Math.abs(p.Muy)),f(o.my?.phiMn),f(o.my?Math.abs(p.Muy)/o.my.phiMn:NaN,3)]]);
   const c=o.combined;
   get('interaction').innerHTML=c?interaction(c)+values([['상호작용식',c.high?'Pu/Pr + (8/9)(|Mux|/Mrx + |Muy|/Mry) ≤ 1':'Pu/(2Pr) + |Mux|/Mrx + |Muy|/Mry ≤ 1'],['조합 강도비',f(c.value,3)],['적용 조항','KDS 14 31 80, 4.7.1 → KDS 14 31 10, '+(c.high?'(4.4-1)':'(4.4-2)')]])+'<p class="beam-muted">음영은 현재 축력에서의 모멘트비 허용 영역입니다. 양축 단독 충족만으로 조합 충족을 뜻하지 않습니다.</p>':'<p class="warn">CFT 휨 단면이 비조밀 또는 세장입니다. 휨강도·조합 판정은 보류하며 강관 두께를 조정하거나 별도 검토하세요.</p>';
   get('checks').innerHTML=values([['축압축 단면 분류',o.axialClass],['휨 단면 분류',o.flexureClass],...(o.lambda===null?[]:[['폭두께비 · 조밀 / 비조밀 한계',f(o.lambda,2)+' · '+f(o.lp,2)+' / '+f(o.lr,2)]])])+table(['확인 항목','입력 / 한계','상태'],o.checks.map(q=>[q.label,q.detail,`<span class="${q.ok?'ok':'ng'}">${q.ok?'충족':'확인 필요'}</span>`]));
-  get('properties').innerHTML=table(['구성','A (mm²)','Ix (×10⁶ mm⁴)','Iy (×10⁶ mm⁴)'],[['강재',a.steel],['주철근',a.bars],['콘크리트',a.concrete]].map(([k,v])=>[k,f(v.A),f(v.Ix/1e6,3),f(v.Iy/1e6,3)]))+values([['강재 + 주철근 중량',f(o.mass)+' kg/m'],['강재 + 주철근 물량',f(o.mass/1000,4)+' tonf/m'],['콘크리트 물량',f(o.concreteVolume,4)+' m³/m'],['주철근 총 개수',String(o.bars.length)]])+'<p class="beam-muted">띠철근·접합부·이음·용접·할증 제외. 중량은 7,850 kg/m³를 사용하며, tonf 표시는 현장 물량용 환산입니다.</p>';
+  get('properties').innerHTML=table(['구성','A (mm²)','Ix (×10⁶ mm⁴)','Iy (×10⁶ mm⁴)'],[['강재',a.steel],['주철근',a.bars],['콘크리트',a.concrete]].map(([k,v])=>[k,f(v.A),f(v.Ix/1e6,3),f(v.Iy/1e6,3)]))+values([...(cross?[['두 형강 단순 면적 합',f(o.steelMembers.reduce((s,m)=>s+CompositeColumn.properties(m.regions).A,0))+' mm²'],['교차부 중복 공제',f(o.overlap)+' mm²']]:[]),['강재 + 주철근 중량',f(o.mass)+' kg/m'],['강재 + 주철근 물량',f(o.mass/1000,4)+' tonf/m'],['콘크리트 물량',f(o.concreteVolume,4)+' m³/m'],['주철근 총 개수',String(o.bars.length)]])+'<p class="beam-muted">띠철근·접합부·이음·용접·할증 제외. 중량은 7,850 kg/m³를 사용하며, tonf 표시는 현장 물량용 환산입니다.</p>';
  }catch(e){lastStud=null;get('error').textContent=e.message;get('error').hidden=false;get('results').hidden=true;for(const id of ['summary','diagram','axial','moments','interaction','checks','properties','stud_results','stud_graph','stud_info'])get(id).innerHTML='';}
 }
 
 const wide=SteelSection.SECTIONS.filter(q=>q.listed&&q.H/q.B>=.8&&q.H/q.B<=1.25),other=SteelSection.SECTIONS.filter(q=>q.listed&&!wide.includes(q));
 get('section').innerHTML='<optgroup label="기둥용 광폭 RH">'+wide.map(q=>`<option>${q.name}</option>`).join('')+'</optgroup><optgroup label="그 외 RH">'+other.map(q=>`<option>${q.name}</option>`).join('')+'</optgroup>';
 get('section').value='H-400×400×13×21';
+get('section2').innerHTML=get('section').innerHTML;get('section2').value='H-400×400×13×21';
 function selectStud(e){if(e.type==='keydown'&&!['Enter',' '].includes(e.key))return;const node=e.target.closest('[data-stud]');if(!node||!lastStud)return;e.preventDefault();selectedStud=Number(node.dataset.stud);studDiagram(lastStud.o,lastStud.t);}
 get('stud_graph').addEventListener('click',selectStud);get('stud_graph').addEventListener('keydown',selectStud);
 document.getElementById('t9').addEventListener('input',update);update();

@@ -6,8 +6,10 @@
 'use strict';
 function calculate(o,p){
  const sec=o.p,src=sec.type==='src',round=sec.type==='circle';
+ const cross=src&&sec.steelLayout==='cross';
  for(const k of ['length','diameter','head','height','Fu','perLevel','spacing','edge'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error('스터드 규격·배치 및 실제 기둥 길이는 양수로 입력하세요.');
  if(!Number.isInteger(p.perLevel)||p.perLevel<2||p.perLevel>24||p.perLevel%2)throw Error('1단 스터드는 대칭인 짝수 2–24개로 배치하세요.');
+ if(cross&&p.perLevel%4)throw Error('십자형 SRC의 1단 스터드는 네 플랜지 면에 균등 배치하도록 4의 배수로 입력하세요.');
  if(!['steel','concrete','both'].includes(p.loadPath))throw Error('하중 도입 방식을 선택하세요.');
  if(p.loadPath==='both'&&(!Number.isFinite(p.steelShare)||p.steelShare<0||p.steelShare>100))throw Error('철골 도입 비율은 0–100%로 입력하세요.');
  if(p.introLoad!==null&&(!Number.isFinite(p.introLoad)||p.introLoad<0))throw Error('도입 축력은 비우거나 0 이상을 입력하세요.');
@@ -40,6 +42,18 @@ function calculate(o,p){
   if(rh<=0)throw Error('스터드 길이가 원형 CFT 내부 반경 이상입니다.');
   pitch=2*r*Math.sin(Math.PI/p.perLevel);
   for(let i=0;i<p.perLevel;i++){const a=2*Math.PI*i/p.perLevel;plan.push({x:r*Math.cos(a),y:r*Math.sin(a),hx:rh*Math.cos(a),hy:rh*Math.sin(a),face:i+1});}
+ }else if(cross){
+  const perFace=p.perLevel/4,margin=Math.max(1.5*p.diameter,p.head/2),pitches=[];
+  for(const m of o.steelMembers){
+   const usable=m.b-2*margin;if(usable<0)throw Error(`철골 ${m.number} 플랜지 폭에 스터드가 들어가지 않습니다.`);
+   if(perFace>1)pitches.push(usable/(perFace-1));
+   for(const side of [-1,1])for(let i=0;i<perFace;i++){
+    const x=perFace===1?0:-usable/2+usable*i/(perFace-1),y=side*m.h/2,hy=y+side*p.height;
+    plan.push(m.rotation===0?{x,y,hx:x,hy,face:side===1?2:1,member:m.number}:{x:-y,y:x,hx:-hy,hy:x,face:side===1?4:3,member:m.number});
+   }
+  }
+  pitch=pitches.length?Math.max(...pitches):null;
+  check('조립 형강 연결 확인',sec.crossConnected===true,'독립좌굴 방지 연결 상세 '+(sec.crossConnected===true?'확인됨':'미확인'));
  }else{
   const width=src?sec.sb:sec.B-2*sec.t,half=p.perLevel/2,margin=Math.max(1.5*p.diameter,p.head/2),usable=width-2*margin;
   if(usable<0)throw Error('스터드가 플랜지 또는 강관 면 폭에 들어가지 않습니다.');
@@ -48,7 +62,7 @@ function calculate(o,p){
  }
  let transverse=Infinity,headClear=Infinity;
  for(let i=0;i<plan.length;i++)for(let j=i+1;j<plan.length;j++){
-  if(round||plan[i].face===plan[j].face)transverse=Math.min(transverse,Math.hypot(plan[i].x-plan[j].x,plan[i].y-plan[j].y));
+  if(round||cross||plan[i].face===plan[j].face)transverse=Math.min(transverse,Math.hypot(plan[i].x-plan[j].x,plan[i].y-plan[j].y));
   headClear=Math.min(headClear,Math.hypot(plan[i].hx-plan[j].hx,plan[i].hy-plan[j].hy)-p.head);
  }
  // 4.8.3.5: 4d minimum and 32d maximum centre spacing in any direction.
@@ -64,7 +78,17 @@ function calculate(o,p){
  }
  check('측면 콘크리트 순피복 (4.8.3.5(1))',cover>=25,`${cover.toFixed(1)} / 최소 25 mm`);
  if(src)check('주철근 간섭',barClear>=0,`최소 여유 ${barClear.toFixed(1)} mm`);
- const plate=src?sec.tf:sec.t;
+ if(cross){
+  let steelClear=Infinity;
+  for(const q of plan)for(const m of o.steelMembers.filter(m=>m.number!==q.member))for(const r of m.regions){
+   const dx=Math.max(r.x-r.b/2-Math.max(q.x,q.hx),Math.min(q.x,q.hx)-r.x-r.b/2,0);
+   const dy=Math.max(r.y-r.h/2-Math.max(q.y,q.hy),Math.min(q.y,q.hy)-r.y-r.h/2,0);
+   const headDx=Math.max(Math.abs(q.hx-r.x)-r.b/2,0),headDy=Math.max(Math.abs(q.hy-r.y)-r.h/2,0);
+   steelClear=Math.min(steelClear,Math.hypot(dx,dy)-p.diameter/2,Math.hypot(headDx,headDy)-p.head/2);
+  }
+  check('직교 철골과 스터드 간섭',steelClear>=0,`몸체·머리 최소 여유 ${steelClear.toFixed(1)} mm`);
+ }
+ const plate=src?(cross?Math.min(sec.tf,sec.tf2):sec.tf):sec.t;
  check('용접 모재 두께 (4.8.1(1))',p.diameter<=2.5*plate,`${p.diameter} / 한계 ${2.5*plate} mm`);
  check('도입부 전달강도',capacity+1e-8>=demand,`${capacity.toFixed(1)} / 소요 ${demand.toFixed(1)} kN`);
  const outsideCapacity=p.perLevel*phiQ/(p.spacing/1000),outside=p.outsideFlow===null?null:{demand:p.outsideFlow,capacity:outsideCapacity,ok:p.outsideFlow<=outsideCapacity&&checks.slice(0,-1).every(q=>q.ok)};

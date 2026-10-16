@@ -12,6 +12,21 @@ function concreteModulus(fck,wc=2300){if(!Number.isFinite(fck)||fck<21||fck>70)t
 const E=210000,Er=200000;
 function rect(b,h,x=0,y=0,w=1){return {type:'rect',b,h,x,y,w};}
 function circle(r,x=0,y=0,w=1){return {type:'circle',r,x,y,w};}
+// Disjoint cells of the geometric union: every physical steel area is counted
+// once, including web/web and flange/flange intersections of unequal H shapes.
+function rectangleUnion(parts){
+ const xs=[...new Set(parts.flatMap(q=>[q.x-q.b/2,q.x+q.b/2]))].sort((a,b)=>a-b);
+ const ys=[...new Set(parts.flatMap(q=>[q.y-q.h/2,q.y+q.h/2]))].sort((a,b)=>a-b),out=[];
+ for(let i=1;i<xs.length;i++)for(let j=1;j<ys.length;j++){
+  const x=(xs[i]+xs[i-1])/2,y=(ys[j]+ys[j-1])/2;
+  if(parts.some(q=>Math.abs(x-q.x)<q.b/2&&Math.abs(y-q.y)<q.h/2))out.push(rect(xs[i]-xs[i-1],ys[j]-ys[j-1],x,y));
+ }
+ return out;
+}
+function hRegions(h,b,tw,tf,rotate=false){
+ const parts=[rect(b,tf,0,(h-tf)/2),rect(tw,h-2*tf),rect(b,tf,0,-(h-tf)/2)];
+ return rotate?parts.map(q=>rect(q.h,q.b,-q.y,q.x)):parts;
+}
 function properties(regions){
  let A=0,Ix=0,Iy=0;
  for(const q of regions){const a=q.type==='rect'?q.b*q.h:Math.PI*q.r*q.r,ix=q.type==='rect'?q.b*q.h**3/12:a*q.r*q.r/4,iy=q.type==='rect'?q.h*q.b**3/12:ix;A+=q.w*a;Ix+=q.w*(ix+a*q.y*q.y);Iy+=q.w*(iy+a*q.x*q.x);}
@@ -43,6 +58,7 @@ function plastic(steel,bars,concrete,Fy,fy,fc,depth,axis){
 function calculate(p){
  p={...p,wc:p.wc??2300};p.Ec=concreteModulus(p.fck,p.wc);
  if(p.type==='src'&&p.shapeMode==='rh'){const sec=S.findSection(p.section);if(!sec?.listed)throw Error('RH 규격을 선택하세요.');p={...p,sh:sec.H,sb:sec.B,tw:sec.tw,tf:sec.tf};}
+ if(p.type==='src'&&p.steelLayout==='cross'&&p.shapeMode2==='rh'){const sec=S.findSection(p.section2);if(!sec?.listed)throw Error('철골 2의 RH 규격을 선택하세요.');p={...p,sh2:sec.H,sb2:sec.B,tw2:sec.tw,tf2:sec.tf};}
 
  if(!['src','rect','circle'].includes(p.type))throw Error('합성 기둥 형식을 선택하세요.');
  for(const k of ['B','H','fck','Fy','Ec','klx','kly'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error('단면·재료·유효좌굴길이는 양수로 입력하세요.');
@@ -50,7 +66,9 @@ function calculate(p){
  for(const k of ['Pu','Mux','Muy'])if(!Number.isFinite(p[k]))throw Error('Pu·Mux·Muy를 입력하세요.');
  if(p.Pu<0)throw Error('현재 합성 기둥 화면은 압축력 Pu ≥ 0을 검토합니다.');
  const src=p.type==='src',round=p.type==='circle',B=p.B,H=round?p.B:p.H;
- let steel=[],bars=[],checks=[],gross=round?[circle(B/2)]:[rect(B,H)],tie=null;
+ const cross=src&&p.steelLayout==='cross';
+ if(src&&p.steelLayout!=null&&!['single','cross'].includes(p.steelLayout))throw Error('SRC 철골 배치를 선택하세요.');
+ let steel=[],steelMembers=[],overlap=0,bars=[],checks=[],gross=round?[circle(B/2)]:[rect(B,H)],tie=null;
  const check=(label,ok,detail)=>checks.push({label,ok,detail});
  if(src){
   if(p.Fy>450)throw Error('현재 SRC는 강재 Fy ≤ 450 MPa 범위입니다. 고강도 강재의 심부 콘크리트 유효단면은 별도 검토하세요.');
@@ -59,7 +77,16 @@ function calculate(p){
   const bar=R.BARS[p.bar];tie=R.BARS[p.tie];
   if(!bar||!['D10','D13','D16'].includes(p.tie))throw Error('주철근과 띠철근 규격을 선택하세요.');
   if(![p.nb,p.nh].every(n=>Number.isInteger(n)&&n>=2&&n<=30))throw Error('각 변의 철근 수는 모서리 포함 2–30개로 입력하세요.');
-  steel=[rect(p.sb,p.tf,0,(p.sh-p.tf)/2),rect(p.tw,p.sh-2*p.tf),rect(p.sb,p.tf,0,-(p.sh-p.tf)/2)];
+  steel=hRegions(p.sh,p.sb,p.tw,p.tf);
+  steelMembers=[{number:1,rotation:0,h:p.sh,b:p.sb,tw:p.tw,tf:p.tf,regions:steel}];
+  if(cross){
+   for(const k of ['sh2','sb2','tw2','tf2'])if(!Number.isFinite(p[k])||p[k]<=0)throw Error('철골 2의 H형강 치수를 입력하세요.');
+   if(p.sh2<=2*p.tf2||p.sb2<=p.tw2||p.sh2>=B||p.sb2>=H)throw Error('철골 2의 치수와 90° 회전 후 콘크리트 내부 배치를 확인하세요.');
+   const second=hRegions(p.sh2,p.sb2,p.tw2,p.tf2,true),raw=[...steel,...second];
+   steelMembers.push({number:2,rotation:90,h:p.sh2,b:p.sb2,tw:p.tw2,tf:p.tf2,regions:second});
+   steel=rectangleUnion(raw);overlap=properties(raw).A-properties(steel).A;
+   check('조립 형강의 독립좌굴 방지 연결 (4.4.1.4)',p.crossConnected===true,'띠판·용접 등 연결 상세 '+(p.crossConnected===true?'확인됨':'미확인 · 최종 판정 보류'));
+  }
   const d=p.cover+tie.diameter+bar.diameter/2,x=B/2-d,y=H/2-d,r=bar.diameter/2;
   if(x<=0||y<=0)throw Error('피복과 철근이 단면 안에 들어가지 않습니다.');
   const add=(x,y)=>bars.push(circle(r,x,y,bar.area/(Math.PI*r*r)));
@@ -68,7 +95,9 @@ function calculate(p){
   const clearance=Math.min(...bars.flatMap(b=>steel.map(s=>Math.hypot(Math.max(Math.abs(b.x-s.x)-s.b/2,0),Math.max(Math.abs(b.y-s.y)-s.h/2,0))-r)));
   if(clearance<0)throw Error('주철근이 철골과 겹칩니다. 단면 또는 배근을 조정하세요.');
   check('철골–주철근 순간격',clearance>=Math.max(40,1.5*bar.diameter),`${clearance.toFixed(1)} / 필요 ${Math.max(40,1.5*bar.diameter).toFixed(1)} mm`);
-  check('플랜지 콘크리트 순피복',Math.min((B-p.sb)/2,(H-p.sh)/2)>=p.sb/6,`최소 ${Math.min((B-p.sb)/2,(H-p.sh)/2).toFixed(1)} / 필요 ${(p.sb/6).toFixed(1)} mm`);
+  for(const m of steelMembers){const width=m.rotation===90?m.h:m.b,height=m.rotation===90?m.b:m.h,cover=Math.min((B-width)/2,(H-height)/2);
+   check('플랜지 콘크리트 순피복'+(cross?' · 철골 '+m.number:''),cover>=m.b/6,`최소 ${cover.toFixed(1)} / 필요 ${(m.b/6).toFixed(1)} mm`);
+  }
   const spacingLimit=Math.min(p.tie==='D10'?300:400,Math.min(B,H)/2);
   check('띠철근 간격',p.tieSpacing<=spacingLimit,`${p.tieSpacing} / 한계 ${spacingLimit} mm`);
   check('주철근 순간격',Math.min(2*x/(p.nb-1),2*y/(p.nh-1))-bar.diameter>=Math.max(40,1.5*bar.diameter),'40 mm 및 주철근 지름의 1.5배 이상');
@@ -104,11 +133,13 @@ function calculate(p){
  const compositePr=Math.min(...axes.map(a=>a.phiPn));
  // Steel-only floor is needed only when the composite result is below the
  // gross steel yield upper bound. Slender bare-steel plates are not approved.
- const bareNonslender=src?p.sb/(2*p.tf)<=.56*Math.sqrt(E/p.Fy)&&(p.sh-2*p.tf)/p.tw<=1.49*Math.sqrt(E/p.Fy):round?B/p.t<=.11*E/p.Fy:lambda<=1.4*Math.sqrt(E/p.Fy);
+ // The single-H bare-steel buckling classification is not reused for a built-up
+ // cruciform. Its lower bound is certified only by the gross-yield upper bound.
+ const bareNonslender=src?!cross&&p.sb/(2*p.tf)<=.56*Math.sqrt(E/p.Fy)&&(p.sh-2*p.tf)/p.tw<=1.49*Math.sqrt(E/p.Fy):round?B/p.t<=.11*E/p.Fy:lambda<=1.4*Math.sqrt(E/p.Fy);
  let steelPr=null;
  if(bareNonslender){steelPr=Math.min(...[['Ix',p.klx],['Iy',p.kly]].map(([key,KL])=>{const Fe=Math.PI**2*E*s[key]/(s.A*KL**2),Fcr=p.Fy/Fe<=2.25?p.Fy*.658**(p.Fy/Fe):.877*Fe;return .9*Fcr*s.A/1000;}));}
  const floorVerified=steelPr!==null||compositePr>=.9*p.Fy*s.A/1000;
- check('순강재 압축강도 하한',floorVerified,steelPr!==null?`φPn ${steelPr.toFixed(1)} kN`:(floorVerified?'합성 압축강도가 순강재 총단면 항복 상한 이상':'순강재 세장판 압축강도 추가 검토 필요'));
+ check('순강재 압축강도 하한',floorVerified,steelPr!==null?`φPn ${steelPr.toFixed(1)} kN`:(floorVerified?'합성 압축강도가 순강재 총단면 항복 상한 이상':cross?'십자형 조립 순강재 좌굴강도 추가 검토 필요':'순강재 세장판 압축강도 추가 검토 필요'));
  const Pr=Math.max(compositePr,steelPr||0);
  const flexureSupported=src||flexureClass==='조밀';
  const mx=flexureSupported?plastic(steel,bars,concrete,p.Fy,p.fy||0,(round?.95:.85)*p.fck,H,'X'):null;
@@ -116,8 +147,8 @@ function calculate(p){
  let combined=null;
  if(flexureSupported){const axial=p.Pu/Pr,x=Math.abs(p.Mux)/mx.phiMn,y=Math.abs(p.Muy)/my.phiMn,high=axial>=.2,value=high?axial+8/9*(x+y):axial/2+x+y;combined={axial,x,y,high,value,limit:Math.max(0,high?(1-axial)*9/8:1-axial/2),ok:axial<=1&&x<=1&&y<=1&&value<=1};}
  const axialSupported=checks.every(q=>q.ok),hasMoments=Math.abs(p.Mux)+Math.abs(p.Muy)>0;
- return {p:{...p,B,H},steel,bars,concrete,gross,props:{steel:s,bars:r,concrete:c,gross:g},checks,C,C2,Pno:Pno/1000,axes,compositePr,steelPr,Pr,mx,my,combined,axialClass,flexureClass,lambda,lp,lr,max,
+ return {p:{...p,B,H},steel,steelMembers,overlap,bars,concrete,gross,props:{steel:s,bars:r,concrete:c,gross:g},checks,C,C2,Pno:Pno/1000,axes,compositePr,steelPr,Pr,mx,my,combined,axialClass,flexureClass,lambda,lp,lr,max,
   supported:axialSupported&&(!hasMoments||flexureSupported),ok:axialSupported&&p.Pu<=Pr&&(!hasMoments||!!(combined&&combined.ok)),mass:(s.A+r.A)*.00785,concreteVolume:c.A/1e6};
 }
-root.CompositeColumn={calculate,properties,above,plastic,concreteModulus};if(node)module.exports=root.CompositeColumn;
+root.CompositeColumn={calculate,properties,above,plastic,rectangleUnion,hRegions,concreteModulus};if(node)module.exports=root.CompositeColumn;
 })(typeof globalThis!=='undefined'?globalThis:this);
