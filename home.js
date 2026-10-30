@@ -4,6 +4,7 @@
 const byId=id=>document.getElementById(id);
 const items=Array.from(document.querySelectorAll('#nav button[data-t]'));
 root.openKDSPage=async function(id){
+  id=root.SiteApp?.resolvePage(id)||id;
   // Old trade links resolve to the unified site workspace.
   const legacy=/^(site(?:-north)?)-(steel|slab|curtainwall)$/.exec(id);
   if(legacy){id=legacy[1]+'-prd';if(root.SiteWorkspace&&!await root.SiteWorkspace.selectTrade(byId(id),legacy[2]))return;}
@@ -26,4 +27,5 @@ root.openKDSPage=async function(id){
 byId('home-title-link').addEventListener('click',event=>{event.preventDefault();root.openKDSPage('home');});
 byId('home-button').addEventListener('click',()=>root.openKDSPage('home'));
 byId('home').addEventListener('click',event=>{const button=event.target.closest('button[data-open]');if(button)root.openKDSPage(button.dataset.open);});
+root.SiteApp?.start();
 })(globalThis);

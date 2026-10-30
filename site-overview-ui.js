@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
 if(!document.createElementNS)return;
-const cloud=root.SiteCloud,O=root.SiteOverview,pages=Array.from(document.querySelectorAll('.site-page'));
+const cloud=root.SiteCloud,O=root.SiteOverview,pages=Array.from(document.querySelectorAll('.site-page')).filter(p=>!root.SiteApp||root.SiteApp.includesPage(p.id));
 const states=new Map(pages.map(page=>[page,{serial:0,busy:false,model:null}]));
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=value=>value===null?'—':value.toLocaleString('ko-KR',{maximumFractionDigits:1});

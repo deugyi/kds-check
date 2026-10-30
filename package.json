@@ -1,6 +1,6 @@
 {
   "name": "siteone-check-tests",
   "private": true,
-  "scripts": { "test": "node --test tests/*.test.cjs" },
+  "scripts": { "build:sites": "node scripts/build-site-apps.cjs", "test": "node scripts/build-site-apps.cjs --check && node --test tests/*.test.cjs" },
   "devDependencies": { "linkedom": "0.18.13" }
 }

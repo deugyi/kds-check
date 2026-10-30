@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
 if(!document.createElementNS)return;
-const pages=Array.from(document.querySelectorAll('.site-page'));
+const pages=Array.from(document.querySelectorAll('.site-page')).filter(p=>!root.SiteApp||root.SiteApp.includesPage(p.id));
 const states=new Map(pages.map(page=>[page,{trade:page.querySelector('[data-site-trade]').value,switching:false,focus:null}]));
 const expanded=page=>page.classList.contains('site-fullscreen');
 function exportControls(page,preserveStatus=false){

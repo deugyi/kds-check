@@ -6,7 +6,7 @@ const planFloors=cfg?.planFloors||[{id:'B1',name:'지하1층',drawing:cfg?.planD
 function planId(id=cfg.planDrawing){if(!planFloors.some(f=>f.drawing===id))throw Error('UNKNOWN_FLOOR');return id;}
 const roles={pending:'승인 대기',viewer:'일반 사용자',editor:'기록 입력',admin:'관리자',blocked:'이용 중지'};
 let client=null,member=null,user=null,errorText='',checking=false,checkAgain=false,generation=0;
-const pages=Array.from(document.querySelectorAll('.site-page,.site-progress-page'));
+const pages=Array.from(document.querySelectorAll('.site-page,.site-progress-page')).filter(p=>!root.SiteApp||root.SiteApp.includesPage(p.id));
 for(const page of pages){
  const panel=document.createElement('div');panel.className='site-access card';
  panel.innerHTML='<div class="site-access-heading"><div class="site-login-info"><h2></h2><p class="site-login-status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p></div><button type="button" data-site-login>Google 계정으로 로그인</button><details class="site-account-menu" hidden><summary><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><span class="site-account-label">계정 메뉴</span><span aria-hidden="true">⌄</span></summary><div class="site-account-popover"><p class="site-account" aria-live="polite"></p><div class="site-admin" hidden><button type="button" data-site-users>사용자 승인·권한 관리</button><div class="site-member-list" hidden></div></div><div class="site-auth-actions"><button type="button" data-site-refresh>접근 권한 확인</button><button type="button" data-site-logout>로그아웃</button></div></div></details></div><p class="site-auth-message" role="status"></p>';
@@ -15,7 +15,7 @@ for(const page of pages){
  panel.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
   try{
-   if(b.hasAttribute('data-site-login')){if(!client)throw Error('로그인 연결을 준비하지 못했습니다. 새로고침해 주세요.');try{sessionStorage.setItem('kds-site-return',page.id);}catch{}const {error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:cfg.redirect,queryParams:{prompt:'select_account'}}});if(error)throw error;}
+   if(b.hasAttribute('data-site-login')){if(!client)throw Error('로그인 연결을 준비하지 못했습니다. 새로고침해 주세요.');try{sessionStorage.setItem('kds-site-return',page.id);}catch{}root.SiteApp?.rememberLogin();const {error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:cfg.redirect,queryParams:{prompt:'select_account'}}});if(error){root.SiteApp?.cancelLogin();throw error;}}
    if(b.hasAttribute('data-site-refresh'))await refresh();
    if(b.hasAttribute('data-site-logout')){
     if((root.PRDCloudUI?.hasUnsaved()||root.SitePlanUI?.hasUnsaved()||root.SiteProgressUI?.hasUnsaved())&&!confirm('저장하지 못한 입력이 있습니다. 입력을 버리고 로그아웃할까요?'))return;
@@ -58,7 +58,7 @@ function render(){
   panel.querySelector('[data-site-login]').hidden=!!user;
   panel.querySelector('[data-site-logout]').hidden=!user;
   panel.querySelector('[data-site-refresh]').hidden=!user;
-  panel.querySelector('.site-auth-message').textContent=errorText||(member?.role==='pending'?'관리자 승인 후 현장 도면과 시공 현황을 이용할 수 있습니다.':member?.role==='blocked'?'현장 이용 권한이 중지되었습니다. 관리자에게 문의해 주세요.':!user?'구조 계산기는 로그인 없이 이용할 수 있습니다.':'');
+  panel.querySelector('.site-auth-message').textContent=errorText||(member?.role==='pending'?'관리자 승인 후 현장 도면과 시공 현황을 이용할 수 있습니다.':member?.role==='blocked'?'현장 이용 권한이 중지되었습니다. 관리자에게 문의해 주세요.':!user?(root.SiteApp?.site?'승인된 계정으로 로그인하면 현장 도면과 시공 현황을 이용할 수 있습니다.':'구조 계산기는 로그인 없이 이용할 수 있습니다.'):'');
   panel.querySelector('.site-admin').hidden=member?.role!=='admin';
   if(member?.role!=='admin'){panel.querySelector('.site-member-list').innerHTML='';panel.querySelector('.site-member-list').hidden=true;}
  }
@@ -75,6 +75,7 @@ async function refresh(){
  }catch(e){member=null;errorText=explain(e);}
  finally{
   checking=false;render();
+  if(root.SiteApp?.restoreAfterLogin())return;
   if(previousUser!==user?.id||previous?.role!==member?.role){generation++;document.dispatchEvent(new CustomEvent('site-auth-change'));}
   try{const target=sessionStorage.getItem('kds-site-return');
   if(target&&pages.some(p=>p.id===target)&&root.openKDSPage){sessionStorage.removeItem('kds-site-return');root.openKDSPage(target);}}catch{}
