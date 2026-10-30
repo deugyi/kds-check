@@ -1,6 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const tick=()=>new Promise(r=>setImmediate(r));
-const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+// Legacy/shared template auth coverage; deployed bundles have separate site-app tests.
+const html=fs.readFileSync(path.join(__dirname,fs.existsSync(path.join(__dirname,'../app-template.html'))?'../app-template.html':'../index.html'),'utf8');
 async function load(role=null,config={}){
  let current=role,offline=false,onAuth,created,oauth,signout=0,registerWait=null;const opened=[],events=[],timers=[],store=new Map(),calls=[],queries=[];
  const make=()=>({hidden:false,textContent:'',innerHTML:'',events:{},dataset:{},addEventListener(k,f){this.events[k]=f;}});

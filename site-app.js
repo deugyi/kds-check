@@ -23,8 +23,8 @@ function restoreAfterLogin(){
  }catch{return false;}
 }
 root.SiteApp=Object.freeze({site:entry?site:null,page:entry?.page||null,
- includesPage:id=>!entry||id===entry.page||(site==='south'&&id==='site-progress'),
- resolvePage:id=>entry?(site==='south'&&id==='site-progress'?id:entry.page):id,
+ includesPage:id=>!entry||id===entry.page,
+ resolvePage:id=>entry?entry.page:id,
  rememberLogin,cancelLogin,restoreAfterLogin,
  start(){
   if(!entry)return;
@@ -32,7 +32,7 @@ root.SiteApp=Object.freeze({site:entry?site:null,page:entry?.page||null,
   const title=document.getElementById('home-title-link');title.textContent=document.title;title.setAttribute('aria-label',document.title+' · 시공 현황');title.href='./';
   document.getElementById('home-button').hidden=true;
   for(const menu of document.querySelectorAll('#nav .menu')){const button=menu.querySelector('button[data-t]');menu.hidden=!button||!root.SiteApp.includesPage(button.dataset.t);if(button?.dataset.t===entry.page)button.textContent='시공 현황';}
-  document.getElementById('nav').hidden=site==='north';
+  document.getElementById('nav').hidden=true;
   root.openKDSPage(entry.page);
  }
 });

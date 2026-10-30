@@ -32,17 +32,26 @@ test('north omits south drawing and progress-intake controllers',()=>{
  assert.match(north,/북측 PRD 도면을 준비 중입니다/);
 });
 
+test('both deployed site apps omit future progress markup, menus and intake scripts while preserving its source',()=>{
+ assert.match(source,/id="site-progress"/);assert.match(source,/src="site-progress-ui.js\?/);
+ for(const site of ['south','north']){
+  const html=render(source,site);assert.doesNotMatch(html,/id="site-progress"|data-t="site-progress"/);
+  for(const file of ['site-progress-ui.js','site-morning-ui.js','supabase/functions/_shared/progress-core.js','supabase/functions/_shared/morning-core.js'])assert.ok(!html.includes(`<script src="${file}?`),file);
+  assert.doesNotMatch(html,/href="site-progress\.css/);
+ }
+});
+
 test('each app starts at its own workspace and rejects navigation to another site or calculator',async()=>{
  for(const [site,page] of [['south','site-prd'],['north','site-north-prd']]){
-  const h=await harness(site);assert.deepEqual(h.active(),[page]);assert.equal(h.document.querySelectorAll('.site-access').length,site==='south'?2:1);assert.ok(h.document.title.includes(site==='south'?'남측':'북측'));
-  for(const target of ['home','t9','site-progress','site-prd','site-north-prd','site-steel']){await h.context.openKDSPage(target);assert.deepEqual(h.active(),[site==='south'&&target==='site-progress'?'site-progress':page]);}
+  const h=await harness(site);assert.deepEqual(h.active(),[page]);assert.equal(h.document.querySelectorAll('.site-access').length,1);assert.ok(h.document.title.includes(site==='south'?'남측':'북측'));
+  for(const target of ['home','t9','site-progress','site-prd','site-north-prd','site-steel']){await h.context.openKDSPage(target);assert.deepEqual(h.active(),[page]);}
   assert.equal(h.context.SiteCloud.allowed(),false);assert.match(h.document.querySelector('.site-auth-message').textContent,/승인된 계정/);
  }
 });
 
 test('legacy root retains calculator and both-site navigation',async()=>{
  const h=await harness();assert.equal(h.context.SiteApp.site,null);assert.deepEqual(h.active(),['home']);assert.equal(h.document.querySelectorAll('.site-access').length,3);
- for(const target of ['t9','site-north-prd','site-prd','home']){await h.context.openKDSPage(target);assert.deepEqual(h.active(),[target]);}
+ for(const target of ['t9','site-north-prd','site-prd','site-progress','home']){await h.context.openKDSPage(target);assert.deepEqual(h.active(),[target]);}
 });
 
 test('OAuth uses the existing allowed callback and returns to the originating dedicated URL after session restoration',async()=>{
