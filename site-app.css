@@ -4,6 +4,7 @@ html[data-site-app] #nav[hidden],
 html[data-site-app] #nav [hidden]{display:none!important}
 html[data-site-app="south"] section.tab:not(#site-prd),
 html[data-site-app="north"] section.tab:not(#site-north-prd){display:none!important}
+html[data-site-app="all"] section.tab:not(#site-prd):not(#site-north-prd){display:none!important}
 html[data-site-app] header{padding:14px 16px}
 html[data-site-app] header h1 a{color:var(--accent)}
 html[data-site-app] main{padding-top:12px}

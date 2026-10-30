@@ -1,27 +1,28 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{parseHTML}=require('linkedom');
 const {render}=require('../scripts/build-site-apps.cjs'),root=path.join(__dirname,'..'),source=fs.readFileSync(path.join(root,fs.existsSync(path.join(root,'app-template.html'))?'app-template.html':'index.html'),'utf8');
 const tick=()=>new Promise(r=>setImmediate(r)),key='siteone-app-login-return';
-async function harness(site=null,{store=new Map(),role=null,oauthError=false}={}){
+async function harness(site=null,{store=new Map(),role=null,oauthError=false,hash=''}={}){
  const {window,document}=parseHTML(site?render(source,site):source),redirects=[],opened=[],events=[],oauth=[],timers=[];
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){const o=[...this.options].find(o=>o.hasAttribute('selected'))||this.options[0];return o?(o.getAttribute('value')??o.textContent):'';},set(v){for(const o of this.options)o.toggleAttribute('selected',(o.getAttribute('value')??o.textContent)===v);}});
  window.HTMLElement.prototype.focus=function(){};
  document.addEventListener('site-auth-change',()=>events.push('auth-change'));
  let current=role;
  const client={auth:{getUser:async()=>({data:{user:current?{id:'sample-user',email:'example@example.test'}:null}}),onAuthStateChange(){},signInWithOAuth:async opts=>{oauth.push(opts);return {error:oauthError?Error('test-oauth-failure'):null};},signOut:async()=>{current=null;return {};}},rpc:async name=>({data:name==='site_register'?{role:current}:[]})};
- const context=vm.createContext({document,window,console,URL,Date,sessionStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},location:{origin:'https://deugyi.github.io',replace:url=>redirects.push(url)},SITE_CONFIG:{url:'https://example.supabase.co',key:'public-example',redirect:'https://deugyi.github.io/kds-check/',planFloors:[]},supabase:{createClient:()=>client},CustomEvent:window.CustomEvent,setInterval(){},setTimeout:f=>timers.push(f),confirm:()=>true,scrollTo(){},closeMenus(){},PRDCloudUI:{beforeTradeChange:async()=>true,onFullscreenChange(){},hasUnsaved:()=>false},SitePlanUI:{beforeTradeChange:async()=>true,isReady:()=>true,hasUnsaved:()=>false},SiteOverviewUI:{activate:p=>opened.push(p.id)}});
+ const location={origin:'https://deugyi.github.io',hash,replace:url=>redirects.push(url)};
+ const context=vm.createContext({document,window,console,URL,Date,sessionStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},location,history:{replaceState:(s,t,url)=>location.hash=url},SITE_CONFIG:{url:'https://example.supabase.co',key:'public-example',redirect:'https://deugyi.github.io/kds-check/',planFloors:[]},supabase:{createClient:()=>client},CustomEvent:window.CustomEvent,setInterval(){},setTimeout:f=>timers.push(f),confirm:()=>true,scrollTo(){},closeMenus(){},PRDCloudUI:{beforeTradeChange:async()=>true,onFullscreenChange(){},hasUnsaved:()=>false},SitePlanUI:{beforeTradeChange:async()=>true,isReady:()=>true,hasUnsaved:()=>false,activate:async()=>{}},SiteOverviewUI:{activate:p=>opened.push(p.id)}});
  for(const file of ['site-app.js','site-auth.js','site-workspace.js','home.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context);
  await tick();await tick();
- return {context,document,window,store,redirects,events,oauth,opened,active:()=>[...document.querySelectorAll('section.tab.on')].map(e=>e.id),async login(){document.querySelector((site==='north'?'#site-north-prd':site==='south'?'#site-prd':'.site-page')+' [data-site-login]').click();await tick();},async role(next){current=next;await context.SiteCloud.refresh();}};
+ return {context,document,window,store,redirects,events,oauth,opened,active:()=>[...document.querySelectorAll('section.tab.on')].map(e=>e.id),async login(){document.querySelector((site==='all'?'section.tab.on':site==='north'?'#site-north-prd':site==='south'?'#site-prd':'.site-page')+' [data-site-login]').click();await tick();},async role(next){current=next;await context.SiteCloud.refresh();}};
 }
 
 test('generated entrances retain their own URL and resolve local assets to shared files',()=>{
- for(const site of ['south','north']){
-  const html=render(source,site),base=new URL('./',`https://deugyi.github.io/siteone-${site}/`);
+ for(const site of ['south','north','all']){
+  const repo=site==='all'?'siteone':'siteone-'+site,html=render(source,site),base=new URL('./',`https://deugyi.github.io/${repo}/`);
   const target=path.join(root,'app-target.json');if(fs.existsSync(target)&&JSON.parse(fs.readFileSync(target,'utf8')).site===site)assert.equal(fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/\r\n/g,'\n'),html);
   assert.match(html,new RegExp(`<html lang="ko" data-site-app="${site}">`));assert.equal((html.match(/<base /g)||[]).length,1);assert.doesNotMatch(html,/<iframe|http-equiv="refresh"/i);
   for(const [,file] of html.matchAll(/(?:src|href)="([^"#?]+)(?:\?[^"\n]*)?"/g)){
    if(/^(?:https?:|data:|\/)/.test(file)||file.endsWith('/'))continue;
-   const url=new URL(file,base);assert.ok(url.pathname.startsWith(`/siteone-${site}/`));assert.ok(fs.existsSync(path.join(root,file)),file);
+   const url=new URL(file,base);assert.ok(url.pathname.startsWith(`/${repo}/`));assert.ok(fs.existsSync(path.join(root,file)),file);
   }
  }
 });
@@ -34,11 +35,34 @@ test('north omits south drawing and progress-intake controllers',()=>{
 
 test('both deployed site apps omit future progress markup, menus and intake scripts while preserving its source',()=>{
  assert.match(source,/id="site-progress"/);assert.match(source,/src="site-progress-ui.js\?/);
- for(const site of ['south','north']){
+ for(const site of ['south','north','all']){
   const html=render(source,site);assert.doesNotMatch(html,/id="site-progress"|data-t="site-progress"/);
   for(const file of ['site-progress-ui.js','site-morning-ui.js','supabase/functions/_shared/progress-core.js','supabase/functions/_shared/morning-core.js'])assert.ok(!html.includes(`<script src="${file}?`),file);
   assert.doesNotMatch(html,/href="site-progress\.css/);
  }
+});
+
+test('unified app shows only south/north menus, switches without leaving the app and excludes future intake',async()=>{
+ const h=await harness('all');assert.equal(h.document.title,'사이트원 · 서리풀');assert.equal(h.document.querySelector('#nav').hidden,false);assert.equal(h.document.querySelectorAll('.site-access').length,2);
+ const menus=[...h.document.querySelectorAll('#nav .menu')].filter(m=>!m.hidden).map(m=>m.textContent.trim());assert.deepEqual(menus,['남측','북측']);
+ assert.deepEqual(h.active(),['site-prd']);await h.context.openKDSPage('site-north-prd');assert.deepEqual(h.active(),['site-north-prd']);assert.equal(h.context.location.hash,'#north');
+ await h.context.openKDSPage('site-prd');assert.deepEqual(h.active(),['site-prd']);assert.equal(h.context.location.hash,'#south');
+ await h.context.openKDSPage('site-progress');assert.deepEqual(h.active(),['site-prd']);assert.equal(h.document.querySelector('#site-progress'),null);
+});
+
+test('unified app opens north deep links and restores the same side after login',async()=>{
+ const store=new Map(),h=await harness('all',{hash:'#north',store});assert.deepEqual(h.active(),['site-north-prd']);await h.login();assert.equal(JSON.parse(store.get(key)).page,'site-north-prd');
+ const callback=await harness(null,{store,role:'viewer'});assert.deepEqual(callback.redirects,['https://deugyi.github.io/siteone/#north']);
+ const landed=await harness('all',{store,role:'viewer',hash:'#north'});assert.deepEqual(landed.active(),['site-north-prd']);assert.equal(landed.context.SiteCloud.allowed(),true);
+});
+
+test('unified side changes honor PRD save cancellation and slab boundary editing guards',async()=>{
+ const h=await harness('all',{role:'viewer'}),south=h.document.getElementById('site-prd');
+ await h.context.SiteWorkspace.selectTrade(south,'prd');h.context.PRDCloudUI.beforeTradeChange=async()=>false;
+ assert.equal(await h.context.openKDSPage('site-north-prd'),false);assert.deepEqual(h.active(),['site-prd']);
+ h.context.PRDCloudUI.beforeTradeChange=async()=>true;await h.context.SiteWorkspace.selectTrade(south,'slab');h.context.SitePlanUI.beforeTradeChange=async()=>false;
+ assert.equal(await h.context.openKDSPage('site-north-prd'),false);assert.deepEqual(h.active(),['site-prd']);
+ h.context.SitePlanUI.beforeTradeChange=async()=>true;assert.equal(await h.context.openKDSPage('site-north-prd'),true);assert.deepEqual(h.active(),['site-north-prd']);
 });
 
 test('each app starts at its own workspace and rejects navigation to another site or calculator',async()=>{

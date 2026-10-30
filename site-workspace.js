@@ -86,5 +86,14 @@ for(const page of pages){
 }
 document.addEventListener('fullscreenchange',()=>{for(const page of pages)if(expanded(page)&&document.fullscreenElement!==page)setExpanded(page,false);});
 document.addEventListener('site-auth-change',()=>{if(!root.SiteCloud?.allowed())for(const page of pages)exit(page);});
-root.SiteWorkspace={selectTrade,exit,refreshControls:page=>exportControls(page,true)};
+root.SiteWorkspace={selectTrade,exit,refreshControls:page=>exportControls(page,true),async beforeLeave(page){
+ const state=states.get(page);if(!state)return true;if(state.switching)return false;
+ const epoch=root.SiteCloud?.generation;state.switching=true;
+ try{
+  if(page.id==='site-prd'&&state.trade==='prd'&&!await root.PRDCloudUI.beforeTradeChange())return false;
+  if(page.id==='site-prd'&&['steel','slab'].includes(state.trade)&&!await root.SitePlanUI.beforeTradeChange(state.trade))return false;
+  if(epoch!==root.SiteCloud?.generation)return false;
+  await exit(page);return true;
+ }finally{state.switching=false;}
+}};
 })(globalThis);
